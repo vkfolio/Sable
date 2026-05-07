@@ -1,0 +1,56 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Design tokens — Tailwind reads these via the rgb(var(--token) / <alpha>) bridge. */
+:root {
+  color-scheme: dark;
+
+  --bg: 11 11 12;
+  --bg-2: 19 19 22;
+  --bg-3: 24 24 28;
+  --bg-4: 29 30 35;
+
+  --fg: 231 231 233;
+  --fg-mute: 138 140 147;
+  --fg-dim: 90 92 99;
+
+  --border: 37 38 43;
+  --border-strong: 52 54 60;
+
+  --accent: 107 124 255;
+  --accent-fg: 255 255 255;
+
+  --titlebar-h: 36px;
+  --sidebar-w: 280px;
+  --urlbar-h: 40px;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  user-select: none;
+  font-family: -apple-system, "Segoe UI", "Inter", system-ui, sans-serif;
+}
+
+body {
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+@keyframes pulse {
+  50% { opacity: 0.35; }
+}
+
+/* Scrollbar polish — narrow, monochrome */
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: rgb(var(--border-strong) / 1);
+  border-radius: 4px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--fg-dim) / 1);
+}

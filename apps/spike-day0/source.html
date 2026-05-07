@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Source</title>
+<style>
+  :root { color-scheme: dark; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    font: 14px/1.5 -apple-system, "Segoe UI", system-ui, sans-serif;
+    background: #0b0b0c;
+    color: #e7e7e9;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 24px;
+    box-sizing: border-box;
+  }
+  h1 { font-size: 13px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; opacity: 0.6; margin: 0; }
+  .card {
+    background: #16171a;
+    border: 1px solid #2a2c30;
+    border-radius: 10px;
+    padding: 16px 18px;
+    cursor: grab;
+    user-select: text;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  .card:hover { border-color: #4a4d54; background: #1b1c20; }
+  .card:active { cursor: grabbing; }
+  .card.dragging { opacity: 0.5; }
+  .quote {
+    font-size: 15px;
+    line-height: 1.55;
+  }
+  .meta {
+    margin-top: 10px;
+    font-size: 12px;
+    opacity: 0.55;
+  }
+  .hint {
+    font-size: 12px;
+    opacity: 0.55;
+  }
+  kbd {
+    background: #1f2024;
+    border: 1px solid #34363b;
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+  }
+  .drop-zone {
+    margin-top: auto;
+    border: 2px dashed #34363b;
+    border-radius: 10px;
+    padding: 16px;
+    text-align: center;
+    color: #888a90;
+    font-size: 13px;
+    transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+  }
+  .drop-zone.over {
+    border-color: #6b7cff;
+    background: rgba(107, 124, 255, 0.08);
+    color: #cdd2ff;
+  }
+</style>
+</head>
+<body>
+  <h1>Source pane</h1>
+  <p class="hint">Drag the card below into the right pane. The right pane logs every MIME type it received.</p>
+
+  <div id="card" class="card" draggable="true">
+    <div class="quote">"The browser is the operating system of the future, and we've barely begun to imagine what it could be."</div>
+    <div class="meta">— citation source · sable.test/source · paragraph 1</div>
+  </div>
+
+  <div id="drop" class="drop-zone">…and you can also drop things <em>into</em> this pane (testing reverse direction)</div>
+
+<script>
+  const card = document.getElementById('card');
+  const drop = document.getElementById('drop');
+
+  // ---- DRAG SOURCE ----
+  card.addEventListener('dragstart', (e) => {
+    card.classList.add('dragging');
+
+    const payload = {
+      v: 1,
+      kind: 'quote',
+      text: '"The browser is the operating system of the future, and we\'ve barely begun to imagine what it could be."',
+      url: 'sable://spike/source',
+      title: 'Sable Phase 0 source',
+      anchor: { type: 'TextQuoteSelector', exact: 'browser is the operating system' },
+      pickedUpAt: Date.now(),
+    };
+
+    // The MIME under test:
+    e.dataTransfer.setData('application/x-sable-quote+json; v=1', JSON.stringify(payload));
+
+    // Baseline fallbacks we expect to always survive:
+    e.dataTransfer.setData('text/plain', payload.text + '\n— ' + payload.url);
+    e.dataTransfer.setData('text/html', '<blockquote>' + payload.text + '</blockquote>');
+
+    e.dataTransfer.effectAllowed = 'copy';
+    console.log('dragstart fired, set 3 MIME types: custom JSON, text/plain, text/html');
+  });
+
+  card.addEventListener('dragend', () => {
+    card.classList.remove('dragging');
+    console.log('dragend fired');
+  });
+
+  // ---- DROP TARGET (reverse direction test) ----
+  drop.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    drop.classList.add('over');
+  });
+  drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+  drop.addEventListener('drop', (e) => {
+    e.preventDefault();
+    drop.classList.remove('over');
+    const types = Array.from(e.dataTransfer.types);
+    console.log('drop received in SOURCE pane (reverse direction). MIME types: ' + JSON.stringify(types));
+    for (const t of types) {
+      const value = e.dataTransfer.getData(t);
+      console.log('  ' + t + ' = ' + (value.length > 200 ? value.slice(0, 200) + '…' : value));
+    }
+  });
+</script>
+</body>
+</html>

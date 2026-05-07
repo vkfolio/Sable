@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; connect-src 'self';" />
+<title>Sable</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #0b0b0c;
+    --bg-2: #131316;
+    --bg-3: #18181c;
+    --bg-4: #1d1e23;
+    --fg: #e7e7e9;
+    --fg-mute: #8a8c93;
+    --fg-dim: #5a5c63;
+    --border: #25262b;
+    --border-strong: #34363c;
+    --accent: #6b7cff;
+    --accent-fg: #ffffff;
+    --titlebar-h: 36px;
+    --sidebar-w: 280px;
+    --urlbar-h: 40px;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background: var(--bg);
+    color: var(--fg);
+    font: 13px/1.5 -apple-system, "Segoe UI", "Inter", system-ui, sans-serif;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  /* TITLEBAR */
+  .titlebar {
+    height: var(--titlebar-h);
+    -webkit-app-region: drag;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+    position: relative;
+    z-index: 10;
+  }
+  .titlebar .wordmark {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--fg);
+    margin-left: 80px;
+  }
+  .titlebar .space-pill {
+    margin-left: 12px;
+    padding: 2px 9px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--fg-mute);
+    background: var(--bg-2);
+    border: 1px solid var(--border-strong);
+    border-radius: 999px;
+    -webkit-app-region: no-drag;
+  }
+
+  /* MAIN */
+  .main {
+    display: flex;
+    height: calc(100vh - var(--titlebar-h));
+  }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: var(--sidebar-w);
+    flex: 0 0 auto;
+    background: var(--bg-2);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .cmd-row {
+    display: flex;
+    gap: 6px;
+    padding: 10px;
+    -webkit-app-region: no-drag;
+  }
+  .cmd {
+    flex: 1;
+    padding: 8px 12px;
+    background: var(--bg-3);
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--fg);
+    outline: none;
+    -webkit-app-region: no-drag;
+  }
+  .cmd::placeholder { color: var(--fg-dim); }
+  .cmd:focus { border-color: var(--accent); }
+  .icon-btn {
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-3);
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    color: var(--fg-mute);
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+    -webkit-app-region: no-drag;
+  }
+  .icon-btn:hover { color: var(--fg); border-color: var(--fg-dim); }
+  .icon-btn:disabled { opacity: 0.4; cursor: default; }
+  .icon-btn:disabled:hover { color: var(--fg-mute); border-color: var(--border-strong); }
+
+  .section-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--fg-dim);
+    text-transform: uppercase;
+    padding: 8px 16px 4px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .section-label .add {
+    color: var(--fg-mute);
+    cursor: pointer;
+    -webkit-app-region: no-drag;
+    font-size: 14px;
+    line-height: 1;
+  }
+  .section-label .add:hover { color: var(--fg); }
+
+  .tab-list { flex: 1; overflow: auto; -webkit-app-region: no-drag; }
+  .tab {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 16px;
+    font-size: 13px;
+    color: var(--fg-mute);
+    cursor: default;
+    transition: background 0.1s ease, color 0.1s ease;
+  }
+  .tab:hover { background: var(--bg-3); color: var(--fg); }
+  .tab.active { background: var(--bg-4); color: var(--fg); }
+  .tab .favicon {
+    width: 14px;
+    height: 14px;
+    flex: 0 0 auto;
+    border-radius: 3px;
+    background: var(--bg-3);
+    object-fit: contain;
+  }
+  .tab .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--fg-dim);
+    flex: 0 0 auto;
+    display: none;
+  }
+  .tab.loading .dot { display: block; background: var(--accent); animation: pulse 1.2s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: 0.35; } }
+  .tab .title {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .tab .close {
+    color: var(--fg-dim);
+    font-size: 14px;
+    line-height: 1;
+    width: 18px;
+    height: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    visibility: hidden;
+  }
+  .tab:hover .close { visibility: visible; }
+  .tab .close:hover { background: var(--bg-3); color: var(--fg); }
+
+  .chat-panel {
+    margin-top: auto;
+    border-top: 1px solid var(--border);
+    padding: 12px 16px;
+    color: var(--fg-mute);
+    -webkit-app-region: no-drag;
+  }
+  .chat-panel .placeholder {
+    font-size: 12px;
+    line-height: 1.6;
+  }
+
+  /* PANE AREA — chrome owns the URL bar at the top; tab WebContentsView fills the rest */
+  .panes {
+    flex: 1;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+  }
+  .urlbar-row {
+    height: var(--urlbar-h);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 10px;
+    border-bottom: 1px solid var(--border);
+    -webkit-app-region: no-drag;
+  }
+  .urlbar {
+    flex: 1;
+    padding: 7px 12px;
+    background: var(--bg-2);
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    color: var(--fg);
+    font-size: 12.5px;
+    outline: none;
+  }
+  .urlbar::placeholder { color: var(--fg-dim); }
+  .urlbar:focus { border-color: var(--accent); }
+  .pane-content {
+    /* tab WebContentsView is positioned over this area by main */
+    flex: 1;
+    background: var(--bg);
+  }
+</style>
+</head>
+<body>
+  <div class="titlebar">
+    <span class="wordmark">Sable</span>
+    <span class="space-pill">● coding</span>
+  </div>
+
+  <div class="main">
+    <aside class="sidebar">
+      <div class="cmd-row">
+        <input class="cmd" id="cmd" type="text" placeholder="Search or chat…" />
+      </div>
+
+      <div class="section-label">
+        <span>Tabs</span>
+        <span class="add" id="addTab" title="New tab (Ctrl+T)">+</span>
+      </div>
+      <div class="tab-list" id="tabList"></div>
+
+      <div class="chat-panel">
+        <div class="section-label" style="padding: 0 0 6px;">Chat</div>
+        <div class="placeholder">
+          AI chat lives here. Hooks up in Phase&nbsp;2 with BYOK.<br/>
+          Drag a quote from a page to get a citation.
+        </div>
+      </div>
+    </aside>
+
+    <main class="panes">
+      <div class="urlbar-row">
+        <button class="icon-btn" id="back" title="Back" disabled>‹</button>
+        <button class="icon-btn" id="forward" title="Forward" disabled>›</button>
+        <button class="icon-btn" id="reload" title="Reload">↻</button>
+        <input class="urlbar" id="urlbar" type="text" placeholder="Enter URL or search…" />
+      </div>
+      <div class="pane-content"></div>
+    </main>
+  </div>
+
+  <script>
+    'use strict';
+    /** @type {any} */
+    const api = window.sable;
+    if (!api) {
+      console.error('window.sable missing — preload did not load');
+    }
+
+    // ------- state -------
+    /** @type {Map<string, any>} */
+    const tabsById = new Map();
+    /** @type {string | null} */
+    let activeTabId = null;
+
+    // ------- elements -------
+    const tabListEl = document.getElementById('tabList');
+    const urlbar = /** @type {HTMLInputElement} */ (document.getElementById('urlbar'));
+    const cmdInput = /** @type {HTMLInputElement} */ (document.getElementById('cmd'));
+    const backBtn = /** @type {HTMLButtonElement} */ (document.getElementById('back'));
+    const forwardBtn = /** @type {HTMLButtonElement} */ (document.getElementById('forward'));
+    const reloadBtn = document.getElementById('reload');
+
+    // ------- url normalization -------
+    function normalizeUrl(input) {
+      const trimmed = input.trim();
+      if (!trimmed) return null;
+      if (/^[a-z][a-z0-9+\-.]*:/i.test(trimmed)) return trimmed; // already has scheme
+      if (/^[\w-]+(\.[\w-]+)+(\/.*)?$/i.test(trimmed)) return 'https://' + trimmed; // looks like a domain
+      return 'https://duckduckgo.com/?q=' + encodeURIComponent(trimmed);
+    }
+
+    // ------- render -------
+    function renderTabs() {
+      tabListEl.innerHTML = '';
+      const states = Array.from(tabsById.values());
+      if (states.length === 0) {
+        const empty = document.createElement('div');
+        empty.style.cssText = 'padding: 12px 16px; color: var(--fg-dim); font-size: 12px;';
+        empty.textContent = 'No tabs. Press + or Ctrl+T to open one.';
+        tabListEl.appendChild(empty);
+        return;
+      }
+      for (const t of states) {
+        const row = document.createElement('div');
+        row.className = 'tab' + (t.id === activeTabId ? ' active' : '') + (t.loading ? ' loading' : '');
+        row.dataset.id = t.id;
+
+        const fav = document.createElement('img');
+        fav.className = 'favicon';
+        fav.alt = '';
+        if (t.faviconUrl) fav.src = t.faviconUrl;
+        row.appendChild(fav);
+
+        const dot = document.createElement('span');
+        dot.className = 'dot';
+        row.appendChild(dot);
+
+        const title = document.createElement('span');
+        title.className = 'title';
+        title.textContent = t.title || t.url || '(loading)';
+        row.appendChild(title);
+
+        const close = document.createElement('span');
+        close.className = 'close';
+        close.textContent = '×';
+        close.title = 'Close tab';
+        close.addEventListener('click', (e) => {
+          e.stopPropagation();
+          api.tabs.close(t.id);
+        });
+        row.appendChild(close);
+
+        row.addEventListener('click', () => api.tabs.setActive(t.id));
+        tabListEl.appendChild(row);
+      }
+    }
+
+    function renderActive() {
+      const t = activeTabId ? tabsById.get(activeTabId) : null;
+      if (!t) {
+        urlbar.value = '';
+        backBtn.disabled = true;
+        forwardBtn.disabled = true;
+        return;
+      }
+      // Don't overwrite the URL bar while it's focused (user is editing).
+      if (document.activeElement !== urlbar) urlbar.value = t.url;
+      backBtn.disabled = !t.canGoBack;
+      forwardBtn.disabled = !t.canGoForward;
+    }
+
+    // ------- input handlers -------
+    urlbar.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const url = normalizeUrl(urlbar.value);
+        if (url && activeTabId) api.tabs.navigate(activeTabId, url);
+      } else if (e.key === 'Escape') {
+        const t = activeTabId ? tabsById.get(activeTabId) : null;
+        if (t) urlbar.value = t.url;
+        urlbar.blur();
+      }
+    });
+
+    cmdInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const url = normalizeUrl(cmdInput.value);
+        if (url) {
+          api.tabs.create(url);
+          cmdInput.value = '';
+        }
+      }
+    });
+
+    document.getElementById('addTab').addEventListener('click', () => {
+      api.tabs.create('https://duckduckgo.com');
+    });
+
+    backBtn.addEventListener('click', () => activeTabId && api.tabs.goBack(activeTabId));
+    forwardBtn.addEventListener('click', () => activeTabId && api.tabs.goForward(activeTabId));
+    reloadBtn.addEventListener('click', () => activeTabId && api.tabs.reload(activeTabId));
+
+    document.addEventListener('keydown', (e) => {
+      const ctrlOrMeta = e.ctrlKey || e.metaKey;
+      if (ctrlOrMeta && e.key.toLowerCase() === 't') {
+        e.preventDefault();
+        api.tabs.create('https://duckduckgo.com');
+      } else if (ctrlOrMeta && e.key.toLowerCase() === 'w') {
+        e.preventDefault();
+        if (activeTabId) api.tabs.close(activeTabId);
+      } else if (ctrlOrMeta && e.key.toLowerCase() === 'l') {
+        e.preventDefault();
+        urlbar.focus();
+        urlbar.select();
+      } else if (ctrlOrMeta && e.key.toLowerCase() === 'r') {
+        e.preventDefault();
+        if (activeTabId) api.tabs.reload(activeTabId);
+      }
+    });
+
+    // ------- subscriptions -------
+    api.on.tabUpdated((state) => {
+      tabsById.set(state.id, state);
+      renderTabs();
+      if (state.id === activeTabId) renderActive();
+    });
+
+    api.on.tabRemoved((id) => {
+      tabsById.delete(id);
+      renderTabs();
+    });
+
+    api.on.activeChanged((id) => {
+      activeTabId = id;
+      renderTabs();
+      renderActive();
+    });
+
+    // ------- bootstrap -------
+    // Rely on push events (tabUpdated / activeChanged) for initial state.
+    // The main process opens the homepage tab right after the chrome's
+    // did-finish-load fires, which always lands AFTER our listeners
+    // are registered above.
+    renderTabs();
+    renderActive();
+    console.log('chrome.html ready; awaiting initial tab from main');
+  </script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+node_modules/
+dist/
+out/
+.vite/
+.cache/
+.turbo/
+.DS_Store
+Thumbs.db
+*.log
+.env
+.env.local
+.env.*.local
+
+# models (downloaded at first run, ~2-3 GB)
+models/
+
+# user data (when running locally)
+userData/
+
+# Electron build artifacts
+*.exe
+*.dmg
+*.AppImage
+*.deb
+*.rpm
+release/
+pnpm-lock.yaml
+pnpm-workspace.yaml

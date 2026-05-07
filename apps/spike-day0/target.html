@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Target</title>
+<style>
+  :root { color-scheme: dark; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    font: 14px/1.5 -apple-system, "Segoe UI", system-ui, sans-serif;
+    background: #0b0b0c;
+    color: #e7e7e9;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 24px;
+    box-sizing: border-box;
+  }
+  h1 { font-size: 13px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; opacity: 0.6; margin: 0; }
+  .hint { font-size: 12px; opacity: 0.55; }
+  .drop-zone {
+    flex: 1;
+    border: 2px dashed #34363b;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #888a90;
+    font-size: 14px;
+    transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+  }
+  .drop-zone.over {
+    border-color: #6b7cff;
+    background: rgba(107, 124, 255, 0.08);
+    color: #cdd2ff;
+  }
+  .verdict {
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.5;
+    display: none;
+  }
+  .verdict.show { display: block; }
+  .verdict.pass { background: rgba(64, 200, 120, 0.12); border: 1px solid rgba(64, 200, 120, 0.4); color: #b6f0c9; }
+  .verdict.fail { background: rgba(255, 92, 92, 0.12); border: 1px solid rgba(255, 92, 92, 0.4); color: #ffc7c7; }
+  .source-card {
+    background: #16171a;
+    border: 1px solid #2a2c30;
+    border-radius: 10px;
+    padding: 12px 16px;
+    cursor: grab;
+    margin-top: auto;
+    font-size: 13px;
+  }
+  .source-card:active { cursor: grabbing; }
+  .source-card.dragging { opacity: 0.5; }
+</style>
+</head>
+<body>
+  <h1>Target pane</h1>
+  <p class="hint">Drop the card from the left here. We'll check whether <code>application/x-sable-quote+json</code> survived the cross-WebContentsView OS drag.</p>
+
+  <div id="drop" class="drop-zone">drop here</div>
+
+  <div id="verdict" class="verdict"></div>
+
+  <div id="reverseCard" class="source-card" draggable="true">
+    Drag <em>this</em> card back into the left pane to test reverse direction.
+  </div>
+
+<script>
+  const dropZone = document.getElementById('drop');
+  const verdict = document.getElementById('verdict');
+  const reverseCard = document.getElementById('reverseCard');
+
+  // ---- DROP TARGET ----
+  dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZone.classList.add('over');
+  });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('over'));
+  dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('over');
+
+    const types = Array.from(e.dataTransfer.types);
+    console.log('drop received in TARGET pane. MIME types: ' + JSON.stringify(types));
+
+    let customJson = null;
+    let customJsonRaw = null;
+    for (const t of types) {
+      const raw = e.dataTransfer.getData(t);
+      console.log('  ' + t + ' = ' + (raw.length > 200 ? raw.slice(0, 200) + '…' : raw));
+      if (t.toLowerCase().startsWith('application/x-sable-quote+json')) {
+        customJsonRaw = raw;
+        try { customJson = JSON.parse(raw); } catch (_) { /* ignore */ }
+      }
+    }
+
+    if (customJson && customJson.kind === 'quote') {
+      verdict.className = 'verdict show pass';
+      verdict.textContent =
+        'PASS — custom MIME survived. application/x-sable-quote+json round-trip ok. ' +
+        'Architecture path A (page->sidebar via custom MIME) is green. ' +
+        'Payload picked up at: ' + new Date(customJson.pickedUpAt).toISOString();
+      console.log('SPIKE_RESULT=PASS');
+    } else if (customJsonRaw) {
+      verdict.className = 'verdict show fail';
+      verdict.textContent =
+        'PARTIAL — custom MIME present but JSON did not parse cleanly. Raw: ' + customJsonRaw;
+      console.log('SPIKE_RESULT=PARTIAL');
+    } else {
+      verdict.className = 'verdict show fail';
+      verdict.textContent =
+        'FAIL — custom MIME application/x-sable-quote+json was stripped. ' +
+        'Received only: ' + types.join(', ') + '. ' +
+        'Architecture must use the DragBroker fallback (token in text/plain + lookup table in main).';
+      console.log('SPIKE_RESULT=FAIL_NO_CUSTOM_MIME');
+    }
+  });
+
+  // ---- DRAG SOURCE (reverse direction) ----
+  reverseCard.addEventListener('dragstart', (e) => {
+    reverseCard.classList.add('dragging');
+    const payload = {
+      v: 1,
+      kind: 'reverse-test',
+      text: 'Reverse-direction payload from target pane',
+      pickedUpAt: Date.now(),
+    };
+    e.dataTransfer.setData('application/x-sable-quote+json; v=1', JSON.stringify(payload));
+    e.dataTransfer.setData('text/plain', payload.text);
+    e.dataTransfer.effectAllowed = 'copy';
+    console.log('reverse dragstart fired (target -> source)');
+  });
+  reverseCard.addEventListener('dragend', () => reverseCard.classList.remove('dragging'));
+</script>
+</body>
+</html>

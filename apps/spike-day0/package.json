@@ -1,0 +1,13 @@
+{
+  "name": "spike-day0",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Phase 0 spike — verify custom MIME survives cross-WebContentsView OS drag",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^33.2.0"
+  }
+}
