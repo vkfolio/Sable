@@ -12,7 +12,17 @@
 
 import { BrowserWindow, WebContentsView } from 'electron';
 import { randomUUID } from 'node:crypto';
+import path from 'node:path';
 import type { TabId } from '@sable/layout-engine';
+
+/**
+ * Path to the compiled tab preload. Resolved relative to dist/main where
+ * this file ends up after tsc. Mirrors the chrome-preload pattern in
+ * window-manager.ts.
+ */
+function tabPreloadPath(): string {
+  return path.join(__dirname, '..', 'preload', 'tab-preload.js');
+}
 
 export type TabState = {
   readonly id: TabId;
@@ -40,7 +50,11 @@ export class TabManager {
   create(initialUrl: string): TabId {
     const id = randomUUID();
     const view = new WebContentsView({
-      webPreferences: { contextIsolation: true, sandbox: true },
+      webPreferences: {
+        contextIsolation: true,
+        sandbox: true,
+        preload: tabPreloadPath(),
+      },
     });
 
     const initial: TabState = {
