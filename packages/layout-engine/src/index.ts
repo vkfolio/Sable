@@ -12,6 +12,7 @@ export type {
 } from './types';
 export { MIN_RATIO, MAX_RATIO } from './types';
 export { layout } from './layout';
+export { dividers, type Divider } from './dividers';
 export { applyDrop, defaultPaneIdGenerator } from './apply-drop';
 export type { ApplyDropOptions } from './apply-drop';
 export { removeTab } from './remove-tab';

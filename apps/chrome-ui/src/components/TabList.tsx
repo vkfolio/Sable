@@ -1,6 +1,9 @@
 import { useShallow } from 'zustand/react/shallow';
 import { useTabsStore } from '../state/tabs';
+import { useDragStore } from '../state/drag';
 import type { TabState } from '../types';
+
+const DRAG_THRESHOLD_PX = 4;
 
 export function TabList() {
   // useShallow so a fresh-array result with identical contents doesn't re-render.
@@ -25,6 +28,37 @@ export function TabList() {
 }
 
 function TabRow({ tab, active }: { tab: TabState; active: boolean }) {
+  const startDrag = useDragStore((s) => s.start);
+  const dragging = useDragStore((s) => s.dragging);
+  const isBeingDragged = dragging?.tabId === tab.id;
+
+  // Pointer-down captures position; only enter drag mode after the user moves
+  // beyond DRAG_THRESHOLD_PX so a plain click still selects the tab.
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return; // left button only
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const tabId = tab.id;
+    let dragStarted = false;
+
+    const onMove = (ev: PointerEvent) => {
+      if (dragStarted) return;
+      const dx = ev.clientX - startX;
+      const dy = ev.clientY - startY;
+      if (dx * dx + dy * dy >= DRAG_THRESHOLD_PX * DRAG_THRESHOLD_PX) {
+        dragStarted = true;
+        startDrag(tabId);
+      }
+    };
+    const onUp = () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      // If drag never started, this was a click. Selection happens via onClick below.
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  };
+
   const handleClick = () => {
     void window.sable.tabs.setActive(tab.id);
   };
@@ -35,12 +69,13 @@ function TabRow({ tab, active }: { tab: TabState; active: boolean }) {
 
   return (
     <div
+      onPointerDown={handlePointerDown}
       onClick={handleClick}
-      className={`group flex items-center gap-2.5 px-4 py-1.5 text-base cursor-default transition-colors ${
+      className={`group flex items-center gap-2.5 px-4 py-1.5 text-base cursor-default transition-colors select-none ${
         active
           ? 'bg-bg-4 text-fg'
           : 'text-fg-mute hover:bg-bg-3 hover:text-fg'
-      }`}
+      } ${isBeingDragged ? 'opacity-50' : ''}`}
     >
       {tab.faviconUrl ? (
         <img

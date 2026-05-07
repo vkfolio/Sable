@@ -4,7 +4,15 @@
 // + a restricted ipcRenderer subset is available; this is by design.
 
 import { contextBridge, ipcRenderer } from 'electron';
-import { IpcChannels, type SableApi, type TabId, type TabState } from '../shared/ipc-types';
+import {
+  IpcChannels,
+  type DropEdge,
+  type LayoutSnapshot,
+  type PaneId,
+  type SableApi,
+  type TabId,
+  type TabState,
+} from '../shared/ipc-types';
 
 function on<T>(channel: string, cb: (value: T) => void): () => void {
   const listener = (_event: Electron.IpcRendererEvent, value: T) => cb(value);
@@ -26,10 +34,19 @@ const api: SableApi = {
     reload: (id) => ipcRenderer.invoke(IpcChannels.TabsReload, id) as Promise<void>,
     list: () => ipcRenderer.invoke(IpcChannels.TabsList) as Promise<TabState[]>,
   },
+  layout: {
+    dragStart: () => ipcRenderer.invoke(IpcChannels.LayoutDragStart) as Promise<void>,
+    dragEnd: () => ipcRenderer.invoke(IpcChannels.LayoutDragEnd) as Promise<void>,
+    drop: (sourceTabId: TabId, targetPaneId: PaneId, edge: DropEdge) =>
+      ipcRenderer.invoke(IpcChannels.LayoutDrop, sourceTabId, targetPaneId, edge) as Promise<void>,
+    resize: (splitId: PaneId, newRatio: number) =>
+      ipcRenderer.invoke(IpcChannels.LayoutResize, splitId, newRatio) as Promise<void>,
+  },
   on: {
     tabUpdated: (cb) => on<TabState>(IpcChannels.TabsUpdated, cb),
     tabRemoved: (cb) => on<TabId>(IpcChannels.TabsRemoved, cb),
     activeChanged: (cb) => on<TabId | null>(IpcChannels.TabsActiveChanged, cb),
+    layoutChanged: (cb) => on<LayoutSnapshot>(IpcChannels.LayoutChanged, cb),
   },
 };
 

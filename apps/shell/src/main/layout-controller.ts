@@ -16,14 +16,51 @@
 // and drop overlays once those land).
 
 import { BrowserWindow, WebContentsView } from 'electron';
-import { layout, leaves, type Pane, type Rect, type TabId } from '@sable/layout-engine';
+import {
+  applyDrop,
+  dividers as computeDividers,
+  findPaneById,
+  layout,
+  leaves,
+  removeTab,
+  resize,
+  type DropEdge,
+  type Pane,
+  type PaneId,
+  type Rect,
+  type TabId,
+} from '@sable/layout-engine';
 import type { TabManager } from './tab-manager';
 
-const SIDEBAR_WIDTH = 280; // mirror of --sidebar-w in chrome.html
+const SIDEBAR_WIDTH = 280; // mirror of --sidebar-w in chrome-ui/src/index.css
+const DIVIDER_THICKNESS = 4;
+
+export type SnapshotLeaf = {
+  readonly paneId: PaneId;
+  readonly tabId: TabId;
+  readonly rect: Rect;
+};
+
+export type SnapshotDivider = {
+  readonly splitId: PaneId;
+  readonly direction: 'h' | 'v';
+  readonly rect: Rect;
+  readonly parentRect: Rect;
+};
+
+export type LayoutSnapshot = {
+  readonly tree: Pane | null;
+  readonly leaves: readonly SnapshotLeaf[];
+  readonly dividers: readonly SnapshotDivider[];
+  readonly paneOrigin: { readonly x: number; readonly y: number };
+};
+
+type SnapshotListener = (snapshot: LayoutSnapshot) => void;
 
 export class LayoutController {
   private tree: Pane | null = null;
   private readonly mounted = new Set<TabId>();
+  private readonly snapshotListeners = new Set<SnapshotListener>();
 
   constructor(
     private readonly window: BrowserWindow,
@@ -55,6 +92,64 @@ export class LayoutController {
     this.applyLayout();
   }
 
+  /**
+   * Subscribe to layout snapshots. Fires on every reflow (tree change or
+   * window resize). Returns an unsubscribe function.
+   */
+  onSnapshot(listener: SnapshotListener): () => void {
+    this.snapshotListeners.add(listener);
+    return () => {
+      this.snapshotListeners.delete(listener);
+    };
+  }
+
+  /**
+   * Drag-mode toggling. While active, all tab WebContentsViews are
+   * unmounted so the chrome's drop overlays receive pointer events.
+   * The tree itself is unchanged.
+   */
+  setDragMode(active: boolean): void {
+    if (active) {
+      this.unmountAll();
+    } else {
+      this.applyLayout();
+    }
+  }
+
+  /**
+   * Apply a drop to the tree. The source tab is plucked from wherever it
+   * currently lives in the tree and inserted at the target pane / edge. If
+   * the source isn't currently in the tree (e.g., it was a hidden tab), it
+   * just gets inserted. Always re-mounts views and emits a snapshot.
+   */
+  applyDrop(sourceTabId: TabId, targetPaneId: PaneId, edge: DropEdge): void {
+    if (!this.tree) {
+      // No layout yet; drop becomes a single leaf.
+      this.tree = { kind: 'leaf', id: `pane-${sourceTabId}`, tabId: sourceTabId };
+      this.applyLayout();
+      return;
+    }
+    // Remove the source from its current position (if present), then drop.
+    const without = removeTab(this.tree, sourceTabId);
+    // If target was the source's pane and we're center-dropping, that's a no-op.
+    if (without === null) {
+      // Removed the only leaf; result depends on the edge.
+      this.tree = { kind: 'leaf', id: `pane-${sourceTabId}`, tabId: sourceTabId };
+      this.applyLayout();
+      return;
+    }
+    // If the target pane no longer exists after removal (target == source's
+    // pane and that pane collapsed), recover by treating as a single-leaf set.
+    const stillHasTarget = findPaneById(without, targetPaneId) !== undefined;
+    if (!stillHasTarget) {
+      this.tree = without;
+      this.applyLayout();
+      return;
+    }
+    this.tree = applyDrop(without, sourceTabId, targetPaneId, edge);
+    this.applyLayout();
+  }
+
   private applyLayout(): void {
     if (this.window.isDestroyed()) return;
     const { width, height } = this.window.getContentBounds();
@@ -67,33 +162,64 @@ export class LayoutController {
       height: Math.max(0, height - this.titleBarHeight),
     };
 
+    const snapshotLeaves: SnapshotLeaf[] = [];
+    let snapshotDividers: SnapshotDivider[] = [];
+
     if (!this.tree) {
       this.unmountAll();
-      return;
-    }
+    } else {
+      const rects = layout(this.tree, paneViewport, DIVIDER_THICKNESS);
+      const wanted = new Set<TabId>();
 
-    const rects = layout(this.tree, paneViewport);
-    const wanted = new Set<TabId>();
+      for (const leaf of leaves(this.tree)) {
+        const rect = rects.get(leaf.id);
+        const view = this.tabManager.getView(leaf.tabId);
+        if (!rect || !view) continue;
 
-    for (const leaf of leaves(this.tree)) {
-      const rect = rects.get(leaf.id);
-      const view = this.tabManager.getView(leaf.tabId);
-      if (!rect || !view) continue;
+        if (!this.mounted.has(leaf.tabId)) {
+          this.window.contentView.addChildView(view);
+          this.mounted.add(leaf.tabId);
+        }
+        view.setBounds(rect);
+        wanted.add(leaf.tabId);
 
-      if (!this.mounted.has(leaf.tabId)) {
-        this.window.contentView.addChildView(view);
-        this.mounted.add(leaf.tabId);
+        snapshotLeaves.push({ paneId: leaf.id, tabId: leaf.tabId, rect });
       }
-      view.setBounds(rect);
-      wanted.add(leaf.tabId);
+
+      // Unmount tabs that left the tree (closed or moved out).
+      for (const id of [...this.mounted]) {
+        if (wanted.has(id)) continue;
+        const view = this.tabManager.getView(id);
+        if (view) this.safeRemove(view);
+        this.mounted.delete(id);
+      }
+
+      snapshotDividers = computeDividers(this.tree, paneViewport, DIVIDER_THICKNESS);
     }
 
-    // Unmount tabs that left the tree (closed or moved out).
-    for (const id of [...this.mounted]) {
-      if (wanted.has(id)) continue;
-      const view = this.tabManager.getView(id);
-      if (view) this.safeRemove(view);
-      this.mounted.delete(id);
+    this.emitSnapshot({
+      tree: this.tree,
+      leaves: snapshotLeaves,
+      dividers: snapshotDividers,
+      paneOrigin: { x: paneViewport.x, y: paneViewport.y },
+    });
+  }
+
+  /** Resize a split's ratio. Live during divider drag. */
+  applyResize(splitId: PaneId, newRatio: number): void {
+    if (!this.tree) return;
+    this.tree = resize(this.tree, splitId, newRatio);
+    this.applyLayout();
+  }
+
+  private emitSnapshot(snapshot: LayoutSnapshot): void {
+    for (const cb of this.snapshotListeners) {
+      try {
+        cb(snapshot);
+      } catch (err) {
+        // Swallow — listener errors must not break layout.
+        process.stderr.write(`layout snapshot listener error: ${String(err)}\n`);
+      }
     }
   }
 

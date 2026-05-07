@@ -2,6 +2,9 @@
 // apps/shell/src/shared/ipc-types.ts. We don't depend on the shell package
 // directly — the boundary is the SableApi exposed via contextBridge.
 
+import type { DropEdge, LeafPane, Pane, PaneId, Rect, SplitPane } from '@sable/layout-engine';
+
+export type { DropEdge, LeafPane, Pane, PaneId, Rect, SplitPane };
 export type TabId = string;
 
 export type TabState = {
@@ -12,6 +15,27 @@ export type TabState = {
   readonly loading: boolean;
   readonly canGoBack: boolean;
   readonly canGoForward: boolean;
+  readonly lastActiveAt: number;
+};
+
+export type SnapshotLeaf = {
+  readonly paneId: PaneId;
+  readonly tabId: TabId;
+  readonly rect: Rect;
+};
+
+export type SnapshotDivider = {
+  readonly splitId: PaneId;
+  readonly direction: 'h' | 'v';
+  readonly rect: Rect;
+  readonly parentRect: Rect;
+};
+
+export type LayoutSnapshot = {
+  readonly tree: Pane | null;
+  readonly leaves: readonly SnapshotLeaf[];
+  readonly dividers: readonly SnapshotDivider[];
+  readonly paneOrigin: { readonly x: number; readonly y: number };
 };
 
 export type SableApi = {
@@ -26,9 +50,16 @@ export type SableApi = {
     reload(id: TabId): Promise<void>;
     list(): Promise<TabState[]>;
   };
+  readonly layout: {
+    dragStart(): Promise<void>;
+    dragEnd(): Promise<void>;
+    drop(sourceTabId: TabId, targetPaneId: PaneId, edge: DropEdge): Promise<void>;
+    resize(splitId: PaneId, newRatio: number): Promise<void>;
+  };
   readonly on: {
     tabUpdated(cb: (state: TabState) => void): () => void;
     tabRemoved(cb: (id: TabId) => void): () => void;
     activeChanged(cb: (id: TabId | null) => void): () => void;
+    layoutChanged(cb: (snapshot: LayoutSnapshot) => void): () => void;
   };
 };

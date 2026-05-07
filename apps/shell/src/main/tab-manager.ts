@@ -22,6 +22,9 @@ export type TabState = {
   readonly loading: boolean;
   readonly canGoBack: boolean;
   readonly canGoForward: boolean;
+  /** Epoch ms; updated on focus, navigate, and creation. Drives LRU
+   *  eviction in V0.2 when active-pane cap is enforced. */
+  readonly lastActiveAt: number;
 };
 
 type UpdateListener = (state: TabState) => void;
@@ -48,6 +51,7 @@ export class TabManager {
       loading: true,
       canGoBack: false,
       canGoForward: false,
+      lastActiveAt: Date.now(),
     };
     this.tabs.set(id, { view, state: initial });
     this.wireEvents(id, view);
@@ -74,9 +78,16 @@ export class TabManager {
   navigate(id: TabId, url: string): void {
     const entry = this.tabs.get(id);
     if (!entry) return;
+    this.update(id, { lastActiveAt: Date.now() });
     entry.view.webContents.loadURL(url).catch((err) => {
       this.update(id, { loading: false, title: `Failed: ${err.message}` });
     });
+  }
+
+  /** Mark a tab as the active focus — bumps lastActiveAt for LRU tracking. */
+  markActive(id: TabId): void {
+    if (!this.tabs.has(id)) return;
+    this.update(id, { lastActiveAt: Date.now() });
   }
 
   goBack(id: TabId): void {

@@ -3,6 +3,8 @@ import { TitleBar } from './components/TitleBar';
 import { Sidebar } from './components/Sidebar';
 import { PaneArea } from './components/PaneArea';
 import { useTabsStore } from './state/tabs';
+import { useLayoutStore } from './state/layout';
+import { useDragStore } from './state/drag';
 
 export function App() {
   const activeTabId = useTabsStore((s) => s.activeTabId);
@@ -12,10 +14,12 @@ export function App() {
     const upsert = useTabsStore.getState().upsertTab;
     const remove = useTabsStore.getState().removeTab;
     const setActive = useTabsStore.getState().setActive;
+    const applyLayout = useLayoutStore.getState().apply;
 
     const offUpdate = window.sable.on.tabUpdated(upsert);
     const offRemove = window.sable.on.tabRemoved(remove);
     const offActive = window.sable.on.activeChanged(setActive);
+    const offLayout = window.sable.on.layoutChanged(applyLayout);
 
     useTabsStore.getState().setBootstrapped();
 
@@ -23,12 +27,19 @@ export function App() {
       offUpdate();
       offRemove();
       offActive();
+      offLayout();
     };
   }, []);
 
   // Global keyboard shortcuts.
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      // Escape always cancels an in-progress drag, regardless of focus target.
+      if (e.key === 'Escape' && useDragStore.getState().dragging) {
+        e.preventDefault();
+        useDragStore.getState().end(false);
+        return;
+      }
       const ctrlOrMeta = e.ctrlKey || e.metaKey;
       if (!ctrlOrMeta) return;
       const k = e.key.toLowerCase();
@@ -46,6 +57,18 @@ export function App() {
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
   }, [activeTabId]);
+
+  // Document-wide pointerup ends drag-to-split. Commits the drop iff a zone
+  // is currently hovered. Pointermove keeps drag going (zones handle their
+  // own onPointerEnter for hover detection).
+  useEffect(() => {
+    const handler = () => {
+      const drag = useDragStore.getState();
+      if (drag.dragging) drag.end(true);
+    };
+    document.addEventListener('pointerup', handler);
+    return () => document.removeEventListener('pointerup', handler);
+  }, []);
 
   return (
     <div className="h-full flex flex-col">

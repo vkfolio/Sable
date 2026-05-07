@@ -9,7 +9,7 @@
 
 import { BrowserWindow, WebContentsView, app, ipcMain } from 'electron';
 import path from 'node:path';
-import type { TabId } from '@sable/layout-engine';
+import type { DropEdge, PaneId, TabId } from '@sable/layout-engine';
 import { getWindowControls } from './platform/window-controls';
 import { TabManager } from './tab-manager';
 import { LayoutController } from './layout-controller';
@@ -108,6 +108,7 @@ export class WindowManager {
     const id = this.tabs!.create(url);
     this.layout!.setTree({ kind: 'leaf', id: `pane-${id}`, tabId: id });
     this.activeTabId = id;
+    this.tabs!.markActive(id);
     this.broadcastActiveChanged();
     return id;
   }
@@ -116,6 +117,7 @@ export class WindowManager {
     if (!this.tabs!.get(id)) return;
     this.layout!.setTree({ kind: 'leaf', id: `pane-${id}`, tabId: id });
     this.activeTabId = id;
+    this.tabs!.markActive(id);
     this.broadcastActiveChanged();
   }
 
@@ -154,6 +156,22 @@ export class WindowManager {
     ipcMain.handle(IpcChannels.TabsGoForward, (_e, id: TabId) => this.tabs?.goForward(id));
     ipcMain.handle(IpcChannels.TabsReload, (_e, id: TabId) => this.tabs?.reload(id));
     ipcMain.handle(IpcChannels.TabsList, () => this.tabs?.list() ?? []);
+
+    ipcMain.handle(IpcChannels.LayoutDragStart, () => this.layout?.setDragMode(true));
+    ipcMain.handle(IpcChannels.LayoutDragEnd, () => this.layout?.setDragMode(false));
+    ipcMain.handle(IpcChannels.LayoutDrop,
+      (_e, sourceTabId: TabId, targetPaneId: PaneId, edge: DropEdge) => {
+        if (!this.layout) return;
+        this.layout.applyDrop(sourceTabId, targetPaneId, edge);
+        // After drop, the source tab should become active so its WebContentsView
+        // is the focused one in the new layout.
+        this.activeTabId = sourceTabId;
+        this.broadcastActiveChanged();
+      },
+    );
+    ipcMain.handle(IpcChannels.LayoutResize, (_e, splitId: PaneId, newRatio: number) => {
+      this.layout?.applyResize(splitId, newRatio);
+    });
   }
 
   private wireTabForwarding(): void {
@@ -162,6 +180,9 @@ export class WindowManager {
     });
     this.tabs!.onRemove((id) => {
       this.chrome?.webContents.send(IpcChannels.TabsRemoved, id);
+    });
+    this.layout!.onSnapshot((snapshot) => {
+      this.chrome?.webContents.send(IpcChannels.LayoutChanged, snapshot);
     });
   }
 

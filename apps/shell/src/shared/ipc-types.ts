@@ -1,9 +1,38 @@
 // Shared IPC types between main and preload. Re-exported in preload via
 // contextBridge so the chrome's UI code has type-aware completion.
 
-import type { TabId } from '@sable/layout-engine';
+import type { DropEdge, Pane, PaneId, Rect, TabId } from '@sable/layout-engine';
 
-export type { TabId };
+export type { DropEdge, Pane, PaneId, Rect, TabId };
+
+/** A single leaf pane with its tab and current screen rect. */
+export type SnapshotLeaf = {
+  readonly paneId: PaneId;
+  readonly tabId: TabId;
+  readonly rect: Rect;
+};
+
+/** A draggable divider strip between two pane subtrees. */
+export type SnapshotDivider = {
+  readonly splitId: PaneId;
+  readonly direction: 'h' | 'v';
+  readonly rect: Rect;
+  readonly parentRect: Rect;
+};
+
+/**
+ * Broadcasted to the chrome on every layout reflow. We ship a pre-computed
+ * leaf + divider list so the chrome doesn't have to walk the BSP tree
+ * (which would require importing layout-engine functions across the Vite
+ * bundling boundary). The full `tree` is included for future features.
+ */
+export type LayoutSnapshot = {
+  readonly tree: Pane | null;
+  readonly leaves: readonly SnapshotLeaf[];
+  readonly dividers: readonly SnapshotDivider[];
+  /** Window-coordinate origin of the pane area (sidebar+titlebar offset). */
+  readonly paneOrigin: { readonly x: number; readonly y: number };
+};
 
 export type TabState = {
   readonly id: TabId;
@@ -27,10 +56,21 @@ export type SableApi = {
     reload(id: TabId): Promise<void>;
     list(): Promise<TabState[]>;
   };
+  readonly layout: {
+    /** Hide all tab WebContentsViews so chrome-side drop overlays receive events. */
+    dragStart(): Promise<void>;
+    /** Restore tab WebContentsViews to their tree-derived positions. */
+    dragEnd(): Promise<void>;
+    /** Apply a drop to the tree and reflow. */
+    drop(sourceTabId: TabId, targetPaneId: PaneId, edge: DropEdge): Promise<void>;
+    /** Resize a split's ratio (live during divider drag). */
+    resize(splitId: PaneId, newRatio: number): Promise<void>;
+  };
   readonly on: {
     tabUpdated(cb: (state: TabState) => void): () => void;
     tabRemoved(cb: (id: TabId) => void): () => void;
     activeChanged(cb: (id: TabId | null) => void): () => void;
+    layoutChanged(cb: (snapshot: LayoutSnapshot) => void): () => void;
   };
 };
 
@@ -47,4 +87,9 @@ export const IpcChannels = {
   TabsUpdated: 'tabs:updated',
   TabsRemoved: 'tabs:removed',
   TabsActiveChanged: 'tabs:activeChanged',
+  LayoutChanged: 'layout:changed',
+  LayoutDragStart: 'layout:dragStart',
+  LayoutDragEnd: 'layout:dragEnd',
+  LayoutDrop: 'layout:drop',
+  LayoutResize: 'layout:resize',
 } as const;

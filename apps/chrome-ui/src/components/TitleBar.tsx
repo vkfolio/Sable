@@ -1,7 +1,8 @@
+import iconUrl from '../assets/icon.svg?url';
+
 // Top-of-window draggable strip. The OS draws min/max/close in the right
 // portion via titleBarOverlay (Win) or hiddenInset traffic lights (Mac);
 // we reserve their footprint with the leading wordmark padding.
-
 export function TitleBar() {
   return (
     <div
@@ -12,9 +13,18 @@ export function TitleBar() {
         WebkitAppRegion: 'drag',
       } as React.CSSProperties}
     >
-      <span className="ml-20 text-xs font-semibold tracking-wider text-fg">
-        Sable
-      </span>
+      <div className="ml-20 flex items-center gap-2">
+        <img
+          src={iconUrl}
+          alt=""
+          width={20}
+          height={20}
+          className="rounded-[5px] shrink-0"
+          style={{ imageRendering: 'auto' }}
+          draggable={false}
+        />
+        <span className="text-xs font-semibold tracking-wider text-fg">Sable</span>
+      </div>
       <span
         className="ml-3 px-2.5 py-0.5 text-2xs font-medium text-fg-mute bg-bg-2 border border-border-strong rounded-full"
         style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}

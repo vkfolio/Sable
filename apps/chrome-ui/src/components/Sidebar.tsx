@@ -1,40 +1,31 @@
-import { useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
+import { Omnibar } from './Omnibar';
 import { TabList } from './TabList';
-import { normalizeUrl } from '../url';
+import { useTabsStore } from '../state/tabs';
+import { useLayoutStore } from '../state/layout';
 
 export function Sidebar() {
-  const [cmd, setCmd] = useState('');
-
-  const submitCmd = () => {
-    const url = normalizeUrl(cmd);
-    if (!url) return;
-    void window.sable.tabs.create(url);
-    setCmd('');
-  };
+  const totalTabs = useTabsStore((s) => s.tabsById.size);
+  const panesInTree = useLayoutStore(useShallow((s) => s.leaves.length));
+  const sleeping = Math.max(0, totalTabs - panesInTree);
 
   return (
     <aside
       className="flex-shrink-0 flex flex-col bg-bg-2 border-r border-border overflow-hidden"
       style={{ width: 'var(--sidebar-w)' }}
     >
-      <div
-        className="flex gap-1.5 p-2.5"
-        style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
-      >
-        <input
-          type="text"
-          value={cmd}
-          onChange={(e) => setCmd(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') submitCmd();
-          }}
-          placeholder="Search or chat…"
-          className="flex-1 px-3 py-2 bg-bg-3 border border-border-strong rounded-lg text-base text-fg outline-none focus:border-accent placeholder:text-fg-dim"
-        />
-      </div>
+      <Omnibar />
 
       <SectionLabel
-        text="Tabs"
+        text={
+          sleeping > 0 ? (
+            <>
+              Tabs <span className="ml-1 text-fg-mute font-normal normal-case tracking-normal">· {sleeping} sleeping</span>
+            </>
+          ) : (
+            'Tabs'
+          )
+        }
         action={{
           symbol: '+',
           title: 'New tab (Ctrl+T)',
@@ -63,7 +54,7 @@ function SectionLabel({
   action,
   inline,
 }: {
-  text: string;
+  text: React.ReactNode;
   action?: { symbol: string; title: string; onClick: () => void };
   inline?: boolean;
 }) {

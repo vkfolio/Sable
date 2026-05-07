@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Cross-platform matrix, mandated by the plan: a PR cannot merge with any
+# platform red. Daily-driver dev OS is Windows; macOS and Linux smoke here.
+jobs:
+  build:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.14.0'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      # layout-engine compiles to dist/ which downstream packages consume via
+      # its package.json `main`/`types` fields. Build it first so subsequent
+      # typecheck steps can resolve types from @sable/layout-engine.
+      - name: Build layout-engine
+        run: pnpm --filter @sable/layout-engine build
+
+      - name: Typecheck (all workspaces)
+        run: pnpm typecheck
+
+      - name: Run tests
+        run: pnpm test
+
+      - name: Build chrome-ui
+        run: pnpm chrome-ui:build
+
+      - name: Compile shell main
+        run: pnpm --filter "@sable/shell" build
+
+      # We don't actually launch Electron in CI (would need xvfb on Linux,
+      # signing on macOS, etc). Smoke-building chrome-ui + tsc-compiling the
+      # shell catches most regressions before they hit a real machine.
