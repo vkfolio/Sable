@@ -1,0 +1,1393 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>Sable v3 · Dia-grounded</title>
+<meta name="color-scheme" content="light dark">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* =========================================================
+   SABLE · v3 · Dia-grounded design system
+   Two themes (light=default, dark) + profile-tinted accents.
+   ========================================================= */
+
+/* ── LIGHT (default, "warm paper" — Dia's signature) ─────── */
+:root,
+[data-theme="light"]{
+  --bg:           #F4F1EC;   /* warm cream — the page chrome  */
+  --surface-1:    #FBFAF7;   /* the active page background    */
+  --surface-2:    #FFFFFF;   /* card / popover                */
+  --surface-3:    #F0EDE7;   /* hover                          */
+  --surface-4:    #E6E2DA;   /* pressed                        */
+
+  --line:         rgba(20, 16, 8, .07);
+  --line-strong:  rgba(20, 16, 8, .12);
+
+  --ink-0:        #15120D;   /* primary                        */
+  --ink-1:        #3F3A30;   /* secondary                      */
+  --ink-2:        #6E6759;   /* tertiary                       */
+  --ink-3:        #9C9381;   /* placeholder                    */
+  --ink-4:        #BAB1A0;   /* hint                           */
+
+  /* Profile colors — Dia's pastel palette (light variant) */
+  --p-coral:      #FFB89E;
+  --p-peach:      #FFD49B;
+  --p-butter:     #FFE69A;
+  --p-mint:       #B3E5C9;
+  --p-sky:        #B5D4F2;
+  --p-lavender:   #C9BEEE;
+  --p-rose:       #F2BCD0;
+
+  --acc:          var(--p-lavender);
+  --acc-ink:      #4938A8;     /* readable on cream            */
+  --acc-soft:     #EAE3FB;
+  --acc-glow:     rgba(155,128,240,.28);
+
+  --ok:           #2E8856;
+  --warn:         #B8780E;
+  --bad:          #C1442D;
+
+  --shadow-1: 0 1px 2px rgba(20,16,8,.04), 0 1px 1px rgba(20,16,8,.03);
+  --shadow-2: 0 8px 24px rgba(20,16,8,.06), 0 2px 6px rgba(20,16,8,.04);
+  --shadow-3: 0 24px 60px rgba(20,16,8,.12), 0 4px 14px rgba(20,16,8,.08);
+
+  /* page-tinted active tab — see .tab.active */
+  --page-tint: var(--surface-1);
+
+  --grain-opacity: .35;
+}
+
+/* ── DARK ────────────────────────────────────────────────── */
+[data-theme="dark"]{
+  --bg:           #131110;
+  --surface-1:    #1B1917;   /* active page bg                 */
+  --surface-2:    #232120;   /* card                           */
+  --surface-3:    #2A2826;   /* hover                          */
+  --surface-4:    #34312E;   /* pressed                        */
+
+  --line:         rgba(255,245,225,.07);
+  --line-strong:  rgba(255,245,225,.13);
+
+  --ink-0:        #F2EEE6;
+  --ink-1:        #C9C3B6;
+  --ink-2:        #948D7E;
+  --ink-3:        #6B6557;
+  --ink-4:        #4A4538;
+
+  /* Profile colors — slightly desaturated for dark */
+  --p-coral:      #E9967D;
+  --p-peach:      #E5BB7C;
+  --p-butter:     #E9CD7B;
+  --p-mint:       #8BC9A8;
+  --p-sky:        #8FB7DA;
+  --p-lavender:   #B0A4DC;
+  --p-rose:       #D8A0B7;
+
+  --acc:          var(--p-lavender);
+  --acc-ink:      #DDD2FF;
+  --acc-soft:     rgba(176,164,220,.16);
+  --acc-glow:     rgba(176,164,220,.32);
+
+  --ok:           #6FCB9B;
+  --warn:         #E2B670;
+  --bad:          #E8856C;
+
+  --shadow-1: 0 1px 2px rgba(0,0,0,.4);
+  --shadow-2: 0 12px 32px rgba(0,0,0,.45), 0 2px 6px rgba(0,0,0,.35);
+  --shadow-3: 0 30px 70px rgba(0,0,0,.6), 0 6px 18px rgba(0,0,0,.45);
+
+  --page-tint: var(--surface-1);
+  --grain-opacity: .55;
+}
+
+/* ── BASE ────────────────────────────────────────────────── */
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:var(--bg);
+  color:var(--ink-0);
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+  font-feature-settings:'cv11','ss01','ss03';
+  -webkit-font-smoothing:antialiased;
+  font-weight:400;
+  letter-spacing:-0.005em;
+  min-height:100vh;
+  transition:background-color .25s ease, color .25s ease;
+}
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opacity:var(--grain-opacity);
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2'/><feColorMatrix values='0 0 0 0 .12  0 0 0 0 .10  0 0 0 0 .06  0 0 0 .04 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  mix-blend-mode:multiply;
+}
+[data-theme="dark"] body::before{
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2'/><feColorMatrix values='0 0 0 0 .9  0 0 0 0 .85  0 0 0 0 .75  0 0 0 .035 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  mix-blend-mode:screen;
+}
+
+.mono{font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-feature-settings:'liga' 0}
+
+.shell{position:relative;z-index:1;max-width:1480px;margin:0 auto;padding:48px 28px 96px}
+
+/* ── MASTHEAD ────────────────────────────────────────────── */
+.masthead{display:grid;grid-template-columns:1fr auto;align-items:end;gap:32px;margin-bottom:40px}
+.brand{display:flex;align-items:center;gap:12px}
+.logomark{
+  width:32px;height:32px;border-radius:9px;
+  background:
+    radial-gradient(circle at 30% 25%, var(--p-butter), transparent 55%),
+    radial-gradient(circle at 70% 30%, var(--p-coral), transparent 55%),
+    radial-gradient(circle at 50% 80%, var(--p-lavender), transparent 65%),
+    var(--p-sky);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.4), 0 6px 18px rgba(124,108,200,.25);
+  position:relative;
+}
+.wordmark{font-size:22px;font-weight:500;letter-spacing:-.03em;color:var(--ink-0)}
+.wordmark span{color:var(--ink-3)}
+h1{margin:18px 0 0;font-size:clamp(40px,5.4vw,64px);line-height:1;letter-spacing:-.035em;font-weight:500;color:var(--ink-0);max-width:18ch}
+h1 em{font-style:normal;color:var(--acc-ink);font-weight:500}
+.h-sub{margin-top:18px;color:var(--ink-1);font-size:16px;line-height:1.55;max-width:54ch}
+
+/* theme toggle (top right of masthead) */
+.theme-switch{
+  display:inline-flex;align-items:center;gap:0;padding:3px;
+  border-radius:999px;background:var(--surface-2);border:1px solid var(--line);
+  box-shadow:var(--shadow-1);
+}
+.theme-switch button{
+  font:inherit;border:0;background:transparent;color:var(--ink-2);
+  padding:6px 14px;border-radius:999px;cursor:pointer;font-size:12px;font-weight:500;
+  display:inline-flex;align-items:center;gap:6px;transition:all .15s;
+}
+.theme-switch button.on{background:var(--ink-0);color:var(--surface-1)}
+.theme-switch svg{width:13px;height:13px}
+
+/* eyebrow & section heads */
+.eyebrow{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-2);text-transform:uppercase;letter-spacing:.16em;font-weight:500}
+.sec-h{font-size:28px;font-weight:500;letter-spacing:-.025em;color:var(--ink-0);margin:8px 0 4px}
+.sec-sub{color:var(--ink-1);font-size:14px;line-height:1.55;max-width:60ch}
+.sec-head{margin:64px 0 22px;display:flex;align-items:end;justify-content:space-between;gap:20px;border-bottom:1px solid var(--line);padding-bottom:18px}
+
+/* ── CARD === */
+.card{
+  background:var(--surface-2);
+  border:1px solid var(--line);
+  border-radius:16px;
+  padding:24px;
+  box-shadow:var(--shadow-1);
+  position:relative;
+}
+.card-h{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;gap:16px}
+.card-t{font-size:15px;font-weight:500;letter-spacing:-.01em;color:var(--ink-0)}
+.card-d{color:var(--ink-2);font-size:12px;line-height:1.5;margin-top:3px}
+
+/* ── BROWSER FRAME ───────────────────────────────────────── */
+.browser{
+  background:var(--bg);
+  border-radius:14px;
+  border:1px solid var(--line-strong);
+  box-shadow:var(--shadow-3);
+  overflow:hidden;
+  display:flex;flex-direction:column;
+  position:relative;
+}
+.browser .titlebar{
+  height:38px;display:flex;align-items:center;
+  padding-left:78px;padding-right:14px;
+  background:var(--bg);
+  border-bottom:1px solid transparent;
+  position:relative;gap:8px;flex-shrink:0;
+}
+.traffic{position:absolute;left:14px;top:50%;transform:translateY(-50%);display:flex;gap:8px}
+.traffic i{width:12px;height:12px;border-radius:50%;display:inline-block}
+.traffic i:nth-child(1){background:#FF5F57}
+.traffic i:nth-child(2){background:#FEBC2E}
+.traffic i:nth-child(3){background:#28C840}
+
+/* TAB ROW (Chrome-style top tabs — Dia layout) */
+.tabrow{flex:1;display:flex;align-items:flex-end;gap:2px;height:100%;overflow:hidden;padding-top:4px}
+.tab{
+  height:30px;display:inline-flex;align-items:center;gap:8px;
+  padding:0 14px 0 12px;
+  font-size:12px;color:var(--ink-1);
+  border-radius:8px 8px 0 0;
+  background:transparent;
+  position:relative;cursor:pointer;
+  max-width:200px;min-width:90px;
+  transition:background .12s, color .12s;
+}
+.tab .fav{flex-shrink:0;width:14px;height:14px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600}
+.tab .ttl{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tab .x{margin-left:4px;width:14px;height:14px;border-radius:4px;display:flex;align-items:center;justify-content:center;color:var(--ink-3);opacity:0;transition:opacity .12s, background .12s;flex-shrink:0}
+.tab:hover .x{opacity:1}
+.tab .x:hover{background:var(--surface-3)}
+.tab:hover{background:var(--surface-3);color:var(--ink-0)}
+.tab.active{
+  /* Dia detail: page color extends up into active tab */
+  background:var(--page-tint);
+  color:var(--ink-0);
+  font-weight:500;
+  /* connect to page below — no bottom border, drop shadow upward */
+  box-shadow:0 0 0 1px var(--line-strong);
+  z-index:2;
+}
+.tab.active::after{
+  /* hide the bottom 1px so tab merges with page */
+  content:'';position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--page-tint);
+}
+.tab.context{background:var(--acc-soft);color:var(--acc-ink)}
+.tab.context::before{content:'@';font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;color:var(--acc-ink);margin-right:-2px}
+.tab.loading .fav{background:transparent;border:1.5px solid var(--ink-3);border-top-color:transparent;animation:spin .8s linear infinite;border-radius:50%}
+@keyframes spin{to{transform:rotate(360deg)}}
+.tab .fav.s-d{background:var(--p-mint);color:#0e3920}
+.tab .fav.s-w{background:var(--p-sky);color:#142f4a}
+.tab .fav.s-a{background:var(--p-coral);color:#4a1d0c}
+.tab .fav.s-h{background:var(--p-butter);color:#4a3308}
+.tab .fav.s-p{background:var(--p-rose);color:#4d1530}
+.tab .fav.s-g{background:var(--ink-0);color:var(--surface-1)}
+.tab .fav.s-c{background:var(--p-peach);color:#3f2509}
+
+.tab-tools{display:inline-flex;gap:4px;margin-left:6px;padding-left:8px;border-left:1px solid var(--line)}
+.tab-tools button{
+  width:26px;height:26px;border-radius:7px;border:0;background:transparent;color:var(--ink-2);cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;
+}
+.tab-tools button:hover{background:var(--surface-3);color:var(--ink-0)}
+.tab-tools svg{width:14px;height:14px}
+
+/* PAGE BODY — split into URL bar + content (+ optional sidebar) */
+.page-area{
+  flex:1;display:flex;flex-direction:column;
+  background:var(--page-tint);
+  border-top:0;
+  position:relative;
+  overflow:hidden;
+}
+
+/* AI URL BAR (Dia signature: URL bar IS the AI assistant) */
+.urlbar-wrap{padding:10px 12px 6px;display:flex;align-items:center;gap:10px;background:var(--page-tint)}
+.navbtns{display:flex;gap:2px}
+.navbtns button{
+  width:30px;height:30px;border-radius:8px;border:0;background:transparent;color:var(--ink-2);
+  display:inline-flex;align-items:center;justify-content:center;cursor:pointer;
+}
+.navbtns button:hover{background:var(--surface-3);color:var(--ink-0)}
+.navbtns svg{width:16px;height:16px}
+
+.urlbar{
+  flex:1;height:36px;display:flex;align-items:center;gap:10px;
+  padding:0 10px 0 14px;
+  border-radius:11px;
+  background:var(--surface-2);
+  border:1px solid var(--line);
+  box-shadow:var(--shadow-1);
+  font-size:13px;color:var(--ink-0);
+  position:relative;
+  cursor:text;
+  transition:all .15s;
+}
+.urlbar:hover{border-color:var(--line-strong)}
+.urlbar.focused{
+  background:var(--surface-2);
+  border-color:var(--acc);
+  box-shadow:0 0 0 4px var(--acc-glow), var(--shadow-1);
+}
+.urlbar.ai{
+  background:linear-gradient(135deg, var(--surface-2), var(--surface-2)) padding-box,
+             linear-gradient(135deg, var(--p-coral), var(--p-lavender), var(--p-sky)) border-box;
+  border:1px solid transparent;
+  box-shadow:0 0 0 5px var(--acc-glow);
+}
+.urlbar .lock{color:var(--ok);width:13px;height:13px;flex-shrink:0}
+.urlbar .ai-glyph{
+  width:18px;height:18px;border-radius:6px;flex-shrink:0;
+  background:
+    radial-gradient(circle at 30% 30%, var(--p-coral), transparent 60%),
+    radial-gradient(circle at 70% 70%, var(--p-lavender), transparent 60%),
+    var(--p-sky);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.4);
+}
+.urlbar .ttl{flex:1;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink-0)}
+.urlbar .ttl em{font-style:normal;color:var(--ink-3);font-weight:400;margin-left:6px;font-size:12px}
+.urlbar .ttl .caret{display:inline-block;width:1.5px;height:14px;background:var(--ink-0);margin-left:1px;vertical-align:middle;animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:0}}
+.urlbar .actions{display:flex;align-items:center;gap:2px;flex-shrink:0}
+.urlbar .actions button{
+  width:24px;height:24px;border-radius:6px;border:0;background:transparent;color:var(--ink-2);cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;
+}
+.urlbar .actions button:hover{background:var(--surface-3);color:var(--ink-0)}
+.urlbar .actions svg{width:13px;height:13px}
+.urlbar kbd{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-2);background:var(--surface-3);padding:2px 5px;border-radius:4px;border:1px solid var(--line)}
+
+.right-controls{display:flex;gap:2px}
+.right-controls button{
+  width:30px;height:30px;border-radius:8px;border:0;background:transparent;color:var(--ink-2);cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;
+}
+.right-controls button:hover{background:var(--surface-3);color:var(--ink-0)}
+.right-controls .pill{
+  width:auto;padding:0 9px;height:28px;font-size:11px;font-weight:500;gap:6px;
+  background:var(--acc-soft);color:var(--acc-ink);border-radius:8px;
+}
+.right-controls .pill:hover{background:var(--acc-soft);filter:brightness(.95)}
+.right-controls svg{width:15px;height:15px}
+
+/* PAGE BODY — split: content + (optional) chat sidebar */
+.page-body{flex:1;display:flex;min-height:0;overflow:hidden}
+.page-content{flex:1;padding:36px 44px;overflow:hidden;display:flex;flex-direction:column;gap:14px}
+.page-content.narrow{padding:24px 28px}
+.crumb{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--ink-2);display:flex;align-items:center;gap:6px}
+.crumb svg{width:11px;height:11px;color:var(--ok)}
+.page-h{font-size:36px;font-weight:500;letter-spacing:-.025em;line-height:1.05;color:var(--ink-0);margin:6px 0 2px}
+.byline{color:var(--ink-2);font-size:12.5px}
+.page-text{color:var(--ink-1);font-size:13.5px;line-height:1.7;max-width:62ch}
+.page-text p{margin:0 0 10px}
+.page-text b{color:var(--ink-0);font-weight:500}
+
+/* SIDEBAR (Dia: chat lives here) */
+.sidebar{
+  width:340px;flex-shrink:0;
+  border-left:1px solid var(--line);
+  background:var(--surface-1);
+  display:flex;flex-direction:column;
+  min-height:0;
+}
+.sb-head{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.sb-head .gl{
+  width:22px;height:22px;border-radius:7px;
+  background:
+    radial-gradient(circle at 30% 30%, var(--p-coral), transparent 60%),
+    radial-gradient(circle at 70% 70%, var(--p-lavender), transparent 60%),
+    var(--p-sky);
+}
+.sb-head h4{flex:1;font-size:13px;font-weight:500;color:var(--ink-0);margin:0}
+.sb-head .meta{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-2)}
+.sb-tabs{display:flex;gap:0;padding:8px 8px 0;border-bottom:1px solid var(--line)}
+.sb-tabs button{
+  flex:1;padding:8px 10px;background:transparent;border:0;font:inherit;font-size:12px;color:var(--ink-2);
+  cursor:pointer;border-radius:7px 7px 0 0;display:inline-flex;align-items:center;justify-content:center;gap:6px;font-weight:500;
+}
+.sb-tabs button.on{color:var(--ink-0);background:var(--surface-1);box-shadow:inset 0 -2px 0 var(--acc-ink)}
+
+/* MESSAGES */
+.msgs{flex:1;padding:14px;display:flex;flex-direction:column;gap:14px;overflow:hidden;min-height:0}
+.msg{font-size:13px;line-height:1.5}
+.msg.user{align-self:flex-end;max-width:88%;padding:8px 12px;background:var(--surface-3);color:var(--ink-0);border-radius:14px 14px 3px 14px}
+.msg.ai{display:flex;flex-direction:column;gap:6px;color:var(--ink-0)}
+.msg.ai .meta-line{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--ink-2);font-family:'JetBrains Mono',monospace}
+.msg.ai .meta-line::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 3px color-mix(in oklch, var(--ok) 18%, transparent)}
+.msg.ai .body b{font-weight:500;color:var(--ink-0)}
+.msg.ai .stream{display:inline-block;width:7px;height:13px;background:var(--ink-0);vertical-align:-2px;margin-left:2px;animation:blink 1s steps(2) infinite}
+
+/* @MENTION TAB STACK (Dia signature) */
+.tab-stack{display:flex;align-items:center;margin-top:6px;height:30px}
+.tab-stack .pill{
+  display:inline-flex;align-items:center;gap:5px;
+  height:24px;padding:0 9px 0 5px;
+  border-radius:999px;background:var(--surface-2);border:1px solid var(--line);
+  font-size:11px;color:var(--ink-1);
+  margin-left:-8px;box-shadow:var(--shadow-1);font-weight:500;
+}
+.tab-stack .pill:first-child{margin-left:0}
+.tab-stack .pill .at{font-family:'JetBrains Mono',monospace;color:var(--acc-ink);font-weight:600;font-size:10.5px}
+.tab-stack .pill .fav{width:14px;height:14px;border-radius:4px;display:inline-flex;align-items:center;justify-content:center;font-size:8px;font-weight:600}
+.tab-stack .more{margin-left:6px;font-size:11px;color:var(--ink-2)}
+
+.cite-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.cite{
+  display:inline-flex;align-items:center;gap:5px;
+  height:22px;padding:0 9px 0 4px;border-radius:999px;
+  background:var(--surface-2);border:1px solid var(--line);
+  font-size:11px;color:var(--ink-1);max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.cite .num{
+  width:14px;height:14px;border-radius:50%;background:var(--acc-soft);color:var(--acc-ink);
+  font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:600;display:flex;align-items:center;justify-content:center;
+}
+.cite .x-rm{margin-left:1px;width:12px;height:12px;border-radius:50%;color:var(--ink-3);opacity:0;transition:opacity .12s}
+.cite:hover .x-rm{opacity:1}
+
+/* COMPOSER */
+.composer{
+  margin:8px 12px 12px;border-radius:12px;background:var(--surface-2);
+  border:1.5px solid var(--acc);
+  box-shadow:0 0 0 4px var(--acc-glow);
+  padding:10px 10px 8px;
+  display:flex;flex-direction:column;gap:7px;
+}
+.composer .field{
+  font-size:13px;color:var(--ink-0);min-height:38px;line-height:1.5;
+}
+.composer .field .at{color:var(--acc-ink);font-weight:500}
+.composer .field .caret{display:inline-block;width:1.5px;height:14px;background:var(--acc-ink);margin-left:1px;vertical-align:middle;animation:blink 1s steps(2) infinite}
+.composer-foot{display:flex;align-items:center;gap:6px}
+.composer-foot button{
+  height:26px;padding:0 8px;border-radius:7px;border:0;background:transparent;color:var(--ink-2);font:inherit;font-size:11px;
+  display:inline-flex;align-items:center;gap:5px;cursor:pointer;font-weight:500;
+}
+.composer-foot button:hover{background:var(--surface-3);color:var(--ink-0)}
+.composer-foot svg{width:13px;height:13px}
+.composer-foot .send{
+  margin-left:auto;width:28px;padding:0;background:var(--ink-0);color:var(--surface-1);justify-content:center;
+}
+.composer-foot .send:hover{background:var(--ink-0);filter:brightness(1.1)}
+.composer-foot .send svg{width:12px;height:12px}
+
+/* === NEW TAB PAGE ───────────────────────────────────────── */
+.ntp-content{padding:0;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.ntp-bg{
+  position:absolute;inset:0;
+  background:
+    radial-gradient(60% 50% at 50% 35%, var(--p-coral), transparent 70%),
+    radial-gradient(40% 40% at 30% 80%, var(--p-lavender), transparent 70%),
+    radial-gradient(40% 40% at 75% 75%, var(--p-butter), transparent 70%);
+  opacity:.55;filter:blur(20px);
+  animation:shimmer 16s ease-in-out infinite;
+}
+[data-theme="dark"] .ntp-bg{opacity:.30}
+@keyframes shimmer{
+  0%,100%{transform:translate(0,0) scale(1)}
+  33%{transform:translate(-3%,2%) scale(1.05)}
+  66%{transform:translate(2%,-1%) scale(.97)}
+}
+.ntp-inner{position:relative;text-align:center;width:100%;max-width:560px;padding:0 24px}
+.ntp-greeting{font-size:36px;font-weight:500;letter-spacing:-.025em;line-height:1.1;color:var(--ink-0);margin:0}
+.ntp-greeting .accent{color:var(--acc-ink)}
+.ntp-time{font-family:'JetBrains Mono',monospace;color:var(--ink-2);font-size:11px;margin-top:8px;letter-spacing:.04em;text-transform:uppercase}
+.ntp-cmd{
+  margin-top:32px;height:54px;display:flex;align-items:center;gap:12px;
+  padding:0 18px;
+  border-radius:14px;
+  background:var(--surface-2);
+  border:1.5px solid var(--acc);
+  box-shadow:0 0 0 6px var(--acc-glow), var(--shadow-2);
+  font-size:14px;color:var(--ink-0);text-align:left;
+}
+.ntp-cmd .ai-glyph{width:24px;height:24px;border-radius:8px;flex-shrink:0;background:
+    radial-gradient(circle at 30% 30%, var(--p-coral), transparent 60%),
+    radial-gradient(circle at 70% 70%, var(--p-lavender), transparent 60%),
+    var(--p-sky);}
+.ntp-cmd .ph{flex:1;color:var(--ink-2)}
+.ntp-cmd .ph .caret{display:inline-block;width:1.5px;height:16px;background:var(--ink-0);vertical-align:-3px;animation:blink 1s steps(2) infinite}
+.ntp-cmd kbd{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-2);background:var(--surface-3);padding:3px 6px;border-radius:5px;border:1px solid var(--line)}
+.ntp-suggest{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin-top:16px}
+.ntp-suggest .s{
+  display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-1);
+  padding:5px 12px;border-radius:999px;background:var(--surface-2);border:1px solid var(--line);
+  cursor:pointer;
+}
+.ntp-suggest .s:hover{background:var(--surface-3)}
+.ntp-suggest svg{width:12px;height:12px;color:var(--ink-2)}
+.ntp-pinned{
+  position:absolute;left:0;right:0;bottom:24px;
+  display:flex;justify-content:center;gap:10px;
+}
+.ntp-pin{
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  width:64px;cursor:pointer;
+}
+.ntp-pin .ico{width:44px;height:44px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px;box-shadow:var(--shadow-1)}
+.ntp-pin .lab{font-size:10px;color:var(--ink-2);text-align:center;max-width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* === SETTINGS ═══════════════════════════════════════════════ */
+.settings-frame{display:grid;grid-template-columns:200px 1fr;height:100%;flex:1;min-height:0}
+.s-nav{
+  border-right:1px solid var(--line);padding:14px 10px;
+  background:var(--bg);
+  display:flex;flex-direction:column;gap:1px;
+}
+.s-nav h6{margin:10px 10px 4px;font-size:10px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);font-family:'JetBrains Mono',monospace}
+.s-nav a{
+  display:flex;align-items:center;gap:9px;height:30px;padding:0 10px;border-radius:8px;
+  font-size:12.5px;color:var(--ink-1);text-decoration:none;cursor:pointer;
+}
+.s-nav a:hover{background:var(--surface-3);color:var(--ink-0)}
+.s-nav a.on{background:var(--acc-soft);color:var(--acc-ink);font-weight:500}
+.s-nav a svg{width:13px;height:13px;color:currentColor;opacity:.85}
+.s-body{padding:32px 40px;overflow:auto;background:var(--page-tint)}
+.s-h1{font-size:26px;font-weight:500;letter-spacing:-.02em;margin:0 0 4px}
+.s-sub{font-size:13px;color:var(--ink-2);margin:0 0 22px;max-width:60ch;line-height:1.55}
+
+.provider-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px}
+.prov{
+  padding:14px;border-radius:12px;border:1px solid var(--line);background:var(--surface-2);
+  cursor:pointer;position:relative;transition:all .12s;
+}
+.prov:hover{border-color:var(--line-strong)}
+.prov.on{border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-glow)}
+.prov .top{display:flex;align-items:center;gap:8px}
+.prov .name{font-size:13px;font-weight:500;color:var(--ink-0)}
+.prov.on .name::after{
+  content:'';width:6px;height:6px;border-radius:50%;display:inline-block;background:var(--ok);
+  box-shadow:0 0 0 3px color-mix(in oklch, var(--ok) 22%, transparent);margin-left:6px;vertical-align:1px;
+}
+.prov .sub{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-2);margin-top:4px}
+.prov.on .badge{
+  position:absolute;top:10px;right:10px;font-size:9px;font-weight:500;
+  letter-spacing:.06em;padding:2px 6px;border-radius:4px;
+  background:color-mix(in oklch, var(--ok) 18%, transparent);color:var(--ok);
+}
+
+.key-card{padding:16px;border-radius:12px;border:1px solid var(--line);background:var(--surface-2)}
+.key-row{
+  display:flex;align-items:center;gap:10px;height:38px;padding:0 12px;
+  border-radius:9px;background:var(--bg);border:1px solid var(--line);
+  font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink-0);margin-top:6px;
+}
+.key-row .k-key{flex:1;overflow:hidden}
+.verified{color:var(--ok);font-size:11px;display:flex;align-items:center;gap:4px;font-family:'Inter',sans-serif;font-weight:500}
+.kc-meta{display:flex;align-items:center;gap:6px;margin-top:10px;font-size:11px;color:var(--ink-2);font-family:'Inter',sans-serif}
+.kc-meta svg{width:12px;height:12px;color:var(--ok)}
+.btn-row{display:flex;gap:6px;margin-top:14px;align-items:center}
+
+.btn{
+  height:30px;padding:0 12px;border-radius:8px;font:inherit;font-size:12px;font-weight:500;
+  background:var(--surface-3);color:var(--ink-0);border:1px solid var(--line);cursor:pointer;
+  display:inline-flex;align-items:center;gap:6px;
+}
+.btn:hover{background:var(--surface-4)}
+.btn.primary{background:var(--ink-0);color:var(--surface-1);border-color:var(--ink-0)}
+.btn.primary:hover{filter:brightness(1.1)}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--ink-2)}
+.btn.ghost:hover{background:var(--surface-3);color:var(--ink-0)}
+.btn svg{width:13px;height:13px}
+
+.toggle{width:32px;height:18px;border-radius:10px;background:var(--ink-0);position:relative;cursor:pointer}
+.toggle::after{content:'';position:absolute;right:2px;top:2px;width:14px;height:14px;border-radius:50%;background:var(--surface-1)}
+.toggle.off{background:var(--surface-4)}
+.toggle.off::after{left:2px;right:auto}
+
+.model-row{
+  display:flex;align-items:center;gap:12px;padding:14px;border-radius:11px;border:1px solid var(--line);
+  background:var(--surface-2);margin-top:6px;
+}
+.model-row.rec{border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-glow)}
+.model-row .icn{
+  width:32px;height:32px;border-radius:9px;background:var(--surface-3);
+  display:flex;align-items:center;justify-content:center;color:var(--ink-1);flex-shrink:0;
+}
+.model-row.rec .icn{background:var(--acc-soft);color:var(--acc-ink)}
+.model-row .body{flex:1;min-width:0}
+.model-row .body .nm{font-size:13px;font-weight:500;color:var(--ink-0);display:flex;align-items:center;gap:8px}
+.tag{font-size:9px;font-weight:500;letter-spacing:.06em;padding:2px 6px;border-radius:4px;background:var(--acc-soft);color:var(--acc-ink);text-transform:uppercase}
+.model-row .body .meta{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-2);margin-top:2px}
+.progress{height:3px;background:var(--surface-3);border-radius:2px;margin-top:8px;overflow:hidden}
+.progress > div{height:100%;background:var(--acc-ink);border-radius:2px}
+
+/* === DROP OVERLAY MOCK === */
+.drop-stage{
+  position:relative;height:280px;border-radius:11px;background:var(--page-tint);
+  border:1px solid var(--line-strong);overflow:hidden;
+}
+.drop-pane{position:absolute;inset:8px;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:8px}
+.drop-cell{
+  border-radius:10px;border:1.5px dashed var(--acc);background:var(--acc-soft);opacity:.55;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--acc-ink);font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500;
+}
+.drop-cell.hot{
+  opacity:1;background:var(--acc-soft);border-style:solid;
+  box-shadow:inset 0 0 0 2px var(--acc), inset 0 0 80px color-mix(in oklch, var(--acc) 30%, transparent);
+}
+.drag-chip{
+  position:absolute;top:48%;left:46%;transform:translate(-50%,-50%) rotate(-2deg);
+  background:var(--surface-2);
+  border:1px solid var(--acc);
+  box-shadow:var(--shadow-3);
+  border-radius:10px;padding:8px 12px;display:flex;align-items:center;gap:8px;
+  font-size:12px;color:var(--ink-0);pointer-events:none;
+}
+.drag-chip .badge{
+  position:absolute;top:-9px;right:-9px;width:20px;height:20px;border-radius:50%;
+  background:var(--ink-0);color:var(--surface-1);font-size:10px;font-weight:500;
+  display:flex;align-items:center;justify-content:center;
+}
+
+/* === SPACE SWITCHER MOCK === */
+.switcher-mock{position:relative;height:280px;border-radius:11px;background:var(--page-tint);border:1px solid var(--line-strong);overflow:hidden}
+.switcher-titlebar{height:36px;background:var(--bg);border-bottom:1px solid var(--line);position:relative;display:flex;align-items:center;padding-left:78px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-2)}
+.switch-pop{
+  position:absolute;top:48px;left:24px;width:300px;
+  background:var(--surface-2);border:1px solid var(--line);border-radius:13px;
+  box-shadow:var(--shadow-3);padding:6px;
+}
+.switch-pop .head{padding:8px 10px 6px;display:flex;align-items:center;justify-content:space-between;font-size:10px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.12em;font-family:'JetBrains Mono',monospace}
+.switch-row{
+  display:flex;align-items:center;gap:10px;padding:0 10px;height:40px;border-radius:9px;cursor:pointer;position:relative;
+}
+.switch-row:hover{background:var(--surface-3)}
+.switch-row.on{background:var(--acc-soft)}
+.switch-row .badge{
+  width:24px;height:24px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;font-weight:600;font-size:12px;
+}
+.switch-row .nm{flex:1;font-size:13px;color:var(--ink-0)}
+.switch-row .ct{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-2)}
+.switch-row .sc{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-3);width:24px;text-align:right}
+
+/* === TOKEN GRIDS === */
+.row-2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.row-3{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+
+.swatch-row{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:14px}
+.sw{
+  aspect-ratio:1.4;border-radius:9px;border:1px solid var(--line);
+  display:flex;flex-direction:column;justify-content:flex-end;padding:8px 9px;font-family:'JetBrains Mono',monospace;font-size:9px;
+  position:relative;
+}
+.sw b{font-size:10px;font-weight:500;display:block}
+.sw .hex{opacity:.7}
+
+.surface-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.surface-card{aspect-ratio:1.2;border-radius:11px;padding:12px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-2);display:flex;flex-direction:column;justify-content:flex-end;border:1px solid var(--line)}
+.surface-card b{color:var(--ink-0);font-size:11px;font-weight:500;display:block;margin-bottom:2px}
+.surface-card.s1{background:var(--surface-1)}
+.surface-card.s2{background:var(--surface-2)}
+.surface-card.s3{background:var(--surface-3)}
+.surface-card.s4{background:var(--surface-4)}
+
+.profile-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
+.prof{
+  aspect-ratio:1;border-radius:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  border:1px solid var(--line);position:relative;
+}
+.prof .glob{width:36px;height:36px;border-radius:11px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.3)}
+.prof .lb{font-size:10px;color:var(--ink-2);font-family:'JetBrains Mono',monospace}
+
+.type-stack{display:flex;flex-direction:column;gap:14px}
+.type-row{display:grid;grid-template-columns:1fr 130px;gap:14px;align-items:baseline;border-bottom:1px solid var(--line);padding-bottom:12px}
+.type-row:last-child{border-bottom:0}
+.type-row .lab{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-3);text-align:right}
+
+.density-list{display:flex;flex-direction:column;gap:6px}
+.den{display:flex;align-items:center;gap:12px;font-size:12px;color:var(--ink-1)}
+.den .bar{height:20px;border-radius:5px;background:var(--surface-3);border:1px solid var(--line)}
+.den .nm{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-2);width:90px}
+.den .px{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-3);margin-left:auto}
+
+.motion-list{display:flex;flex-direction:column;gap:6px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-1)}
+.motion-list .ms{color:var(--ink-0);font-weight:500;width:60px;display:inline-block}
+
+/* === QUOTES === */
+.quote{
+  margin:0;padding:13px 16px;border-radius:0 11px 11px 0;
+  border-left:2px solid var(--acc-ink);
+  background:var(--acc-soft);color:var(--ink-0);font-size:13.5px;line-height:1.5;
+}
+
+/* === ICONS PAGE === */
+.icon-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:6px}
+.icon-cell{
+  aspect-ratio:1;border-radius:9px;border:1px solid var(--line);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  background:var(--surface-2);
+}
+.icon-cell svg{width:18px;height:18px;color:var(--ink-0)}
+.icon-cell .nm{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink-3)}
+
+/* === COMPONENT GRID === */
+.cmp{display:flex;flex-direction:column;gap:10px}
+.cmp-h{font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--ink-3);text-transform:uppercase;letter-spacing:.12em}
+.cmp-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+
+/* === BUTTONS DEMO === */
+.btn-demo{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+
+/* === FOOTER === */
+footer{margin-top:96px;padding-top:32px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:32px;color:var(--ink-2);font-size:12px;font-family:'JetBrains Mono',monospace}
+footer .col{line-height:1.8}
+
+/* TWO-PANE SHOWCASE: light + dark side by side without theme switch */
+.dual{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.dual .scope{position:relative;border-radius:14px;overflow:hidden}
+.dual .scope-light{
+  /* This scope is forced light */
+  --bg:#F4F1EC; --surface-1:#FBFAF7; --surface-2:#FFFFFF; --surface-3:#F0EDE7; --surface-4:#E6E2DA;
+  --line:rgba(20,16,8,.07); --line-strong:rgba(20,16,8,.12);
+  --ink-0:#15120D; --ink-1:#3F3A30; --ink-2:#6E6759; --ink-3:#9C9381; --ink-4:#BAB1A0;
+  --p-coral:#FFB89E; --p-peach:#FFD49B; --p-butter:#FFE69A; --p-mint:#B3E5C9;
+  --p-sky:#B5D4F2; --p-lavender:#C9BEEE; --p-rose:#F2BCD0;
+  --acc:var(--p-lavender); --acc-ink:#4938A8; --acc-soft:#EAE3FB; --acc-glow:rgba(155,128,240,.28);
+  --ok:#2E8856; --warn:#B8780E; --bad:#C1442D;
+  --shadow-1:0 1px 2px rgba(20,16,8,.04),0 1px 1px rgba(20,16,8,.03);
+  --shadow-2:0 8px 24px rgba(20,16,8,.06),0 2px 6px rgba(20,16,8,.04);
+  --shadow-3:0 24px 60px rgba(20,16,8,.12),0 4px 14px rgba(20,16,8,.08);
+  --page-tint:var(--surface-1);
+  background:var(--bg);color:var(--ink-0);
+}
+.dual .scope-dark{
+  --bg:#131110; --surface-1:#1B1917; --surface-2:#232120; --surface-3:#2A2826; --surface-4:#34312E;
+  --line:rgba(255,245,225,.07); --line-strong:rgba(255,245,225,.13);
+  --ink-0:#F2EEE6; --ink-1:#C9C3B6; --ink-2:#948D7E; --ink-3:#6B6557; --ink-4:#4A4538;
+  --p-coral:#E9967D; --p-peach:#E5BB7C; --p-butter:#E9CD7B; --p-mint:#8BC9A8;
+  --p-sky:#8FB7DA; --p-lavender:#B0A4DC; --p-rose:#D8A0B7;
+  --acc:var(--p-lavender); --acc-ink:#DDD2FF; --acc-soft:rgba(176,164,220,.16); --acc-glow:rgba(176,164,220,.32);
+  --ok:#6FCB9B; --warn:#E2B670; --bad:#E8856C;
+  --shadow-1:0 1px 2px rgba(0,0,0,.4);
+  --shadow-2:0 12px 32px rgba(0,0,0,.45),0 2px 6px rgba(0,0,0,.35);
+  --shadow-3:0 30px 70px rgba(0,0,0,.6),0 6px 18px rgba(0,0,0,.45);
+  --page-tint:var(--surface-1);
+  background:var(--bg);color:var(--ink-0);
+}
+.dual .label{
+  position:absolute;top:14px;left:14px;z-index:10;
+  font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  padding:4px 9px;border-radius:6px;background:var(--surface-2);color:var(--ink-1);border:1px solid var(--line);
+  pointer-events:none;
+}
+</style>
+</head>
+<body data-theme="light">
+
+<div class="shell">
+
+  <!-- ───────── MASTHEAD ───────── -->
+  <div class="masthead">
+    <div>
+      <div class="brand">
+        <div class="logomark"></div>
+        <div class="wordmark">sable<span>.browser</span></div>
+      </div>
+      <h1>A familiar browser, <em>elevated.</em></h1>
+      <p class="h-sub">Sable is a Chromium-based browser with the AI in the URL bar — not bolted on. Type a question, get an answer; type a URL, navigate. Drag a tab into chat with @, fuse contexts, work without context-switching. Familiar at 10am Tuesday.</p>
+    </div>
+    <div class="theme-switch" role="tablist" aria-label="Theme">
+      <button class="on" data-set="light" aria-selected="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/></svg>
+        Light
+      </button>
+      <button data-set="dark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20 14.5A8 8 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/></svg>
+        Dark
+      </button>
+    </div>
+  </div>
+
+  <!-- ───────── HERO 01 · Familiar shell with chat sidebar ───────── -->
+  <div class="card">
+    <div class="card-h">
+      <div>
+        <div class="eyebrow">Hero · 01 — main browsing</div>
+        <div class="card-t" style="margin-top:6px">Top tabs. AI in the URL bar. Chat docked right.</div>
+        <div class="card-d">Page color extends up into the active tab so the tab feels like part of the page. The URL bar shows the page title — not the URL string. Click it once: it's a search. Type a question: it's a chat.</div>
+      </div>
+    </div>
+
+    <div class="browser" style="height:600px">
+      <div class="titlebar">
+        <div class="traffic"><i></i><i></i><i></i></div>
+
+        <div class="tabrow">
+          <div class="tab"><div class="fav s-d">D</div><div class="ttl">DuckDuckGo</div><div class="x"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="9" height="9" stroke-linecap="round"><path d="M5 5l14 14M5 19L19 5"/></svg></div></div>
+          <div class="tab context"><div class="fav s-w">W</div><div class="ttl">Mixture of experts (ML)</div></div>
+          <div class="tab active"><div class="fav s-a">A</div><div class="ttl">Mixtral of Experts</div><div class="x"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="9" height="9" stroke-linecap="round"><path d="M5 5l14 14M5 19L19 5"/></svg></div></div>
+          <div class="tab context"><div class="fav s-h">H</div><div class="ttl">Qwen3-1.7B</div></div>
+          <div class="tab"><div class="fav s-p">P</div><div class="ttl">Long-context evals</div></div>
+          <div class="tab"><div class="fav s-g">G</div><div class="ttl">qwen3 / README</div></div>
+          <div class="tab loading"><div class="fav"></div><div class="ttl" style="color:var(--ink-3)">loading…</div></div>
+        </div>
+
+        <div class="tab-tools">
+          <button title="New tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+          <button title="Tab list"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+        </div>
+      </div>
+
+      <div class="page-area">
+        <div class="urlbar-wrap">
+          <div class="navbtns">
+            <button title="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+            <button title="Forward"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></button>
+            <button title="Reload"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M3 5v4h4M21 19v-4h-4M19 8a8 8 0 0 0-14 0M5 16a8 8 0 0 0 14 0"/></svg></button>
+          </div>
+
+          <div class="urlbar focused">
+            <svg class="lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V8a4 4 0 1 1 8 0v3"/></svg>
+            <span class="ttl">Mixtral of Experts <em>arxiv.org · 2401.04088</em></span>
+            <div class="actions">
+              <button title="Bookmark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M6 4h12v18l-6-4-6 4z"/></svg></button>
+              <button title="Reader"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M5 6h14M5 12h14M5 18h9"/></svg></button>
+              <kbd>⌘K</kbd>
+            </div>
+          </div>
+
+          <div class="right-controls">
+            <button class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 9-9"/><path d="M12 7v5l3 2"/></svg>2</button>
+            <button title="Profile">
+              <div style="width:18px;height:18px;border-radius:6px;background:radial-gradient(circle at 30% 30%, var(--p-coral), transparent 60%),radial-gradient(circle at 70% 70%, var(--p-lavender), transparent 60%),var(--p-sky)"></div>
+            </button>
+            <button title="Menu"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="6" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="18" cy="12" r="1.5"/></svg></button>
+          </div>
+        </div>
+
+        <div class="page-body">
+          <div class="page-content">
+            <div class="crumb">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V8a4 4 0 1 1 8 0v3"/></svg>
+              arxiv.org · /abs/2401.04088 · jan 2024
+            </div>
+            <h2 class="page-h">Mixtral of Experts</h2>
+            <div class="byline">Albert Q. Jiang, Alexandre Sablayrolles, Antoine Roux, Arthur Mensch, et al.</div>
+
+            <div class="page-text" style="margin-top:8px">
+              <p>We introduce Mixtral 8×7B, a Sparse Mixture of Experts language model. Mixtral has the same architecture as Mistral 7B, with the difference that <b>each layer is composed of 8 feedforward blocks (i.e. experts)</b>. For every token, at each layer, a router network selects two experts to process the current state and combine their outputs.</p>
+              <p>Even though each token only sees two experts, the selected experts can be different at each timestep. As a result, each token has access to 47B parameters but only uses 13B active parameters during inference.</p>
+              <p>Mixtral was trained with a context size of 32k tokens and outperforms Llama 2 70B and GPT-3.5 across all evaluated benchmarks.</p>
+            </div>
+          </div>
+
+          <!-- chat sidebar -->
+          <aside class="sidebar">
+            <div class="sb-head">
+              <div class="gl"></div>
+              <h4>Chat</h4>
+              <span class="meta">sonnet 4 · 3.4k</span>
+            </div>
+            <div class="sb-tabs">
+              <button class="on">Chat</button>
+              <button>History</button>
+              <button>Skills</button>
+            </div>
+            <div class="msgs">
+              <div class="msg user">
+                <div class="tab-stack" style="margin:0 0 6px">
+                  <span class="pill"><span class="at">@</span><span class="fav s-w">W</span>MoE</span>
+                  <span class="pill"><span class="at">@</span><span class="fav s-h">H</span>Qwen3</span>
+                </div>
+                Compare these two on long-context recall.
+              </div>
+              <div class="msg ai">
+                <div class="meta-line">claude · sonnet 4</div>
+                <div class="body">
+                  Both target long-context, with different trade-offs. Mixtral routes top-2 of 8 experts (47B total / 13B active); Qwen3-1.7B is dense and runs locally.
+                </div>
+                <div class="cite-row">
+                  <span class="cite"><span class="num">1</span>Mixtral · arxiv.org<svg class="x-rm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="8" height="8" stroke-linecap="round"><path d="M5 5l14 14M5 19L19 5"/></svg></span>
+                  <span class="cite"><span class="num">2</span>Qwen3 card · huggingface.co</span>
+                </div>
+              </div>
+              <div class="msg ai">
+                <div class="meta-line">writing</div>
+                <div class="body">On RULER at 32k, Mixtral hits 0.94 needle, while Qwen3-1.7B trails at 0.71<span class="stream"></span></div>
+              </div>
+            </div>
+            <div class="composer">
+              <div class="tab-stack" style="margin:0;height:auto">
+                <span class="pill"><span class="at">@</span><span class="fav s-a">A</span>Mixtral</span>
+              </div>
+              <div class="field">Where do the experts disagree most<span class="caret"></span></div>
+              <div class="composer-foot">
+                <button title="Mention"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M16 12v1a3 3 0 0 0 6 0v-1a10 10 0 1 0-4 8"/></svg> Mention</button>
+                <button title="Attach"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M21 11.5l-9 9a5 5 0 0 1-7-7l9-9a3.5 3.5 0 0 1 5 5l-9 9a2 2 0 0 1-3-3l8-8"/></svg></button>
+                <button title="Skills"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M5 12l3 3 11-11"/></svg></button>
+                <button class="send" title="Send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l14-7-5 16-3-7-6-2z"/></svg></button>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═════ HERO 02 · NEW TAB PAGE — both themes side by side ═════ -->
+  <div class="sec-head">
+    <div>
+      <div class="eyebrow">Hero · 02 — new tab</div>
+      <h3 class="sec-h" style="margin-top:6px">The command bar, with profile shimmer.</h3>
+      <p class="sec-sub">No bookmarks bar by default — Dia's call. The new-tab gradient breathes in your profile colors. Type to search, ask, or navigate; ML routes you to the right answer.</p>
+    </div>
+  </div>
+
+  <div class="dual">
+    <!-- LIGHT NTP -->
+    <div class="scope scope-light">
+      <span class="label">light</span>
+      <div class="browser" style="height:480px;border-radius:14px">
+        <div class="titlebar">
+          <div class="traffic"><i></i><i></i><i></i></div>
+          <div class="tabrow">
+            <div class="tab active"><div class="fav s-a">∗</div><div class="ttl">New Tab</div></div>
+            <div class="tab"><div class="fav s-w">W</div><div class="ttl">MoE — Wikipedia</div></div>
+          </div>
+          <div class="tab-tools"><button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button></div>
+        </div>
+        <div class="page-area">
+          <div class="urlbar-wrap">
+            <div class="navbtns"><button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg></button><button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></button></div>
+            <div class="urlbar"><span class="ai-glyph"></span><span class="ttl" style="color:var(--ink-3);font-weight:400">Search, ask, or paste a link…</span><div class="actions"><kbd>⌘L</kbd></div></div>
+            <div class="right-controls"><button title="Profile"><div style="width:18px;height:18px;border-radius:6px;background:radial-gradient(circle at 30% 30%, var(--p-coral), transparent 60%),radial-gradient(circle at 70% 70%, var(--p-lavender), transparent 60%),var(--p-sky)"></div></button></div>
+          </div>
+          <div class="page-body">
+            <div class="ntp-content">
+              <div class="ntp-bg"></div>
+              <div class="ntp-inner">
+                <h2 class="ntp-greeting">Good evening, <span class="accent">Mira</span></h2>
+                <div class="ntp-time">Friday · May 8 · 9:42 PM</div>
+                <div class="ntp-cmd">
+                  <div class="ai-glyph"></div>
+                  <div class="ph">explain mixture of experts in a paragraph<span class="caret"></span></div>
+                  <kbd>⏎</kbd>
+                </div>
+                <div class="ntp-suggest">
+                  <span class="s"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>weather</span>
+                  <span class="s">summarize today's news</span>
+                  <span class="s">finish my email to Cary</span>
+                  <span class="s">/dailypicks</span>
+                </div>
+              </div>
+              <div class="ntp-pinned">
+                <div class="ntp-pin"><div class="ico" style="background:var(--p-coral);color:#4a1d0c">A</div><div class="lab">arxiv</div></div>
+                <div class="ntp-pin"><div class="ico" style="background:var(--p-mint);color:#0e3920">G</div><div class="lab">github</div></div>
+                <div class="ntp-pin"><div class="ico" style="background:var(--p-sky);color:#142f4a">L</div><div class="lab">linear</div></div>
+                <div class="ntp-pin"><div class="ico" style="background:var(--p-butter);color:#4a3308">N</div><div class="lab">notion</div></div>
+                <div class="ntp-pin"><div class="ico" style="background:var(--p-rose);color:#4d1530">F</div><div class="lab">figma</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DARK NTP -->
+    <div class="scope scope-dark">
+      <span class="label">dark</span>
+      <div class="browser" style="height:480px;border-radius:14px">
+        <div class="titlebar">
+          <div class="traffic"><i></i><i></i><i></i></div>
+          <div class="tabrow">
+            <div class="tab active"><div class="fav s-a">∗</div><div class="ttl">New Tab</div></div>
+            <div class="tab"><div class="fav s-w">W</div><div class="ttl">MoE — Wikipedia</div></div>
+          </div>
+          <div class="tab-tools"><button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button></div>
+        </div>
+        <div class="page-area">
+          <div class="urlbar-wrap">
+            <div class="navbtns"><button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg></button><button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></button></div>
+            <div class="urlbar"><span class="ai-glyph"></span><span class="ttl" style="color:var(--ink-3);font-weight:400">Search, ask, or paste a link…</span><div class="actions"><kbd>⌘L</kbd></div></div>
+            <div class="right-controls"><button><div style="width:18px;height:18px;border-radius:6px;background:radial-gradient(circle at 30% 30%, var(--p-coral), transparent 60%),radial-gradient(circle at 70% 70%, var(--p-lavender), transparent 60%),var(--p-sky)"></div></button></div>
+          </div>
+          <div class="page-body">
+            <div class="ntp-content">
+              <div class="ntp-bg"></div>
+              <div class="ntp-inner">
+                <h2 class="ntp-greeting">Good evening, <span class="accent">Mira</span></h2>
+                <div class="ntp-time">Friday · May 8 · 9:42 PM</div>
+                <div class="ntp-cmd">
+                  <div class="ai-glyph"></div>
+                  <div class="ph">explain mixture of experts in a paragraph<span class="caret"></span></div>
+                  <kbd>⏎</kbd>
+                </div>
+                <div class="ntp-suggest">
+                  <span class="s"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="9"/></svg>weather</span>
+                  <span class="s">summarize today's news</span>
+                  <span class="s">finish my email to Cary</span>
+                  <span class="s">/dailypicks</span>
+                </div>
+              </div>
+              <div class="ntp-pinned">
+                <div class="ntp-pin"><div class="ico" style="background:var(--p-coral);color:#4a1d0c">A</div><div class="lab">arxiv</div></div>
+                <div class="ntp-pin"><div class="ico" style="background:var(--p-mint);color:#0e3920">G</div><div class="lab">github</div></div>
+                <div class="ntp-pin"><div class="ico" style="background:var(--p-sky);color:#142f4a">L</div><div class="lab">linear</div></div>
+                <div class="ntp-pin"><div class="ico" style="background:var(--p-butter);color:#4a3308">N</div><div class="lab">notion</div></div>
+                <div class="ntp-pin"><div class="ico" style="background:var(--p-rose);color:#4d1530">F</div><div class="lab">figma</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═════ HERO 03 · DROP OVERLAY · SWITCHER ═════ -->
+  <div class="sec-head">
+    <div>
+      <div class="eyebrow">Hero · 03 — drop overlay & space switcher</div>
+      <h3 class="sec-h" style="margin-top:6px">Drag intent, made visible.</h3>
+      <p class="sec-sub">Quadrants appear the moment you start dragging — not after you cross a threshold. The Spaces popover lives behind the profile glyph; each space has its own pastel.</p>
+    </div>
+  </div>
+
+  <div class="row-2">
+    <div class="card">
+      <div class="card-h"><div><div class="card-t">Drop overlay · 4-zone BSP</div><div class="card-d">Persistent dashed quadrants while dragging. Active zone fills with the profile accent.</div></div></div>
+      <div class="drop-stage">
+        <div class="drop-pane">
+          <div class="drop-cell">left split</div>
+          <div class="drop-cell hot">→ open right</div>
+          <div class="drop-cell">bottom-left</div>
+          <div class="drop-cell">bottom-right</div>
+        </div>
+        <div class="drag-chip">
+          <div class="fav s-p" style="width:14px;height:14px;border-radius:4px;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:600">P</div>
+          Long-context evals
+          <span class="mono" style="color:var(--ink-3);font-size:10px">paperswithcode</span>
+          <div class="badge">+1</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><div><div class="card-t">Space switcher</div><div class="card-d">Six pastels, one per profile / space. Cmd-shift-S to fly between them.</div></div></div>
+      <div class="switcher-mock">
+        <div class="switcher-titlebar">
+          <span style="color:var(--ink-1);font-weight:500">Personal</span>
+        </div>
+        <div class="switch-pop">
+          <div class="head"><span>Spaces</span><span>⌃␣</span></div>
+          <div class="switch-row"><div class="badge" style="background:var(--p-rose);color:#4d1530">P</div><div class="nm">Personal</div><div class="ct">2 tabs</div><div class="sc">⌘1</div></div>
+          <div class="switch-row on"><div class="badge" style="background:var(--p-lavender);color:#211154">R</div><div class="nm" style="font-weight:500">Research</div><div class="ct">8 tabs</div><div class="sc">⌘2</div></div>
+          <div class="switch-row"><div class="badge" style="background:var(--p-mint);color:#0e3920">W</div><div class="nm">Work</div><div class="ct">3 tabs</div><div class="sc">⌘3</div></div>
+          <div class="switch-row"><div class="badge" style="background:var(--p-sky);color:#142f4a">S</div><div class="nm">Study</div><div class="ct">1 tab</div><div class="sc">⌘4</div></div>
+          <div class="switch-row"><div class="badge" style="background:var(--p-butter);color:#4a3308">R</div><div class="nm">Reading</div><div class="ct">5 tabs</div><div class="sc">⌘5</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═════ HERO 04 · SETTINGS · BYOK + LOCAL MODEL ═════ -->
+  <div class="sec-head">
+    <div>
+      <div class="eyebrow">Hero · 04 — settings</div>
+      <h3 class="sec-h" style="margin-top:6px">BYOK, in plain language.</h3>
+      <p class="sec-sub">Three providers, one default. Recommended Qwen3 stands out without shouting. Keys live in the OS keychain.</p>
+    </div>
+  </div>
+
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="settings-frame" style="height:580px">
+      <div class="s-nav">
+        <h6>Account</h6>
+        <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>General</a>
+        <a class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="8" cy="14" r="3.5"/><path d="M11 12l9-9 2 2-2 2 2 2-2 2-3-3"/></svg>Providers</a>
+        <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Spaces</a>
+        <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 2l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V6l8-4z"/></svg>Privacy</a>
+        <h6>App</h6>
+        <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M11 10h.01M15 10h.01M7 14h10"/></svg>Shortcuts</a>
+        <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a8 8 0 0 0 0-6l1.6-1.5-2-3.4-2.2.7a8 8 0 0 0-5.2-3L11 0H7l-.6 2.4A8 8 0 0 0 1.2 5L3.4 4.4 1 8l1.6 1.5a8 8 0 0 0 0 6L1 17l2 3.4 2.2-.7a8 8 0 0 0 5.2 3L11 24h4l.6-1.6a8 8 0 0 0 5.2-3l2.2.7 2-3.4z"/></svg>Advanced</a>
+        <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>About</a>
+      </div>
+
+      <div class="s-body">
+        <h2 class="s-h1">Providers</h2>
+        <p class="s-sub">Bring your own key, or run locally. Keys are stored in the OS keychain — never plaintext, never exposed to the chrome.</p>
+
+        <div class="provider-row">
+          <div class="prov on">
+            <div class="top"><div style="width:22px;height:22px;border-radius:7px;background:#D97757;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600">A</div><div class="name">Anthropic</div></div>
+            <div class="sub">claude · sonnet 4 · opus 4.5</div>
+            <span class="badge">DEFAULT</span>
+          </div>
+          <div class="prov">
+            <div class="top"><div style="width:22px;height:22px;border-radius:7px;background:var(--ink-0);color:var(--surface-1);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600">O</div><div class="name">OpenAI</div></div>
+            <div class="sub">gpt-5 · gpt-5-mini</div>
+          </div>
+          <div class="prov">
+            <div class="top"><div style="width:22px;height:22px;border-radius:7px;background:var(--p-mint);color:#0e3920;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600">L</div><div class="name">Local</div></div>
+            <div class="sub">qwen3 · llama 3.2 · phi 4</div>
+          </div>
+        </div>
+
+        <div class="key-card">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:28px;height:28px;border-radius:9px;background:#D97757;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600">A</div>
+            <span style="font-size:14px;font-weight:500">Anthropic</span>
+            <span style="display:flex;align-items:center;gap:5px;font-size:10px;font-weight:500;letter-spacing:.06em;padding:3px 7px;border-radius:5px;background:color-mix(in oklch, var(--ok) 18%, transparent);color:var(--ok)"><span style="width:5px;height:5px;border-radius:50%;background:var(--ok)"></span>ACTIVE</span>
+            <span style="margin-left:auto;font-size:11px;color:var(--ink-2)" class="mono">console.anthropic.com</span>
+          </div>
+          <div style="margin-top:14px;font-size:11px;color:var(--ink-2)">API key</div>
+          <div class="key-row">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" width="13" height="13"><circle cx="8" cy="14" r="3.5"/><path d="M11 12l9-9 2 2-2 2 2 2-2 2-3-3"/></svg>
+            <span class="k-key">sk-ant-api03-···········w7Yz</span>
+            <span class="verified"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="11" height="11"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l3 3 5.5-6"/></svg>Verified</span>
+          </div>
+          <div class="kc-meta">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V8a4 4 0 1 1 8 0v3"/></svg>
+            Stored in macOS Keychain · last used 4m ago
+          </div>
+          <div class="btn-row">
+            <button class="btn">Replace key</button>
+            <button class="btn ghost">Remove</button>
+            <span style="font-size:12px;color:var(--ink-1);margin-left:auto">Default for new chats</span>
+            <span class="toggle"></span>
+          </div>
+        </div>
+
+        <div style="margin-top:24px">
+          <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:4px">
+            <h3 style="margin:0;font-size:18px;font-weight:500;letter-spacing:-.015em">Local model</h3>
+            <span class="tag">offline-capable</span>
+          </div>
+          <p style="font-size:12px;color:var(--ink-2);margin:0 0 12px">Runs on your machine. No network, no key. Slower than hosted models — private by default.</p>
+
+          <div class="model-row rec">
+            <div class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="18" height="18"><rect x="6" y="6" width="12" height="12" rx="1.5"/><rect x="9" y="9" width="6" height="6" rx="0.5"/><path d="M9 3v3M15 3v3M9 18v3M15 18v3M3 9h3M3 15h3M18 9h3M18 15h3"/></svg></div>
+            <div class="body">
+              <div class="nm">Qwen3-1.7B <span class="tag">recommended</span></div>
+              <div class="meta">Q5_K_M · 1.4 GB · 32k context · Apache 2.0</div>
+            </div>
+            <button class="btn primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" width="13" height="13"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"/></svg>Install · 1.4 GB</button>
+          </div>
+
+          <div class="model-row">
+            <div class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="16" height="16"><rect x="6" y="6" width="12" height="12" rx="1.5"/><rect x="9" y="9" width="6" height="6" rx="0.5"/></svg></div>
+            <div class="body"><div class="nm">Qwen3-4B</div><div class="meta">Q4_K_M · 2.5 GB · 32k context</div></div>
+            <button class="btn">Install</button>
+          </div>
+
+          <div class="model-row">
+            <div class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="16" height="16"><rect x="6" y="6" width="12" height="12" rx="1.5"/><rect x="9" y="9" width="6" height="6" rx="0.5"/></svg></div>
+            <div class="body"><div class="nm">Llama-3.2-3B</div><div class="meta">Q4_K_M · 1.9 GB · 8k · downloading…</div><div class="progress"><div style="width:64%"></div></div></div>
+            <button class="btn ghost">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═════ TOKENS — both themes ═════ -->
+  <div class="sec-head">
+    <div>
+      <div class="eyebrow">System</div>
+      <h3 class="sec-h" style="margin-top:6px">The grammar.</h3>
+      <p class="sec-sub">Inter for UI, JetBrains Mono for URLs and code. Warm cream / warm graphite — never neutral gray. Seven pastels per theme, equal in perceived weight.</p>
+    </div>
+  </div>
+
+  <div class="row-2">
+    <div class="card">
+      <div class="card-h"><div><div class="card-t">Profile colors</div><div class="card-d">7 pastels, used for tabs, spaces, accent. Both themes share keys; values shift.</div></div></div>
+      <div class="profile-grid">
+        <div class="prof"><div class="glob" style="background:var(--p-coral)"></div><div class="lb">coral</div></div>
+        <div class="prof"><div class="glob" style="background:var(--p-peach)"></div><div class="lb">peach</div></div>
+        <div class="prof"><div class="glob" style="background:var(--p-butter)"></div><div class="lb">butter</div></div>
+        <div class="prof"><div class="glob" style="background:var(--p-mint)"></div><div class="lb">mint</div></div>
+        <div class="prof"><div class="glob" style="background:var(--p-sky)"></div><div class="lb">sky</div></div>
+        <div class="prof"><div class="glob" style="background:var(--p-lavender)"></div><div class="lb">lavender</div></div>
+        <div class="prof"><div class="glob" style="background:var(--p-rose)"></div><div class="lb">rose</div></div>
+      </div>
+      <div style="margin-top:18px"><div class="eyebrow">Surfaces</div></div>
+      <div class="surface-row" style="margin-top:10px">
+        <div class="surface-card s1"><b>surface-1</b>page</div>
+        <div class="surface-card s2"><b>surface-2</b>card / popover</div>
+        <div class="surface-card s3"><b>surface-3</b>hover</div>
+        <div class="surface-card s4"><b>surface-4</b>pressed</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><div><div class="card-t">Type ramp</div><div class="card-d">2 weights: 400 + 500. No bold. Inter on body, JetBrains Mono on technical strings.</div></div></div>
+      <div class="type-stack">
+        <div class="type-row"><div style="font-size:36px;font-weight:500;letter-spacing:-.03em;line-height:1">Mixtral of Experts</div><div class="lab">page · 36/40 · 500 · -.03em</div></div>
+        <div class="type-row"><div style="font-size:24px;font-weight:500;letter-spacing:-.02em">Settings</div><div class="lab">section · 24/30 · 500</div></div>
+        <div class="type-row"><div style="font-size:14px;font-weight:500">Long-context evals</div><div class="lab">label · 14/20 · 500</div></div>
+        <div class="type-row"><div style="font-size:13.5px;color:var(--ink-1);line-height:1.65;max-width:50ch">Each token only sees two experts, but the chosen pair varies, so the model has access to 47B parameters while only using 13B.</div><div class="lab">body · 13.5/22 · 400</div></div>
+        <div class="type-row"><div class="mono" style="font-size:12px;color:var(--acc-ink)">arxiv.org/abs/2401.04088</div><div class="lab">mono · 12 · 500</div></div>
+        <div class="type-row"><div class="mono" style="font-size:10.5px;color:var(--ink-2);text-transform:uppercase;letter-spacing:.16em">EYEBROW · TIME · CRUMB</div><div class="lab">eyebrow · 10.5 · upper</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row-2" style="margin-top:20px">
+    <div class="card">
+      <div class="card-h"><div><div class="card-t">Density · 4-base scale</div><div class="card-d">Tab and tool rows at 30. Inputs at 36–38. Settings rows at 38. No looser.</div></div></div>
+      <div class="density-list">
+        <div class="den"><span class="nm">tab</span><span class="bar" style="width:120px;height:30px"></span><span class="px">30</span></div>
+        <div class="den"><span class="nm">button</span><span class="bar" style="width:96px;height:30px"></span><span class="px">30</span></div>
+        <div class="den"><span class="nm">url bar</span><span class="bar" style="width:200px;height:36px"></span><span class="px">36</span></div>
+        <div class="den"><span class="nm">composer</span><span class="bar" style="width:200px;height:38px"></span><span class="px">38</span></div>
+        <div class="den"><span class="nm">setting row</span><span class="bar" style="width:200px;height:38px"></span><span class="px">38</span></div>
+        <div class="den"><span class="nm">spacing</span><span class="mono" style="color:var(--ink-2);font-size:10px">4 / 8 / 12 / 16 / 24 / 32 / 48</span></div>
+        <div class="den"><span class="nm">radius</span><span class="mono" style="color:var(--ink-2);font-size:10px">6 sm · 8 md · 11 lg · 14 xl · 999 pill</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><div><div class="card-t">Motion · "the system reacts cleanly"</div><div class="card-d">No springs. No bounces. Linear or cubic-bezier(.2,0,0,1).</div></div></div>
+      <div class="motion-list">
+        <div><span class="ms">80ms</span> hover tint, divider grip, kbd press</div>
+        <div><span class="ms">120ms</span> button & tab swap</div>
+        <div><span class="ms">160ms</span> drop overlay fade-in, popover</div>
+        <div><span class="ms">220ms</span> sidebar resize, tab → chat drag</div>
+        <div><span class="ms">320ms</span> NTP shimmer crossfade (slow ambient)</div>
+        <div style="color:var(--ink-2);margin-top:8px">curve: cubic-bezier(.2, 0, 0, 1) — sharp out, soft in</div>
+      </div>
+      <div class="card-h" style="margin-top:18px"><div><div class="card-t">Voice</div></div></div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <blockquote class="quote">Drop to attach as a citation.</blockquote>
+        <blockquote class="quote">Tab 4 excluded — context budget hit.</blockquote>
+        <blockquote class="quote">Stored in OS keychain — never plaintext, never exposed to the chrome.</blockquote>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═════ ICONOGRAPHY · 24-icon set ═════ -->
+  <div class="sec-head">
+    <div>
+      <div class="eyebrow">Iconography</div>
+      <h3 class="sec-h" style="margin-top:6px">Phosphor regular · 1.6 stroke · 16/18/20.</h3>
+      <p class="sec-sub">Replaces ad-hoc Unicode glyphs (› ‹ ↻ × + ⚙ ▾). Stroke matches Inter's 500 weight; corners mostly square, capped joins.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="icon-grid">
+      <div class="icon-cell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg><span class="nm">back</span></div>
+      <div class="icon-cell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg><span class="nm">fwd</span></div>
+      <div class="icon-cell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M3 5v4h4M21 19v-4h-4M19 8a8 8 0 0 0-14 0M5 16a8 8 0 0 0 14 0"/></svg><span class="nm">reload</span></div>
+      <div class="icon-cell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M5 5l14 14M5 19L19 5"/></svg><span class="nm">close</span></div>
+      <div class="icon-cell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg><span class="nm">add</span></div>
+      <div class="icon-cell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span class="nm">menu</span></div>
+      <div class="icon-cell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg><span class="nm">caret</span></div>
+      <div class="icon-cell"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="6" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="18" cy="12" r="1.4"/></svg><span class="nm">more</span></div>
+
+      <div class="icon-cell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="11" cy="11" r="6"/><path d="M16 16l5 5"/></svg><span class="nm">search</span></div>
+      <div class="icon-cell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V8a4 4 0 1 1 8 0v3"/></svg><span class="nm">lock</span></div>
+      <div class="icon-cell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M6 4h12v18l-6-4-6 4z"/></svg><span class="nm">bookmark</span></div>
+      <div class="icon-cell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M5 6h14M5 12h14M5 18h9"/></svg><span class="nm">reader</span></div>
+      <div class="icon-cell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19 12c0 4-3 7-7 7s-7-3-7-7 3-7 7-7 7 3 7 7z"/></svg><span class="nm">settings</span></div>
+      <div class="icon-cell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M16 12v1a3 3 0 0 0 6 0v-1a10 10 0 1 0-4 8"/></svg><span class="nm">at</span></div>
+      <div class="icon-cell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l14-7-5 16-3-7-6-2z"/></svg><span class="nm">send</span></div>
+      <div class="icon-cell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M21 11.5l-9 9a5 5 0 0 1-7-7l9-9a3.5 3.5 0 0 1 5 5l-9 9a2 2 0 0 1-3-3l8-8"/></svg><span class="nm">attach</span></div>
+
+      <div class="icon-cell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M3 12h18M3 6h18M3 18h18"/></svg><span class="nm">tabs</span></div>
+      <div class="icon-cell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span class="nm">spaces</span></div>
+      <div class="icon-cell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><span class="nm">profile</span></div>
+      <div class="icon-cell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 2l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V6z"/></svg><span class="nm">privacy</span></div>
+      <div class="icon-cell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg><span class="nm">web</span></div>
+      <div class="icon-cell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"/></svg><span class="nm">download</span></div>
+      <div class="icon-cell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l3 3 5.5-6"/></svg><span class="nm">verified</span></div>
+      <div class="icon-cell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg><span class="nm">info</span></div>
+    </div>
+  </div>
+
+  <!-- ═════ COMPONENT STATES ═════ -->
+  <div class="sec-head">
+    <div>
+      <div class="eyebrow">Components</div>
+      <h3 class="sec-h" style="margin-top:6px">States, by hand.</h3>
+      <p class="sec-sub">Hover, focus, active, disabled, loading. Same component, every theme.</p>
+    </div>
+  </div>
+
+  <div class="row-2">
+    <div class="card">
+      <div class="card-h"><div><div class="card-t">Buttons</div></div></div>
+      <div class="cmp">
+        <div class="cmp-h">primary</div>
+        <div class="cmp-row">
+          <button class="btn primary">Install</button>
+          <button class="btn primary" style="filter:brightness(1.1)">Hover</button>
+          <button class="btn primary" style="filter:brightness(.9);transform:translateY(.5px)">Pressed</button>
+          <button class="btn primary" style="opacity:.5;cursor:not-allowed">Disabled</button>
+        </div>
+        <div class="cmp-h">secondary</div>
+        <div class="cmp-row">
+          <button class="btn">Replace</button>
+          <button class="btn" style="background:var(--surface-4)">Hover</button>
+          <button class="btn ghost">Ghost</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><div><div class="card-t">Tab states</div></div></div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;align-items:flex-end;gap:4px;background:var(--bg);padding:6px 8px 0;border-radius:9px">
+          <div class="tab"><div class="fav s-d">D</div><div class="ttl">idle</div></div>
+          <div class="tab" style="background:var(--surface-3);color:var(--ink-0)"><div class="fav s-d">D</div><div class="ttl">hover</div></div>
+          <div class="tab active"><div class="fav s-a">A</div><div class="ttl">active</div></div>
+          <div class="tab context"><div class="fav s-h">H</div><div class="ttl">in context</div></div>
+          <div class="tab loading"><div class="fav"></div><div class="ttl" style="color:var(--ink-3)">loading</div></div>
+        </div>
+      </div>
+      <div class="card-h" style="margin-top:14px"><div><div class="card-t">URL bar states</div></div></div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div class="urlbar" style="height:36px"><svg class="lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V8a4 4 0 1 1 8 0v3"/></svg><span class="ttl">Idle <em>arxiv.org</em></span></div>
+        <div class="urlbar focused" style="height:36px"><span class="ai-glyph"></span><span class="ttl">Focused, accepting query</span><kbd>⌘K</kbd></div>
+        <div class="urlbar ai" style="height:36px"><span class="ai-glyph"></span><span class="ttl">AI mode <em>routing your query…</em></span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row-2" style="margin-top:20px">
+    <div class="card">
+      <div class="card-h"><div><div class="card-t">Citation chips</div></div></div>
+      <div class="cmp-h">text</div>
+      <div class="cite-row">
+        <span class="cite"><span class="num">1</span>Mixtral · arxiv.org</span>
+        <span class="cite"><span class="num">2</span>Qwen3 model card · huggingface.co</span>
+      </div>
+      <div class="cmp-h" style="margin-top:14px">image</div>
+      <div class="cite-row">
+        <span class="cite" style="padding-left:0;height:30px">
+          <span style="width:30px;height:30px;border-radius:999px 0 0 999px;background:linear-gradient(135deg,var(--p-coral),var(--p-lavender));display:inline-block"></span>
+          <span style="margin-left:6px">Architecture diagram · figure 2</span>
+          <svg class="x-rm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="9" height="9" stroke-linecap="round"><path d="M5 5l14 14M5 19L19 5"/></svg>
+        </span>
+      </div>
+
+      <div class="card-h" style="margin-top:14px"><div><div class="card-t">@-mention tab stack</div></div></div>
+      <div class="tab-stack">
+        <span class="pill"><span class="at">@</span><span class="fav s-w">W</span>MoE</span>
+        <span class="pill"><span class="at">@</span><span class="fav s-h">H</span>Qwen3</span>
+        <span class="pill"><span class="at">@</span><span class="fav s-a">A</span>Mixtral</span>
+        <span class="more">+2 more</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><div><div class="card-t">Message bubble · streaming</div></div></div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div class="msg user" style="align-self:flex-end">User question goes here.</div>
+        <div class="msg ai">
+          <div class="meta-line">claude · sonnet 4 · 480ms</div>
+          <div class="body">An assistant reply formatted with <b>bold</b>, lists, and inline <code class="mono" style="font-size:11.5px;background:var(--surface-3);padding:1px 5px;border-radius:4px">code</code> tokens. Streaming cursor is a soft block, not a thinking dot.<span class="stream"></span></div>
+          <div class="cite-row">
+            <span class="cite"><span class="num">1</span>source</span>
+            <span class="cite"><span class="num">2</span>tab in context</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═════ FOOTER ═════ -->
+  <footer>
+    <div class="col">
+      <div style="font-size:14px;color:var(--ink-0);font-weight:500;margin-bottom:6px">sable v0.2 · design system</div>
+      <div>5 hero screens · light + dark</div>
+      <div>24 inline icons · phosphor 1.6</div>
+      <div>2-weight inter · jetbrains mono</div>
+    </div>
+    <div class="col" style="text-align:right">
+      <div>tokens.css · 70 vars per theme</div>
+      <div>tailwind.config.js · derived</div>
+      <div>radix primitives · Dialog, Popover, Tabs</div>
+      <div style="color:var(--ink-3);margin-top:6px">type @ to mention · drop to cite · ⌘L to ask</div>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+  // theme toggle
+  (function(){
+    const root = document.documentElement;
+    const body = document.body;
+    const buttons = document.querySelectorAll('.theme-switch button');
+    const stored = localStorage.getItem('sable-theme') || 'light';
+    body.setAttribute('data-theme', stored);
+    buttons.forEach(b => b.classList.toggle('on', b.dataset.set === stored));
+    buttons.forEach(b => b.addEventListener('click', () => {
+      const t = b.dataset.set;
+      body.setAttribute('data-theme', t);
+      localStorage.setItem('sable-theme', t);
+      buttons.forEach(x => x.classList.toggle('on', x === b));
+    }));
+  })();
+</script>
+
+</body>
+</html>
