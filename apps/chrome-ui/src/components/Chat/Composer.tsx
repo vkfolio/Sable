@@ -30,6 +30,7 @@ export function Composer({
   onRemoveCitation: (id: string) => void;
 }) {
   const ref = useRef<HTMLTextAreaElement>(null);
+  const skillsButtonRef = useRef<HTMLButtonElement>(null);
   const [dragOver, setDragOver] = useState(false);
   const [resolveError, setResolveError] = useState<string | null>(null);
   const [skillsOpen, setSkillsOpen] = useState(false);
@@ -191,10 +192,12 @@ export function Composer({
         />
         <SkillsPicker
           open={skillsOpen}
+          anchorEl={skillsButtonRef.current}
           onPick={handlePickSkill}
           onClose={() => setSkillsOpen(false)}
         />
         <button
+          ref={skillsButtonRef}
           type="button"
           onClick={() => setSkillsOpen((v) => !v)}
           disabled={disabled}
