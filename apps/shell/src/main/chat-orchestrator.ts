@@ -8,7 +8,7 @@
 
 import { randomUUID } from 'node:crypto';
 import { StateGraph, MessagesAnnotation, START, END } from '@langchain/langgraph';
-import { HumanMessage, AIMessage, type BaseMessage } from '@langchain/core/messages';
+import { HumanMessage, AIMessage, AIMessageChunk, type BaseMessage } from '@langchain/core/messages';
 import { buildActiveModel } from './llm-factory';
 import { SettingsStore } from './settings-store';
 import type { LocalModelManager } from './local-model-manager';
@@ -114,8 +114,18 @@ export class ChatOrchestrator {
 
     const graph = new StateGraph(MessagesAnnotation)
       .addNode('model', async (state) => {
-        const reply = await model.invoke(state.messages, { signal });
-        return { messages: [reply] };
+        // Use .stream() rather than .invoke() so that token-level chunks
+        // bubble up as `on_chat_model_stream` events through streamEvents.
+        // (.invoke() only fires start/end events on custom BaseChatModels
+        // that don't set `streaming: true`.) We accumulate the chunks here
+        // for the graph's resulting messages while the per-chunk events
+        // already drive the chrome's streaming UI via the agui translator.
+        const stream = await model.stream(state.messages, { signal });
+        let aggregated: AIMessageChunk | undefined;
+        for await (const chunk of stream) {
+          aggregated = aggregated ? aggregated.concat(chunk) : chunk;
+        }
+        return { messages: [aggregated ?? new AIMessage('')] };
       })
       .addEdge(START, 'model')
       .addEdge('model', END)
@@ -136,6 +146,7 @@ export class ChatOrchestrator {
       for await (const event of events) {
         if (signal.aborted) break;
         evtCount += 1;
+        process.stdout.write(`[chat:event] ${event.event} (${event.name})\n`);
         // Capture final state on graph completion to keep our conversation
         // store consistent with the model's full reply.
         if (event.event === 'on_chain_end' && event.name === 'LangGraph') {

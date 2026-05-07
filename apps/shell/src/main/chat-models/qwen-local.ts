@@ -98,7 +98,7 @@ export class QwenLocalChatModel extends BaseChatModel<BaseChatModelCallOptions> 
   override async *_streamResponseChunks(
     messages: BaseMessage[],
     options: this['ParsedCallOptions'],
-    _runManager?: CallbackManagerForLLMRun,
+    runManager?: CallbackManagerForLLMRun,
   ): AsyncGenerator<ChatGenerationChunk> {
     // Serialize concurrent requests through the single context. A second
     // generation triggered while another is running waits its turn.
@@ -150,13 +150,18 @@ export class QwenLocalChatModel extends BaseChatModel<BaseChatModelCallOptions> 
       if (w) w();
     };
 
+    // Qwen3 emits <think>...</think> reasoning blocks before the actual
+    // answer. They render as visible whitespace + jargon in the chat bubble.
+    // Strip them inline so streaming UX is preserved for the real reply.
+    const thinkFilter = new ThinkBlockFilter();
     let chunkCount = 0;
     const runPromise = session
       .prompt(lastUserText, {
         signal: options.signal,
         onTextChunk(chunk: string) {
           chunkCount += 1;
-          if (chunk) queue.push(chunk);
+          const visible = thinkFilter.process(chunk);
+          if (visible) queue.push(visible);
           wakeIfWaiting();
         },
       })
@@ -165,6 +170,9 @@ export class QwenLocalChatModel extends BaseChatModel<BaseChatModelCallOptions> 
           process.stdout.write(
             `[qwen-local] prompt done · ${chunkCount} chunks · fullLen=${full.length}\n`,
           );
+          // First 200 chars, with newlines escaped for readability
+          const preview = full.slice(0, 200).replace(/\n/g, '\\n');
+          process.stdout.write(`[qwen-local] full[0..200]: ${preview}\n`);
           done = true;
           wakeIfWaiting();
         },
@@ -186,10 +194,18 @@ export class QwenLocalChatModel extends BaseChatModel<BaseChatModelCallOptions> 
 
     inflight = runPromise;
 
+    let yieldCount = 0;
     try {
       while (true) {
         if (queue.length > 0) {
           const chunk = queue.shift()!;
+          yieldCount += 1;
+          // handleLLMNewToken is what makes the LangChain runtime emit
+          // an `on_chat_model_stream` event. Custom BaseChatModels MUST call
+          // this — the framework's auto-emission only kicks in for models
+          // with `streaming: true` in their constructor (which routes
+          // invoke() through stream() but is the wrong abstraction for us).
+          await runManager?.handleLLMNewToken(chunk);
           yield new ChatGenerationChunk({
             message: new AIMessageChunk({ content: chunk }),
             text: chunk,
@@ -201,6 +217,7 @@ export class QwenLocalChatModel extends BaseChatModel<BaseChatModelCallOptions> 
           wake = resolve;
         });
       }
+      process.stdout.write(`[qwen-local] yielded ${yieldCount} chunks\n`);
       if (errored) {
         // Surface the error to the LangGraph runtime; aborts are normal.
         const aborted =
@@ -222,6 +239,9 @@ export class QwenLocalChatModel extends BaseChatModel<BaseChatModelCallOptions> 
     options: this['ParsedCallOptions'],
     runManager?: CallbackManagerForLLMRun,
   ) {
+    // _generate is invoked when callers use `.invoke()` instead of `.stream()`.
+    // We still iterate _streamResponseChunks for streaming behavior internally
+    // (and _streamResponseChunks already calls handleLLMNewToken per chunk).
     let text = '';
     for await (const chunk of this._streamResponseChunks(messages, options, runManager)) {
       text += chunk.text;
@@ -296,4 +316,60 @@ function extractText(content: unknown): string {
     }
   }
   return out;
+}
+
+/**
+ * Streaming filter that removes <think>...</think> reasoning blocks from
+ * Qwen3 output. Buffers small tail to avoid emitting halves of marker tags
+ * that span across chunk boundaries. State machine: outside-think (emitting)
+ * vs inside-think (suppressing).
+ */
+class ThinkBlockFilter {
+  private buffer = '';
+  private inThink = false;
+  private hasEmittedContent = false;
+  private static readonly OPEN = '<think>';
+  private static readonly CLOSE = '</think>';
+
+  process(input: string): string {
+    this.buffer += input;
+    let out = '';
+    while (this.buffer.length > 0) {
+      if (this.inThink) {
+        const endIdx = this.buffer.indexOf(ThinkBlockFilter.CLOSE);
+        if (endIdx === -1) {
+          const keep = ThinkBlockFilter.CLOSE.length - 1;
+          if (this.buffer.length > keep) this.buffer = this.buffer.slice(-keep);
+          break;
+        }
+        this.buffer = this.buffer.slice(endIdx + ThinkBlockFilter.CLOSE.length);
+        this.inThink = false;
+        // Eat any whitespace immediately after </think>.
+        this.buffer = this.buffer.replace(/^\s+/, '');
+      } else {
+        const openIdx = this.buffer.indexOf(ThinkBlockFilter.OPEN);
+        if (openIdx === -1) {
+          const keep = ThinkBlockFilter.OPEN.length - 1;
+          if (this.buffer.length > keep) {
+            out += this.buffer.slice(0, -keep);
+            this.buffer = this.buffer.slice(-keep);
+          }
+          break;
+        }
+        out += this.buffer.slice(0, openIdx);
+        this.buffer = this.buffer.slice(openIdx + ThinkBlockFilter.OPEN.length);
+        this.inThink = true;
+      }
+    }
+
+    // Suppress all leading whitespace until we've emitted real content.
+    // Models commonly start with a newline or two before any text; without
+    // this trim the chat bubble shows visible empty space at the top.
+    if (!this.hasEmittedContent) {
+      const trimmed = out.replace(/^\s+/, '');
+      if (trimmed.length > 0) this.hasEmittedContent = true;
+      return trimmed;
+    }
+    return out;
+  }
 }

@@ -89,6 +89,29 @@ export class WindowManager {
       process.stdout.write(`[chrome] ${message}\n`);
     });
 
+    // Open DevTools for the chrome WebContents in dev. Detached so it doesn't
+    // crowd the small window. Toggle via F12 (handled below).
+    chrome.webContents.openDevTools({ mode: 'detach' });
+
+    // F12 / Ctrl+Shift+I toggle DevTools for the chrome (and tab views in
+    // future). before-input-event sees keys before the renderer.
+    win.webContents.on('before-input-event', (_e, input) => {
+      if (input.type !== 'keyDown') return;
+      const key = input.key.toLowerCase();
+      if (key === 'f12' || (input.control && input.shift && key === 'i')) {
+        if (chrome.webContents.isDevToolsOpened()) chrome.webContents.closeDevTools();
+        else chrome.webContents.openDevTools({ mode: 'detach' });
+      }
+    });
+    chrome.webContents.on('before-input-event', (_e, input) => {
+      if (input.type !== 'keyDown') return;
+      const key = input.key.toLowerCase();
+      if (key === 'f12' || (input.control && input.shift && key === 'i')) {
+        if (chrome.webContents.isDevToolsOpened()) chrome.webContents.closeDevTools();
+        else chrome.webContents.openDevTools({ mode: 'detach' });
+      }
+    });
+
     this.registerIpcOnce();
     this.wireTabForwarding();
 
