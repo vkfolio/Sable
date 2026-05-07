@@ -5,6 +5,8 @@ import { PaneArea } from './components/PaneArea';
 import { useTabsStore } from './state/tabs';
 import { useLayoutStore } from './state/layout';
 import { useDragStore } from './state/drag';
+import { useChatStore } from './state/chat';
+import { useSettingsStore } from './state/settings';
 
 export function App() {
   const activeTabId = useTabsStore((s) => s.activeTabId);
@@ -15,19 +17,23 @@ export function App() {
     const remove = useTabsStore.getState().removeTab;
     const setActive = useTabsStore.getState().setActive;
     const applyLayout = useLayoutStore.getState().apply;
+    const applyAgent = useChatStore.getState().applyEvent;
 
     const offUpdate = window.sable.on.tabUpdated(upsert);
     const offRemove = window.sable.on.tabRemoved(remove);
     const offActive = window.sable.on.activeChanged(setActive);
     const offLayout = window.sable.on.layoutChanged(applyLayout);
+    const offAgent = window.sable.on.agentEvent(applyAgent);
 
     useTabsStore.getState().setBootstrapped();
+    void useSettingsStore.getState().refresh();
 
     return () => {
       offUpdate();
       offRemove();
       offActive();
       offLayout();
+      offAgent();
     };
   }, []);
 

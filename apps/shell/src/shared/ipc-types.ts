@@ -2,8 +2,27 @@
 // contextBridge so the chrome's UI code has type-aware completion.
 
 import type { DropEdge, Pane, PaneId, Rect, TabId } from '@sable/layout-engine';
+import type { BaseEvent } from '@ag-ui/core';
 
 export type { DropEdge, Pane, PaneId, Rect, TabId };
+
+// Chat / settings types
+export type ProviderId = 'anthropic' | 'openai' | 'ollama' | 'qwen-local';
+
+export type SettingsSnapshot = {
+  readonly activeProvider: ProviderId;
+  readonly selectedModel: string;
+  /** map of provider -> hasKey; raw keys never cross the IPC boundary. */
+  readonly providerKeyStatus: Readonly<Partial<Record<ProviderId, boolean>>>;
+};
+
+export type ChatHistoryMessage = {
+  readonly role: 'user' | 'assistant';
+  readonly text: string;
+};
+
+/** AG-UI events flow over IPC as plain JSON; ag-ui/core types describe shape. */
+export type AgentEvent = BaseEvent;
 
 /** A single leaf pane with its tab and current screen rect. */
 export type SnapshotLeaf = {
@@ -66,11 +85,34 @@ export type SableApi = {
     /** Resize a split's ratio (live during divider drag). */
     resize(splitId: PaneId, newRatio: number): Promise<void>;
   };
+  readonly chrome: {
+    /**
+     * When true, all tab WebContentsViews are unmounted so chrome-side
+     * overlays (modals, drop overlays, etc.) can render fullscreen and
+     * receive pointer events without being occluded.
+     */
+    setOverlay(active: boolean): Promise<void>;
+  };
+  readonly chat: {
+    /** Returns the runId so the UI can correlate stop()/error events. */
+    send(conversationId: string, text: string): Promise<string>;
+    stop(runId: string): Promise<void>;
+    getHistory(conversationId: string): Promise<ChatHistoryMessage[]>;
+  };
+  readonly settings: {
+    get(): Promise<SettingsSnapshot>;
+    setActiveProvider(provider: ProviderId): Promise<void>;
+    setSelectedModel(model: string): Promise<void>;
+    setApiKey(provider: ProviderId, key: string): Promise<void>;
+    hasApiKey(provider: ProviderId): Promise<boolean>;
+    removeApiKey(provider: ProviderId): Promise<void>;
+  };
   readonly on: {
     tabUpdated(cb: (state: TabState) => void): () => void;
     tabRemoved(cb: (id: TabId) => void): () => void;
     activeChanged(cb: (id: TabId | null) => void): () => void;
     layoutChanged(cb: (snapshot: LayoutSnapshot) => void): () => void;
+    agentEvent(cb: (event: AgentEvent) => void): () => void;
   };
 };
 
@@ -92,4 +134,16 @@ export const IpcChannels = {
   LayoutDragEnd: 'layout:dragEnd',
   LayoutDrop: 'layout:drop',
   LayoutResize: 'layout:resize',
+  ChromeSetOverlay: 'chrome:setOverlay',
+  // chat / settings
+  ChatSend: 'chat:send',
+  ChatStop: 'chat:stop',
+  ChatGetHistory: 'chat:getHistory',
+  ChatAgentEvent: 'chat:agentEvent',
+  SettingsGet: 'settings:get',
+  SettingsSetActiveProvider: 'settings:setActiveProvider',
+  SettingsSetSelectedModel: 'settings:setSelectedModel',
+  SettingsSetApiKey: 'settings:setApiKey',
+  SettingsHasApiKey: 'settings:hasApiKey',
+  SettingsRemoveApiKey: 'settings:removeApiKey',
 } as const;

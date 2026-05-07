@@ -6,10 +6,14 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import {
   IpcChannels,
+  type AgentEvent,
+  type ChatHistoryMessage,
   type DropEdge,
   type LayoutSnapshot,
   type PaneId,
+  type ProviderId,
   type SableApi,
+  type SettingsSnapshot,
   type TabId,
   type TabState,
 } from '../shared/ipc-types';
@@ -34,6 +38,10 @@ const api: SableApi = {
     reload: (id) => ipcRenderer.invoke(IpcChannels.TabsReload, id) as Promise<void>,
     list: () => ipcRenderer.invoke(IpcChannels.TabsList) as Promise<TabState[]>,
   },
+  chrome: {
+    setOverlay: (active: boolean) =>
+      ipcRenderer.invoke(IpcChannels.ChromeSetOverlay, active) as Promise<void>,
+  },
   layout: {
     dragStart: () => ipcRenderer.invoke(IpcChannels.LayoutDragStart) as Promise<void>,
     dragEnd: () => ipcRenderer.invoke(IpcChannels.LayoutDragEnd) as Promise<void>,
@@ -42,11 +50,32 @@ const api: SableApi = {
     resize: (splitId: PaneId, newRatio: number) =>
       ipcRenderer.invoke(IpcChannels.LayoutResize, splitId, newRatio) as Promise<void>,
   },
+  chat: {
+    send: (conversationId: string, text: string) =>
+      ipcRenderer.invoke(IpcChannels.ChatSend, conversationId, text) as Promise<string>,
+    stop: (runId: string) => ipcRenderer.invoke(IpcChannels.ChatStop, runId) as Promise<void>,
+    getHistory: (conversationId: string) =>
+      ipcRenderer.invoke(IpcChannels.ChatGetHistory, conversationId) as Promise<ChatHistoryMessage[]>,
+  },
+  settings: {
+    get: () => ipcRenderer.invoke(IpcChannels.SettingsGet) as Promise<SettingsSnapshot>,
+    setActiveProvider: (provider: ProviderId) =>
+      ipcRenderer.invoke(IpcChannels.SettingsSetActiveProvider, provider) as Promise<void>,
+    setSelectedModel: (model: string) =>
+      ipcRenderer.invoke(IpcChannels.SettingsSetSelectedModel, model) as Promise<void>,
+    setApiKey: (provider: ProviderId, key: string) =>
+      ipcRenderer.invoke(IpcChannels.SettingsSetApiKey, provider, key) as Promise<void>,
+    hasApiKey: (provider: ProviderId) =>
+      ipcRenderer.invoke(IpcChannels.SettingsHasApiKey, provider) as Promise<boolean>,
+    removeApiKey: (provider: ProviderId) =>
+      ipcRenderer.invoke(IpcChannels.SettingsRemoveApiKey, provider) as Promise<void>,
+  },
   on: {
     tabUpdated: (cb) => on<TabState>(IpcChannels.TabsUpdated, cb),
     tabRemoved: (cb) => on<TabId>(IpcChannels.TabsRemoved, cb),
     activeChanged: (cb) => on<TabId | null>(IpcChannels.TabsActiveChanged, cb),
     layoutChanged: (cb) => on<LayoutSnapshot>(IpcChannels.LayoutChanged, cb),
+    agentEvent: (cb) => on<AgentEvent>(IpcChannels.ChatAgentEvent, cb),
   },
 };
 

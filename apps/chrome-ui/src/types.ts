@@ -3,9 +3,26 @@
 // directly — the boundary is the SableApi exposed via contextBridge.
 
 import type { DropEdge, LeafPane, Pane, PaneId, Rect, SplitPane } from '@sable/layout-engine';
+import type { BaseEvent } from '@ag-ui/core';
 
 export type { DropEdge, LeafPane, Pane, PaneId, Rect, SplitPane };
 export type TabId = string;
+
+// ---- chat / settings ----
+export type ProviderId = 'anthropic' | 'openai' | 'ollama' | 'qwen-local';
+
+export type SettingsSnapshot = {
+  readonly activeProvider: ProviderId;
+  readonly selectedModel: string;
+  readonly providerKeyStatus: Readonly<Partial<Record<ProviderId, boolean>>>;
+};
+
+export type ChatHistoryMessage = {
+  readonly role: 'user' | 'assistant';
+  readonly text: string;
+};
+
+export type AgentEvent = BaseEvent;
 
 export type TabState = {
   readonly id: TabId;
@@ -56,10 +73,27 @@ export type SableApi = {
     drop(sourceTabId: TabId, targetPaneId: PaneId, edge: DropEdge): Promise<void>;
     resize(splitId: PaneId, newRatio: number): Promise<void>;
   };
+  readonly chrome: {
+    setOverlay(active: boolean): Promise<void>;
+  };
+  readonly chat: {
+    send(conversationId: string, text: string): Promise<string>;
+    stop(runId: string): Promise<void>;
+    getHistory(conversationId: string): Promise<ChatHistoryMessage[]>;
+  };
+  readonly settings: {
+    get(): Promise<SettingsSnapshot>;
+    setActiveProvider(provider: ProviderId): Promise<void>;
+    setSelectedModel(model: string): Promise<void>;
+    setApiKey(provider: ProviderId, key: string): Promise<void>;
+    hasApiKey(provider: ProviderId): Promise<boolean>;
+    removeApiKey(provider: ProviderId): Promise<void>;
+  };
   readonly on: {
     tabUpdated(cb: (state: TabState) => void): () => void;
     tabRemoved(cb: (id: TabId) => void): () => void;
     activeChanged(cb: (id: TabId | null) => void): () => void;
     layoutChanged(cb: (snapshot: LayoutSnapshot) => void): () => void;
+    agentEvent(cb: (event: AgentEvent) => void): () => void;
   };
 };

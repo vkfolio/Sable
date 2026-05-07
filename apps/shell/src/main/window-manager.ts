@@ -13,7 +13,9 @@ import type { DropEdge, PaneId, TabId } from '@sable/layout-engine';
 import { getWindowControls } from './platform/window-controls';
 import { TabManager } from './tab-manager';
 import { LayoutController } from './layout-controller';
-import { IpcChannels } from '../shared/ipc-types';
+import { ChatOrchestrator } from './chat-orchestrator';
+import { SettingsStore, type ProviderId } from './settings-store';
+import { IpcChannels, type SettingsSnapshot } from '../shared/ipc-types';
 
 const HOMEPAGE = 'https://duckduckgo.com';
 
@@ -22,6 +24,8 @@ export class WindowManager {
   private chrome: WebContentsView | undefined;
   private tabs: TabManager | undefined;
   private layout: LayoutController | undefined;
+  private chat: ChatOrchestrator | undefined;
+  private readonly settings = new SettingsStore();
   private activeTabId: TabId | null = null;
   private ipcRegistered = false;
 
@@ -63,11 +67,17 @@ export class WindowManager {
 
     const tabs = new TabManager(win);
     const layout = new LayoutController(win, tabs, chrome, controls.titleBarHeight);
+    const chat = new ChatOrchestrator(this.settings, (event) => {
+      // AG-UI events forwarded to the chrome over IPC. Plain JSON; preload
+      // wraps with `window.sable.on.agentEvent`.
+      this.chrome?.webContents.send(IpcChannels.ChatAgentEvent, event);
+    });
 
     this.window = win;
     this.chrome = chrome;
     this.tabs = tabs;
     this.layout = layout;
+    this.chat = chat;
 
     chrome.webContents.on('console-message', (_e, _level, message) => {
       process.stdout.write(`[chrome] ${message}\n`);
@@ -90,6 +100,7 @@ export class WindowManager {
       this.chrome = undefined;
       this.tabs = undefined;
       this.layout = undefined;
+      this.chat = undefined;
       this.activeTabId = null;
     });
 
@@ -172,6 +183,61 @@ export class WindowManager {
     ipcMain.handle(IpcChannels.LayoutResize, (_e, splitId: PaneId, newRatio: number) => {
       this.layout?.applyResize(splitId, newRatio);
     });
+    ipcMain.handle(IpcChannels.ChromeSetOverlay, (_e, active: boolean) => {
+      // Modals (SettingsDialog, etc) and the drag-to-split protocol both
+      // need the tab views temporarily out of the way so the chrome's React
+      // layer can render and receive pointer events. setDragMode() is the
+      // underlying primitive — name aside, it's exactly the right
+      // mechanism here.
+      this.layout?.setDragMode(active);
+    });
+
+    // ---- chat ----
+    ipcMain.handle(IpcChannels.ChatSend, (_e, conversationId: string, text: string) => {
+      if (!this.chat) throw new Error('chat orchestrator not ready');
+      return this.chat.send(conversationId, text);
+    });
+    ipcMain.handle(IpcChannels.ChatStop, (_e, runId: string) => {
+      this.chat?.stop(runId);
+    });
+    ipcMain.handle(IpcChannels.ChatGetHistory, (_e, conversationId: string) => {
+      return this.chat?.getMessages(conversationId) ?? [];
+    });
+
+    // ---- settings ----
+    ipcMain.handle(IpcChannels.SettingsGet, async () => this.settingsSnapshot());
+    ipcMain.handle(
+      IpcChannels.SettingsSetActiveProvider,
+      async (_e, provider: ProviderId) => {
+        await this.settings.setActiveProvider(provider);
+      },
+    );
+    ipcMain.handle(IpcChannels.SettingsSetSelectedModel, async (_e, model: string) => {
+      await this.settings.setSelectedModel(model);
+    });
+    ipcMain.handle(
+      IpcChannels.SettingsSetApiKey,
+      async (_e, provider: ProviderId, key: string) => {
+        await this.settings.setApiKey(provider, key);
+      },
+    );
+    ipcMain.handle(IpcChannels.SettingsHasApiKey, async (_e, provider: ProviderId) => {
+      return this.settings.hasApiKey(provider);
+    });
+    ipcMain.handle(IpcChannels.SettingsRemoveApiKey, async (_e, provider: ProviderId) => {
+      await this.settings.removeApiKey(provider);
+    });
+  }
+
+  private async settingsSnapshot(): Promise<SettingsSnapshot> {
+    const providers: ProviderId[] = ['anthropic', 'openai', 'ollama', 'qwen-local'];
+    const status: Partial<Record<ProviderId, boolean>> = {};
+    for (const p of providers) status[p] = await this.settings.hasApiKey(p);
+    return {
+      activeProvider: await this.settings.getActiveProvider(),
+      selectedModel: await this.settings.getSelectedModel(),
+      providerKeyStatus: status,
+    };
   }
 
   private wireTabForwarding(): void {

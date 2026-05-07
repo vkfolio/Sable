@@ -11,7 +11,13 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@sable/layout-engine": "workspace:*"
+    "@ag-ui/core": "0.0.53",
+    "@langchain/anthropic": "^0.3.18",
+    "@langchain/core": "^0.3.40",
+    "@langchain/langgraph": "^0.2.39",
+    "@langchain/openai": "^0.3.16",
+    "@sable/layout-engine": "workspace:*",
+    "keytar": "^7.9.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
