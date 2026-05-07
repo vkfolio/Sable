@@ -35,6 +35,20 @@ export type TabState = {
   /** Epoch ms; updated on focus, navigate, and creation. Drives LRU
    *  eviction in V0.2 when active-pane cap is enforced. */
   readonly lastActiveAt: number;
+  /** Toggled with Ctrl/Cmd-click in the sidebar. The chat orchestrator
+   *  ingests every selected tab's extracted main content as additional
+   *  context for the next outgoing message. */
+  readonly selectedForContext: boolean;
+};
+
+/** Result of running the in-page content extractor (Phase 4). */
+export type ExtractedTabContent = {
+  readonly tabId: TabId;
+  readonly title: string;
+  readonly url: string;
+  readonly text: string;
+  readonly truncated: boolean;
+  readonly extractedAt: number;
 };
 
 type UpdateListener = (state: TabState) => void;
@@ -66,6 +80,7 @@ export class TabManager {
       canGoBack: false,
       canGoForward: false,
       lastActiveAt: Date.now(),
+      selectedForContext: false,
     };
     this.tabs.set(id, { view, state: initial });
     this.wireEvents(id, view);
@@ -118,6 +133,59 @@ export class TabManager {
 
   getView(id: TabId): WebContentsView | undefined {
     return this.tabs.get(id)?.view;
+  }
+
+  setSelectedForContext(id: TabId, selected: boolean): void {
+    if (!this.tabs.has(id)) return;
+    this.update(id, { selectedForContext: selected });
+  }
+
+  /**
+   * List tabs currently flagged for context, sorted oldest-selected first
+   * so callers can apply greedy-by-recency budgeting trivially. (We don't
+   * track selection time per tab yet, so the order matches insertion order
+   * in the Map. Good enough for V0.1.)
+   */
+  selectedForContext(): TabState[] {
+    const out: TabState[] = [];
+    for (const entry of this.tabs.values()) {
+      if (entry.state.selectedForContext) out.push(entry.state);
+    }
+    return out;
+  }
+
+  /**
+   * Extract main content from a tab's webContents using a self-contained
+   * inline JS extractor. Finds the best content block (article, main, or
+   * largest text container in body), returns clean text capped at MAX_CHARS.
+   *
+   * V0.1 heuristic only — Mozilla Readability + Defuddle in V0.2.
+   */
+  async extractContent(id: TabId): Promise<ExtractedTabContent | null> {
+    const entry = this.tabs.get(id);
+    if (!entry) return null;
+    if (entry.state.loading) {
+      // Wait briefly if the page is still loading; otherwise extraction
+      // grabs partial DOM. This keeps the UX consistent without making
+      // the user pre-load every tab.
+      await wait(300);
+    }
+    try {
+      const result = (await entry.view.webContents.executeJavaScript(EXTRACTOR_SOURCE, true)) as {
+        text: string;
+        truncated: boolean;
+      };
+      return {
+        tabId: id,
+        title: entry.state.title || entry.state.url,
+        url: entry.state.url,
+        text: result.text,
+        truncated: result.truncated,
+        extractedAt: Date.now(),
+      };
+    } catch {
+      return null;
+    }
   }
 
   list(): TabState[] {
@@ -174,3 +242,53 @@ export class TabManager {
     for (const cb of this.updateListeners) cb(state);
   }
 }
+
+function wait(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+/**
+ * Self-contained extractor injected via webContents.executeJavaScript. Must
+ * not reference any outside symbols. Returns { text, truncated }.
+ *
+ * Strategy:
+ *  1. Prefer document.querySelector('article') or 'main' if present.
+ *  2. Otherwise pick the descendant of body with the highest text-density.
+ *  3. Trim, collapse whitespace, cap at MAX_CHARS.
+ */
+const EXTRACTOR_SOURCE = `(() => {
+  const MAX_CHARS = 6000;
+
+  function textOf(el) {
+    if (!el) return '';
+    const clone = el.cloneNode(true);
+    // Strip script/style/nav/footer/aside noise.
+    clone.querySelectorAll('script,style,noscript,nav,header,footer,aside,form,svg,button').forEach(n => n.remove());
+    return (clone.innerText || clone.textContent || '').replace(/\\s+/g, ' ').trim();
+  }
+
+  function pickBest() {
+    const article = document.querySelector('article');
+    if (article && textOf(article).length > 200) return article;
+    const main = document.querySelector('main');
+    if (main && textOf(main).length > 200) return main;
+    // Fall back: scan candidates and pick the densest.
+    const candidates = Array.from(document.querySelectorAll('section, div, body'));
+    let best = document.body;
+    let bestScore = textOf(document.body).length;
+    for (const c of candidates) {
+      const t = textOf(c).length;
+      if (t > bestScore) { best = c; bestScore = t; }
+    }
+    return best;
+  }
+
+  const target = pickBest();
+  let text = textOf(target);
+  let truncated = false;
+  if (text.length > MAX_CHARS) {
+    text = text.slice(0, MAX_CHARS) + '…';
+    truncated = true;
+  }
+  return { text, truncated };
+})();`;

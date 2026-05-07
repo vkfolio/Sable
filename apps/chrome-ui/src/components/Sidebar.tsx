@@ -10,6 +10,9 @@ import { useLayoutStore } from '../state/layout';
 export function Sidebar() {
   const totalTabs = useTabsStore((s) => s.tabsById.size);
   const panesInTree = useLayoutStore(useShallow((s) => s.leaves.length));
+  const selectedCount = useTabsStore(
+    useShallow((s) => Array.from(s.tabsById.values()).filter((t) => t.selectedForContext).length),
+  );
   const sleeping = Math.max(0, totalTabs - panesInTree);
 
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -24,13 +27,15 @@ export function Sidebar() {
 
         <SectionLabel
           text={
-            sleeping > 0 ? (
-              <>
-                Tabs <span className="ml-1 text-fg-mute font-normal normal-case tracking-normal">· {sleeping} sleeping</span>
-              </>
-            ) : (
-              'Tabs'
-            )
+            <>
+              Tabs
+              {selectedCount > 0 && (
+                <span className="ml-1 text-accent font-normal normal-case tracking-normal">· {selectedCount} ctx</span>
+              )}
+              {sleeping > 0 && (
+                <span className="ml-1 text-fg-mute font-normal normal-case tracking-normal">· {sleeping} sleeping</span>
+              )}
+            </>
           }
           action={{
             symbol: '+',

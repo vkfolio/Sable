@@ -1,10 +1,15 @@
-// SettingsDialog — multi-provider BYOK + per-provider model selection.
-// Each provider keeps its own API key in the OS keychain. The "active"
-// provider is what the chat orchestrator uses.
+// SettingsDialog — multi-provider BYOK + local-model download/select.
+//
+// Each remote provider keeps its own API key in the OS keychain. The local
+// provider doesn't use a key — it manages a registry of GGUF model variants
+// downloaded into userData/models. The "active" provider is what the chat
+// orchestrator uses; for qwen-local the selectedModel is the variant id.
 
 import { useEffect, useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useSettingsStore } from '../../state/settings';
-import type { ProviderId } from '../../types';
+import { useLocalModelStore } from '../../state/local-model';
+import type { LocalModelStatus, LocalModelVariantId, ProviderId } from '../../types';
 
 type ProviderMeta = {
   id: ProviderId;
@@ -43,6 +48,14 @@ const PROVIDERS: ProviderMeta[] = [
     available: true,
   },
   {
+    id: 'qwen-local',
+    label: 'Qwen 3 (embedded)',
+    models: [],
+    defaultModel: 'qwen3-1.7b-q4',
+    keyHint: '—',
+    available: true,
+  },
+  {
     id: 'ollama',
     label: 'Ollama (local)',
     models: [],
@@ -50,15 +63,6 @@ const PROVIDERS: ProviderMeta[] = [
     keyHint: '—',
     available: false,
     disabledReason: 'Coming next slice',
-  },
-  {
-    id: 'qwen-local',
-    label: 'Qwen 3 (embedded)',
-    models: [],
-    defaultModel: 'qwen3-4b-instruct-2507',
-    keyHint: '—',
-    available: false,
-    disabledReason: 'Phase 5',
   },
 ];
 
@@ -76,9 +80,9 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
   const removeApiKey = useSettingsStore((s) => s.removeApiKey);
   const setSelectedModel = useSettingsStore((s) => s.setSelectedModel);
 
-  // The dialog tracks a "viewed" provider that may differ from activeProvider
-  // until the user clicks "Make active". This way the user can configure a
-  // key for one provider without changing what the chat is talking to.
+  const localStatuses = useLocalModelStore(useShallow((s) => s.statuses));
+  const refreshLocal = useLocalModelStore((s) => s.refresh);
+
   const [viewedProvider, setViewedProvider] = useState<ProviderId>(activeProvider);
   const meta = PROVIDERS_BY_ID[viewedProvider];
 
@@ -86,17 +90,14 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
   const [saving, setSaving] = useState(false);
   const [keySaved, setKeySaved] = useState(false);
 
-  // Tab WebContentsViews sit above the chrome in z-order; without this,
-  // the centered modal renders behind whatever tab is mounted in the pane
-  // area. Acquire the overlay on mount, release on unmount.
   useEffect(() => {
     void window.sable.chrome.setOverlay(true);
+    void refreshLocal();
     return () => {
       void window.sable.chrome.setOverlay(false);
     };
-  }, []);
+  }, [refreshLocal]);
 
-  // Reset key input when switching providers.
   useEffect(() => {
     setKeyInput('');
     setKeySaved(false);
@@ -131,10 +132,10 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
     setSaving(true);
     try {
       await setActiveProvider(viewedProvider);
-      // If the currently-selected model isn't valid for this provider, switch
-      // to the provider's default. Heuristic: model id doesn't appear in any
-      // of the provider's listed defaults.
-      const known = meta.models.some((m) => m.id === selectedModel);
+      const known =
+        viewedProvider === 'qwen-local'
+          ? localStatuses.some((s) => s.id === selectedModel)
+          : meta.models.some((m) => m.id === selectedModel);
       if (!known) await setSelectedModel(meta.defaultModel);
     } finally {
       setSaving(false);
@@ -143,9 +144,6 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
 
   const handleModelChange = async (id: string) => {
     if (isActiveView) await setSelectedModel(id);
-    // If the user is configuring a non-active provider, model selection only
-    // applies once they click "Make active". Future improvement: per-provider
-    // selectedModel persistence.
   };
 
   return (
@@ -155,7 +153,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
       style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
     >
       <div
-        className="w-[480px] bg-bg-2 border border-border-strong rounded-xl shadow-2xl overflow-hidden"
+        className="w-[520px] max-h-[88vh] bg-bg-2 border border-border-strong rounded-xl shadow-2xl overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         <header className="flex items-center justify-between px-5 py-3 border-b border-border">
@@ -169,8 +167,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
           </button>
         </header>
 
-        <section className="px-5 py-4 space-y-4">
-          {/* Provider tabs */}
+        <section className="px-5 py-4 space-y-4 overflow-auto">
           <div>
             <label className="block text-2xs font-semibold tracking-wider uppercase text-fg-dim mb-1.5">
               Provider
@@ -183,6 +180,9 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
                   isViewed={p.id === viewedProvider}
                   isActive={p.id === activeProvider}
                   hasKey={!!providerKeyStatus[p.id]}
+                  hasLocal={
+                    p.id === 'qwen-local' && localStatuses.some((s) => s.state === 'ready')
+                  }
                   onClick={() => p.available && setViewedProvider(p.id)}
                 />
               ))}
@@ -191,9 +191,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
 
           {!isActiveView && meta.available && (
             <div className="flex items-center gap-2 px-3 py-2 bg-bg-3 border border-border-strong rounded-md text-sm text-fg-mute">
-              <span className="flex-1">
-                {meta.label} is configured but not active.
-              </span>
+              <span className="flex-1">{meta.label} is configured but not active.</span>
               <button
                 onClick={() => void handleMakeActive()}
                 disabled={saving}
@@ -204,74 +202,27 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
             </div>
           )}
 
-          {meta.available && meta.models.length > 0 && (
-            <div>
-              <label className="block text-2xs font-semibold tracking-wider uppercase text-fg-dim mb-1.5">
-                Model
-              </label>
-              <select
-                value={isActiveView ? selectedModel : meta.defaultModel}
-                onChange={(e) => void handleModelChange(e.target.value)}
-                disabled={!isActiveView}
-                className="w-full px-3 py-2 bg-bg-3 border border-border-strong rounded-md text-base text-fg outline-none focus:border-accent disabled:opacity-50"
-              >
-                {meta.models.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.label}
-                  </option>
-                ))}
-                {isActiveView &&
-                  !meta.models.find((m) => m.id === selectedModel) && (
-                    <option value={selectedModel}>{selectedModel} (custom)</option>
-                  )}
-              </select>
-              <p className="mt-1 text-2xs text-fg-dim">
-                Custom model ids accepted; type any current model name supported by the provider.
-              </p>
-            </div>
-          )}
-
-          {meta.available && (
-            <div>
-              <label className="block text-2xs font-semibold tracking-wider uppercase text-fg-dim mb-1.5">
-                API Key
-              </label>
-              {hasKey ? (
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 px-3 py-2 bg-bg-3 border border-border-strong rounded-md text-base text-fg-mute">
-                    ●●●●●●●● <span className="text-2xs ml-1.5">stored in OS keychain</span>
-                  </div>
-                  <button
-                    onClick={() => void handleRemoveKey()}
-                    disabled={saving}
-                    className="px-3 py-2 text-sm text-fg-mute bg-bg-3 border border-border-strong rounded-md hover:text-fg disabled:opacity-50"
-                  >
-                    Remove
-                  </button>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <input
-                    type="password"
-                    value={keyInput}
-                    onChange={(e) => setKeyInput(e.target.value)}
-                    placeholder={meta.keyHint}
-                    className="flex-1 px-3 py-2 bg-bg-3 border border-border-strong rounded-md text-base text-fg outline-none focus:border-accent placeholder:text-fg-dim font-mono"
-                  />
-                  <button
-                    onClick={() => void handleSaveKey()}
-                    disabled={saving || !keyInput.trim()}
-                    className="px-3 py-2 text-sm text-accent-fg bg-accent rounded-md hover:opacity-90 disabled:opacity-30 disabled:cursor-default"
-                  >
-                    Save
-                  </button>
-                </div>
-              )}
-              {keySaved && (
-                <p className="mt-1.5 text-2xs text-emerald-400">Saved to OS keychain.</p>
-              )}
-              <ProviderKeyHint provider={meta.id} />
-            </div>
+          {viewedProvider === 'qwen-local' ? (
+            <QwenLocalSection
+              statuses={localStatuses}
+              isActiveProvider={isActiveView}
+              selectedVariantId={isActiveView ? (selectedModel as LocalModelVariantId) : undefined}
+              onSelect={(id) => void handleModelChange(id)}
+            />
+          ) : (
+            <RemoteProviderSection
+              meta={meta}
+              isActiveView={isActiveView}
+              selectedModel={selectedModel}
+              hasKey={hasKey}
+              keyInput={keyInput}
+              setKeyInput={setKeyInput}
+              keySaved={keySaved}
+              saving={saving}
+              onSaveKey={() => void handleSaveKey()}
+              onRemoveKey={() => void handleRemoveKey()}
+              onModelChange={(id) => void handleModelChange(id)}
+            />
           )}
 
           {!meta.available && (
@@ -285,17 +236,21 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
   );
 }
 
+// ---- subcomponents ----
+
 function ProviderPill({
   meta,
   isViewed,
   isActive,
   hasKey,
+  hasLocal,
   onClick,
 }: {
   meta: ProviderMeta;
   isViewed: boolean;
   isActive: boolean;
   hasKey: boolean;
+  hasLocal: boolean;
   onClick: () => void;
 }) {
   const base =
@@ -307,39 +262,287 @@ function ProviderPill({
     : 'bg-bg-3 border-border-strong text-fg-mute hover:text-fg hover:border-fg-dim';
 
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={!meta.available}
-      className={`${base} ${tone}`}
-    >
+    <button type="button" onClick={onClick} disabled={!meta.available} className={`${base} ${tone}`}>
       <span className="flex-1 truncate">{meta.label}</span>
       {hasKey && (
-        <span className="text-2xs px-1 py-0.5 rounded bg-bg-4 text-fg-mute" title="API key set">key</span>
+        <span className="text-2xs px-1 py-0.5 rounded bg-bg-4 text-fg-mute" title="API key set">
+          key
+        </span>
+      )}
+      {hasLocal && (
+        <span
+          className="text-2xs px-1 py-0.5 rounded bg-bg-4 text-fg-mute"
+          title="At least one model downloaded"
+        >
+          gguf
+        </span>
       )}
       {isActive && (
-        <span className="text-2xs px-1 py-0.5 rounded bg-emerald-500/15 text-emerald-300" title="Active provider">●</span>
+        <span
+          className="text-2xs px-1 py-0.5 rounded bg-emerald-500/15 text-emerald-300"
+          title="Active provider"
+        >
+          ●
+        </span>
       )}
     </button>
   );
 }
 
-function ProviderKeyHint({ provider }: { provider: ProviderId }) {
-  if (provider === 'anthropic') {
-    return (
-      <p className="mt-1.5 text-2xs text-fg-dim">
-        Get a key at <code className="text-fg-mute">console.anthropic.com</code>. Stored via OS
-        keychain — never plaintext, never exposed to the chrome.
-      </p>
-    );
-  }
-  if (provider === 'openai') {
-    return (
-      <p className="mt-1.5 text-2xs text-fg-dim">
-        Get a key at <code className="text-fg-mute">platform.openai.com/api-keys</code>. Stored via
-        OS keychain — never plaintext, never exposed to the chrome.
-      </p>
-    );
-  }
-  return null;
+function RemoteProviderSection({
+  meta,
+  isActiveView,
+  selectedModel,
+  hasKey,
+  keyInput,
+  setKeyInput,
+  keySaved,
+  saving,
+  onSaveKey,
+  onRemoveKey,
+  onModelChange,
+}: {
+  meta: ProviderMeta;
+  isActiveView: boolean;
+  selectedModel: string;
+  hasKey: boolean;
+  keyInput: string;
+  setKeyInput: (s: string) => void;
+  keySaved: boolean;
+  saving: boolean;
+  onSaveKey: () => void;
+  onRemoveKey: () => void;
+  onModelChange: (id: string) => void;
+}) {
+  return (
+    <>
+      {meta.models.length > 0 && (
+        <div>
+          <label className="block text-2xs font-semibold tracking-wider uppercase text-fg-dim mb-1.5">
+            Model
+          </label>
+          <select
+            value={isActiveView ? selectedModel : meta.defaultModel}
+            onChange={(e) => onModelChange(e.target.value)}
+            disabled={!isActiveView}
+            className="w-full px-3 py-2 bg-bg-3 border border-border-strong rounded-md text-base text-fg outline-none focus:border-accent disabled:opacity-50"
+          >
+            {meta.models.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.label}
+              </option>
+            ))}
+            {isActiveView && !meta.models.find((m) => m.id === selectedModel) && (
+              <option value={selectedModel}>{selectedModel} (custom)</option>
+            )}
+          </select>
+        </div>
+      )}
+
+      <div>
+        <label className="block text-2xs font-semibold tracking-wider uppercase text-fg-dim mb-1.5">
+          API Key
+        </label>
+        {hasKey ? (
+          <div className="flex items-center gap-2">
+            <div className="flex-1 px-3 py-2 bg-bg-3 border border-border-strong rounded-md text-base text-fg-mute">
+              ●●●●●●●● <span className="text-2xs ml-1.5">stored in OS keychain</span>
+            </div>
+            <button
+              onClick={onRemoveKey}
+              disabled={saving}
+              className="px-3 py-2 text-sm text-fg-mute bg-bg-3 border border-border-strong rounded-md hover:text-fg disabled:opacity-50"
+            >
+              Remove
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <input
+              type="password"
+              value={keyInput}
+              onChange={(e) => setKeyInput(e.target.value)}
+              placeholder={meta.keyHint}
+              className="flex-1 px-3 py-2 bg-bg-3 border border-border-strong rounded-md text-base text-fg outline-none focus:border-accent placeholder:text-fg-dim font-mono"
+            />
+            <button
+              onClick={onSaveKey}
+              disabled={saving || !keyInput.trim()}
+              className="px-3 py-2 text-sm text-accent-fg bg-accent rounded-md hover:opacity-90 disabled:opacity-30 disabled:cursor-default"
+            >
+              Save
+            </button>
+          </div>
+        )}
+        {keySaved && <p className="mt-1.5 text-2xs text-emerald-400">Saved to OS keychain.</p>}
+        <p className="mt-1.5 text-2xs text-fg-dim">
+          {meta.id === 'anthropic' && (
+            <>
+              Get a key at <code className="text-fg-mute">console.anthropic.com</code>.
+            </>
+          )}
+          {meta.id === 'openai' && (
+            <>
+              Get a key at <code className="text-fg-mute">platform.openai.com/api-keys</code>.
+            </>
+          )}{' '}
+          Stored via OS keychain — never plaintext, never exposed to the chrome.
+        </p>
+      </div>
+    </>
+  );
+}
+
+function QwenLocalSection({
+  statuses,
+  isActiveProvider,
+  selectedVariantId,
+  onSelect,
+}: {
+  statuses: LocalModelStatus[];
+  isActiveProvider: boolean;
+  selectedVariantId?: LocalModelVariantId;
+  onSelect: (id: LocalModelVariantId) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <div>
+        <label className="block text-2xs font-semibold tracking-wider uppercase text-fg-dim mb-1.5">
+          Embedded models
+        </label>
+        <p className="text-2xs text-fg-dim mb-2">
+          Apache 2.0 · stored in app data · runs offline. The 1.7B model is recommended for first
+          run; the 4B is higher quality but ~2× larger.
+        </p>
+      </div>
+      <div className="space-y-1.5">
+        {statuses.map((s) => (
+          <LocalModelRow
+            key={s.id}
+            status={s}
+            isActiveProvider={isActiveProvider}
+            isSelected={selectedVariantId === s.id}
+            onSelect={() => onSelect(s.id)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function LocalModelRow({
+  status,
+  isActiveProvider,
+  isSelected,
+  onSelect,
+}: {
+  status: LocalModelStatus;
+  isActiveProvider: boolean;
+  isSelected: boolean;
+  onSelect: () => void;
+}) {
+  const handleDownload = () => {
+    void window.sable.localModel.download(status.id);
+  };
+  const handleCancel = () => {
+    void window.sable.localModel.cancel(status.id);
+  };
+  const handleRemove = () => {
+    void window.sable.localModel.remove(status.id);
+  };
+
+  const progressPct =
+    status.totalBytes && status.downloadedBytes
+      ? Math.round((status.downloadedBytes / status.totalBytes) * 100)
+      : null;
+
+  return (
+    <div
+      className={`px-3 py-2.5 border rounded-md transition-colors ${
+        isSelected ? 'border-accent bg-accent/10' : 'border-border-strong bg-bg-3'
+      }`}
+    >
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={status.state === 'ready' && isActiveProvider ? onSelect : undefined}
+          disabled={!(status.state === 'ready' && isActiveProvider)}
+          className="flex-1 text-left disabled:cursor-default"
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-fg font-medium">{status.label}</span>
+            {status.recommended && (
+              <span className="text-2xs px-1 py-0.5 rounded bg-accent/20 text-accent leading-none">
+                recommended
+              </span>
+            )}
+            {status.state === 'ready' && (
+              <span className="text-2xs px-1 py-0.5 rounded bg-emerald-500/15 text-emerald-300 leading-none">
+                ready
+              </span>
+            )}
+            {isSelected && (
+              <span className="text-2xs px-1 py-0.5 rounded bg-accent/20 text-accent leading-none">
+                ✓ selected
+              </span>
+            )}
+          </div>
+          <div className="text-2xs text-fg-mute mt-0.5">
+            {status.description} · ~{status.approxSizeMb} MB
+          </div>
+        </button>
+        <div className="shrink-0">
+          {status.state === 'absent' && (
+            <button
+              onClick={handleDownload}
+              className="px-2.5 py-1 text-2xs text-accent-fg bg-accent rounded hover:opacity-90"
+            >
+              Download
+            </button>
+          )}
+          {status.state === 'downloading' && (
+            <button
+              onClick={handleCancel}
+              className="px-2.5 py-1 text-2xs text-fg-mute bg-bg-4 border border-border-strong rounded hover:text-fg"
+            >
+              Cancel
+            </button>
+          )}
+          {status.state === 'ready' && (
+            <button
+              onClick={handleRemove}
+              title="Remove from disk"
+              className="px-2 py-1 text-2xs text-fg-dim hover:text-red-300"
+            >
+              ×
+            </button>
+          )}
+        </div>
+      </div>
+      {status.state === 'downloading' && (
+        <div className="mt-2">
+          <div className="h-1 bg-bg-4 rounded overflow-hidden">
+            <div
+              className="h-full bg-accent transition-all"
+              style={{ width: progressPct !== null ? `${progressPct}%` : '5%' }}
+            />
+          </div>
+          <div className="text-2xs text-fg-dim mt-1">
+            {status.downloadedBytes !== undefined && status.totalBytes
+              ? `${formatMB(status.downloadedBytes)} / ${formatMB(status.totalBytes)}${
+                  progressPct !== null ? ` · ${progressPct}%` : ''
+                }`
+              : 'Connecting…'}
+          </div>
+        </div>
+      )}
+      {status.state === 'error' && status.error && (
+        <div className="mt-1.5 text-2xs text-red-300">{status.error}</div>
+      )}
+    </div>
+  );
+}
+
+function formatMB(bytes: number): string {
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }

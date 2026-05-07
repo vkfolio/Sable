@@ -13,9 +13,10 @@ import type { DropEdge, PaneId, TabId } from '@sable/layout-engine';
 import { getWindowControls } from './platform/window-controls';
 import { TabManager } from './tab-manager';
 import { LayoutController } from './layout-controller';
-import { ChatOrchestrator } from './chat-orchestrator';
+import { ChatOrchestrator, resolveImage } from './chat-orchestrator';
 import { SettingsStore, type ProviderId } from './settings-store';
-import { IpcChannels, type SettingsSnapshot } from '../shared/ipc-types';
+import { LocalModelManager, type LocalModelVariantId } from './local-model-manager';
+import { IpcChannels, type ChatSendContent, type SettingsSnapshot } from '../shared/ipc-types';
 
 const HOMEPAGE = 'https://duckduckgo.com';
 
@@ -26,6 +27,7 @@ export class WindowManager {
   private layout: LayoutController | undefined;
   private chat: ChatOrchestrator | undefined;
   private readonly settings = new SettingsStore();
+  private readonly localModels = new LocalModelManager();
   private activeTabId: TabId | null = null;
   private ipcRegistered = false;
 
@@ -67,11 +69,15 @@ export class WindowManager {
 
     const tabs = new TabManager(win);
     const layout = new LayoutController(win, tabs, chrome, controls.titleBarHeight);
-    const chat = new ChatOrchestrator(this.settings, (event) => {
-      // AG-UI events forwarded to the chrome over IPC. Plain JSON; preload
-      // wraps with `window.sable.on.agentEvent`.
-      this.chrome?.webContents.send(IpcChannels.ChatAgentEvent, event);
-    });
+    const chat = new ChatOrchestrator(
+      this.settings,
+      (event) => {
+        // AG-UI events forwarded to the chrome over IPC. Plain JSON; preload
+        // wraps with `window.sable.on.agentEvent`.
+        this.chrome?.webContents.send(IpcChannels.ChatAgentEvent, event);
+      },
+      this.localModels,
+    );
 
     this.window = win;
     this.chrome = chrome;
@@ -167,6 +173,12 @@ export class WindowManager {
     ipcMain.handle(IpcChannels.TabsGoForward, (_e, id: TabId) => this.tabs?.goForward(id));
     ipcMain.handle(IpcChannels.TabsReload, (_e, id: TabId) => this.tabs?.reload(id));
     ipcMain.handle(IpcChannels.TabsList, () => this.tabs?.list() ?? []);
+    ipcMain.handle(IpcChannels.TabsSetSelectedForContext, (_e, id: TabId, selected: boolean) => {
+      this.tabs?.setSelectedForContext(id, selected);
+    });
+    ipcMain.handle(IpcChannels.TabsExtractContent, async (_e, id: TabId) => {
+      return (await this.tabs?.extractContent(id)) ?? null;
+    });
 
     ipcMain.handle(IpcChannels.LayoutDragStart, () => this.layout?.setDragMode(true));
     ipcMain.handle(IpcChannels.LayoutDragEnd, () => this.layout?.setDragMode(false));
@@ -193,15 +205,18 @@ export class WindowManager {
     });
 
     // ---- chat ----
-    ipcMain.handle(IpcChannels.ChatSend, (_e, conversationId: string, text: string) => {
+    ipcMain.handle(IpcChannels.ChatSend, (_e, conversationId: string, content: ChatSendContent) => {
       if (!this.chat) throw new Error('chat orchestrator not ready');
-      return this.chat.send(conversationId, text);
+      return this.chat.send(conversationId, content);
     });
     ipcMain.handle(IpcChannels.ChatStop, (_e, runId: string) => {
       this.chat?.stop(runId);
     });
     ipcMain.handle(IpcChannels.ChatGetHistory, (_e, conversationId: string) => {
       return this.chat?.getMessages(conversationId) ?? [];
+    });
+    ipcMain.handle(IpcChannels.ChatResolveImage, async (_e, srcUrl: string) => {
+      return resolveImage(srcUrl);
     });
 
     // ---- settings ----
@@ -227,6 +242,21 @@ export class WindowManager {
     ipcMain.handle(IpcChannels.SettingsRemoveApiKey, async (_e, provider: ProviderId) => {
       await this.settings.removeApiKey(provider);
     });
+
+    // ---- local models ----
+    ipcMain.handle(IpcChannels.LocalModelList, async () => this.localModels.listStatus());
+    ipcMain.handle(IpcChannels.LocalModelDownload, async (_e, id: LocalModelVariantId) => {
+      // Fire-and-forget: progress + completion ride the LocalModelEvent push channel.
+      void this.localModels.download(id).catch(() => {
+        // event already emitted; swallow here so the IPC promise resolves cleanly
+      });
+    });
+    ipcMain.handle(IpcChannels.LocalModelCancel, (_e, id: LocalModelVariantId) => {
+      this.localModels.cancel(id);
+    });
+    ipcMain.handle(IpcChannels.LocalModelRemove, async (_e, id: LocalModelVariantId) => {
+      await this.localModels.remove(id);
+    });
   }
 
   private async settingsSnapshot(): Promise<SettingsSnapshot> {
@@ -249,6 +279,9 @@ export class WindowManager {
     });
     this.layout!.onSnapshot((snapshot) => {
       this.chrome?.webContents.send(IpcChannels.LayoutChanged, snapshot);
+    });
+    this.localModels.onEvent((event) => {
+      this.chrome?.webContents.send(IpcChannels.LocalModelEvent, event);
     });
   }
 

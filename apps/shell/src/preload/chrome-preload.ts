@@ -8,10 +8,16 @@ import {
   IpcChannels,
   type AgentEvent,
   type ChatHistoryMessage,
+  type ChatSendContent,
   type DropEdge,
+  type ExtractedTabContent,
   type LayoutSnapshot,
+  type LocalModelEvent,
+  type LocalModelStatus,
+  type LocalModelVariantId,
   type PaneId,
   type ProviderId,
+  type ResolvedImage,
   type SableApi,
   type SettingsSnapshot,
   type TabId,
@@ -37,6 +43,10 @@ const api: SableApi = {
     goForward: (id) => ipcRenderer.invoke(IpcChannels.TabsGoForward, id) as Promise<void>,
     reload: (id) => ipcRenderer.invoke(IpcChannels.TabsReload, id) as Promise<void>,
     list: () => ipcRenderer.invoke(IpcChannels.TabsList) as Promise<TabState[]>,
+    setSelectedForContext: (id: TabId, selected: boolean) =>
+      ipcRenderer.invoke(IpcChannels.TabsSetSelectedForContext, id, selected) as Promise<void>,
+    extractContent: (id: TabId) =>
+      ipcRenderer.invoke(IpcChannels.TabsExtractContent, id) as Promise<ExtractedTabContent | null>,
   },
   chrome: {
     setOverlay: (active: boolean) =>
@@ -51,11 +61,13 @@ const api: SableApi = {
       ipcRenderer.invoke(IpcChannels.LayoutResize, splitId, newRatio) as Promise<void>,
   },
   chat: {
-    send: (conversationId: string, text: string) =>
-      ipcRenderer.invoke(IpcChannels.ChatSend, conversationId, text) as Promise<string>,
+    send: (conversationId: string, content: ChatSendContent) =>
+      ipcRenderer.invoke(IpcChannels.ChatSend, conversationId, content) as Promise<string>,
     stop: (runId: string) => ipcRenderer.invoke(IpcChannels.ChatStop, runId) as Promise<void>,
     getHistory: (conversationId: string) =>
       ipcRenderer.invoke(IpcChannels.ChatGetHistory, conversationId) as Promise<ChatHistoryMessage[]>,
+    resolveImage: (srcUrl: string) =>
+      ipcRenderer.invoke(IpcChannels.ChatResolveImage, srcUrl) as Promise<ResolvedImage>,
   },
   settings: {
     get: () => ipcRenderer.invoke(IpcChannels.SettingsGet) as Promise<SettingsSnapshot>,
@@ -70,12 +82,22 @@ const api: SableApi = {
     removeApiKey: (provider: ProviderId) =>
       ipcRenderer.invoke(IpcChannels.SettingsRemoveApiKey, provider) as Promise<void>,
   },
+  localModel: {
+    list: () => ipcRenderer.invoke(IpcChannels.LocalModelList) as Promise<LocalModelStatus[]>,
+    download: (id: LocalModelVariantId) =>
+      ipcRenderer.invoke(IpcChannels.LocalModelDownload, id) as Promise<void>,
+    cancel: (id: LocalModelVariantId) =>
+      ipcRenderer.invoke(IpcChannels.LocalModelCancel, id) as Promise<void>,
+    remove: (id: LocalModelVariantId) =>
+      ipcRenderer.invoke(IpcChannels.LocalModelRemove, id) as Promise<void>,
+  },
   on: {
     tabUpdated: (cb) => on<TabState>(IpcChannels.TabsUpdated, cb),
     tabRemoved: (cb) => on<TabId>(IpcChannels.TabsRemoved, cb),
     activeChanged: (cb) => on<TabId | null>(IpcChannels.TabsActiveChanged, cb),
     layoutChanged: (cb) => on<LayoutSnapshot>(IpcChannels.LayoutChanged, cb),
     agentEvent: (cb) => on<AgentEvent>(IpcChannels.ChatAgentEvent, cb),
+    localModelEvent: (cb) => on<LocalModelEvent>(IpcChannels.LocalModelEvent, cb),
   },
 };
 

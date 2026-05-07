@@ -21,6 +21,46 @@ export type ChatHistoryMessage = {
   readonly text: string;
 };
 
+export type ChatImageAttachment = {
+  readonly mimeType: string;
+  readonly base64: string;
+  readonly sourceUrl?: string;
+};
+
+export type ChatSendContent = {
+  readonly text: string;
+  readonly images?: readonly ChatImageAttachment[];
+};
+
+export type ResolvedImage = {
+  readonly mimeType: string;
+  readonly base64: string;
+};
+
+// ---- local models ----
+export type LocalModelVariantId =
+  | 'qwen3-0.6b-q4'
+  | 'qwen3-1.7b-q4'
+  | 'qwen3-4b-instruct-2507-q4';
+
+export type LocalModelStatus = {
+  readonly id: LocalModelVariantId;
+  readonly label: string;
+  readonly description: string;
+  readonly approxSizeMb: number;
+  readonly recommended: boolean;
+  readonly state: 'absent' | 'downloading' | 'ready' | 'error';
+  readonly downloadedBytes?: number;
+  readonly totalBytes?: number;
+  readonly error?: string;
+};
+
+export type LocalModelEvent =
+  | { kind: 'progress'; id: LocalModelVariantId; downloadedBytes: number; totalBytes: number }
+  | { kind: 'done'; id: LocalModelVariantId }
+  | { kind: 'error'; id: LocalModelVariantId; error: string }
+  | { kind: 'removed'; id: LocalModelVariantId };
+
 /** AG-UI events flow over IPC as plain JSON; ag-ui/core types describe shape. */
 export type AgentEvent = BaseEvent;
 
@@ -61,6 +101,17 @@ export type TabState = {
   readonly loading: boolean;
   readonly canGoBack: boolean;
   readonly canGoForward: boolean;
+  readonly lastActiveAt: number;
+  readonly selectedForContext: boolean;
+};
+
+export type ExtractedTabContent = {
+  readonly tabId: TabId;
+  readonly title: string;
+  readonly url: string;
+  readonly text: string;
+  readonly truncated: boolean;
+  readonly extractedAt: number;
 };
 
 export type SableApi = {
@@ -74,6 +125,8 @@ export type SableApi = {
     goForward(id: TabId): Promise<void>;
     reload(id: TabId): Promise<void>;
     list(): Promise<TabState[]>;
+    setSelectedForContext(id: TabId, selected: boolean): Promise<void>;
+    extractContent(id: TabId): Promise<ExtractedTabContent | null>;
   };
   readonly layout: {
     /** Hide all tab WebContentsViews so chrome-side drop overlays receive events. */
@@ -95,9 +148,11 @@ export type SableApi = {
   };
   readonly chat: {
     /** Returns the runId so the UI can correlate stop()/error events. */
-    send(conversationId: string, text: string): Promise<string>;
+    send(conversationId: string, content: ChatSendContent): Promise<string>;
     stop(runId: string): Promise<void>;
     getHistory(conversationId: string): Promise<ChatHistoryMessage[]>;
+    /** Fetch an image url in main (bypasses renderer CORS), return base64. */
+    resolveImage(srcUrl: string): Promise<ResolvedImage>;
   };
   readonly settings: {
     get(): Promise<SettingsSnapshot>;
@@ -107,12 +162,19 @@ export type SableApi = {
     hasApiKey(provider: ProviderId): Promise<boolean>;
     removeApiKey(provider: ProviderId): Promise<void>;
   };
+  readonly localModel: {
+    list(): Promise<LocalModelStatus[]>;
+    download(id: LocalModelVariantId): Promise<void>;
+    cancel(id: LocalModelVariantId): Promise<void>;
+    remove(id: LocalModelVariantId): Promise<void>;
+  };
   readonly on: {
     tabUpdated(cb: (state: TabState) => void): () => void;
     tabRemoved(cb: (id: TabId) => void): () => void;
     activeChanged(cb: (id: TabId | null) => void): () => void;
     layoutChanged(cb: (snapshot: LayoutSnapshot) => void): () => void;
     agentEvent(cb: (event: AgentEvent) => void): () => void;
+    localModelEvent(cb: (event: LocalModelEvent) => void): () => void;
   };
 };
 
@@ -126,6 +188,8 @@ export const IpcChannels = {
   TabsGoForward: 'tabs:goForward',
   TabsReload: 'tabs:reload',
   TabsList: 'tabs:list',
+  TabsSetSelectedForContext: 'tabs:setSelectedForContext',
+  TabsExtractContent: 'tabs:extractContent',
   TabsUpdated: 'tabs:updated',
   TabsRemoved: 'tabs:removed',
   TabsActiveChanged: 'tabs:activeChanged',
@@ -139,6 +203,7 @@ export const IpcChannels = {
   ChatSend: 'chat:send',
   ChatStop: 'chat:stop',
   ChatGetHistory: 'chat:getHistory',
+  ChatResolveImage: 'chat:resolveImage',
   ChatAgentEvent: 'chat:agentEvent',
   SettingsGet: 'settings:get',
   SettingsSetActiveProvider: 'settings:setActiveProvider',
@@ -146,4 +211,10 @@ export const IpcChannels = {
   SettingsSetApiKey: 'settings:setApiKey',
   SettingsHasApiKey: 'settings:hasApiKey',
   SettingsRemoveApiKey: 'settings:removeApiKey',
+  // local model
+  LocalModelList: 'localModel:list',
+  LocalModelDownload: 'localModel:download',
+  LocalModelCancel: 'localModel:cancel',
+  LocalModelRemove: 'localModel:remove',
+  LocalModelEvent: 'localModel:event',
 } as const;

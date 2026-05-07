@@ -31,11 +31,15 @@ function TabRow({ tab, active }: { tab: TabState; active: boolean }) {
   const startDrag = useDragStore((s) => s.start);
   const dragging = useDragStore((s) => s.dragging);
   const isBeingDragged = dragging?.tabId === tab.id;
+  const isSelected = tab.selectedForContext;
 
   // Pointer-down captures position; only enter drag mode after the user moves
-  // beyond DRAG_THRESHOLD_PX so a plain click still selects the tab.
+  // beyond DRAG_THRESHOLD_PX so a plain click still selects the tab. Ctrl/Cmd
+  // modifies the click semantics: select-for-context instead of switch-active.
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (e.button !== 0) return; // left button only
+    if (e.button !== 0) return;
+    // Don't start a drag for ctrl/meta-click — those are toggles.
+    if (e.ctrlKey || e.metaKey) return;
     const startX = e.clientX;
     const startY = e.clientY;
     const tabId = tab.id;
@@ -53,15 +57,21 @@ function TabRow({ tab, active }: { tab: TabState; active: boolean }) {
     const onUp = () => {
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
-      // If drag never started, this was a click. Selection happens via onClick below.
     };
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
   };
 
-  const handleClick = () => {
+  const handleClick = (e: React.MouseEvent) => {
+    // Ctrl/Cmd-click toggles "selected for chat context" instead of switching.
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      void window.sable.tabs.setSelectedForContext(tab.id, !isSelected);
+      return;
+    }
     void window.sable.tabs.setActive(tab.id);
   };
+
   const handleClose = (e: React.MouseEvent) => {
     e.stopPropagation();
     void window.sable.tabs.close(tab.id);
@@ -71,11 +81,16 @@ function TabRow({ tab, active }: { tab: TabState; active: boolean }) {
     <div
       onPointerDown={handlePointerDown}
       onClick={handleClick}
+      title={isSelected ? 'Selected for chat context · Ctrl+click to deselect' : 'Ctrl+click to add as chat context'}
       className={`group flex items-center gap-2.5 px-4 py-1.5 text-base cursor-default transition-colors select-none ${
         active
           ? 'bg-bg-4 text-fg'
+          : isSelected
+          ? 'bg-accent/10 text-fg'
           : 'text-fg-mute hover:bg-bg-3 hover:text-fg'
-      } ${isBeingDragged ? 'opacity-50' : ''}`}
+      } ${isBeingDragged ? 'opacity-50' : ''} ${
+        isSelected && !active ? 'border-l-2 border-accent pl-[14px]' : ''
+      }`}
     >
       {tab.faviconUrl ? (
         <img
@@ -98,6 +113,15 @@ function TabRow({ tab, active }: { tab: TabState; active: boolean }) {
       )}
 
       <span className="flex-1 truncate">{tab.title || tab.url || '(loading)'}</span>
+
+      {isSelected && (
+        <span
+          className="text-2xs px-1 py-0.5 rounded bg-accent/20 text-accent leading-none"
+          title="Will be sent as context with the next chat message"
+        >
+          ctx
+        </span>
+      )}
 
       <button
         onClick={handleClose}

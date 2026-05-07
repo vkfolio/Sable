@@ -24,9 +24,10 @@ export type ChatHistoryMessage = {
 
 /**
  * Citation captured from a tab WebContents and dropped into the chat composer.
- * Mirrors the SableQuotePayload set by tab-preload.ts.
+ * Discriminated union: text (from selection) or image (from <img> drag).
  */
-export type Citation = {
+export type TextCitation = {
+  readonly kind: 'text';
   readonly id: string;
   readonly text: string;
   readonly url: string;
@@ -34,6 +35,60 @@ export type Citation = {
   readonly anchor: { selector: string | null };
   readonly pickedUpAt: number;
 };
+
+export type ImageCitation = {
+  readonly kind: 'image';
+  readonly id: string;
+  readonly mimeType: string;
+  readonly base64: string;
+  readonly sourceUrl: string;
+  readonly pageUrl: string;
+  readonly pageTitle: string;
+  readonly alt: string;
+  readonly pickedUpAt: number;
+};
+
+export type Citation = TextCitation | ImageCitation;
+
+export type ChatImageAttachment = {
+  readonly mimeType: string;
+  readonly base64: string;
+  readonly sourceUrl?: string;
+};
+
+export type ChatSendContent = {
+  readonly text: string;
+  readonly images?: readonly ChatImageAttachment[];
+};
+
+export type ResolvedImage = {
+  readonly mimeType: string;
+  readonly base64: string;
+};
+
+// ---- local models ----
+export type LocalModelVariantId =
+  | 'qwen3-0.6b-q4'
+  | 'qwen3-1.7b-q4'
+  | 'qwen3-4b-instruct-2507-q4';
+
+export type LocalModelStatus = {
+  readonly id: LocalModelVariantId;
+  readonly label: string;
+  readonly description: string;
+  readonly approxSizeMb: number;
+  readonly recommended: boolean;
+  readonly state: 'absent' | 'downloading' | 'ready' | 'error';
+  readonly downloadedBytes?: number;
+  readonly totalBytes?: number;
+  readonly error?: string;
+};
+
+export type LocalModelEvent =
+  | { kind: 'progress'; id: LocalModelVariantId; downloadedBytes: number; totalBytes: number }
+  | { kind: 'done'; id: LocalModelVariantId }
+  | { kind: 'error'; id: LocalModelVariantId; error: string }
+  | { kind: 'removed'; id: LocalModelVariantId };
 
 export type AgentEvent = BaseEvent;
 
@@ -46,6 +101,16 @@ export type TabState = {
   readonly canGoBack: boolean;
   readonly canGoForward: boolean;
   readonly lastActiveAt: number;
+  readonly selectedForContext: boolean;
+};
+
+export type ExtractedTabContent = {
+  readonly tabId: TabId;
+  readonly title: string;
+  readonly url: string;
+  readonly text: string;
+  readonly truncated: boolean;
+  readonly extractedAt: number;
 };
 
 export type SnapshotLeaf = {
@@ -79,6 +144,8 @@ export type SableApi = {
     goForward(id: TabId): Promise<void>;
     reload(id: TabId): Promise<void>;
     list(): Promise<TabState[]>;
+    setSelectedForContext(id: TabId, selected: boolean): Promise<void>;
+    extractContent(id: TabId): Promise<ExtractedTabContent | null>;
   };
   readonly layout: {
     dragStart(): Promise<void>;
@@ -90,9 +157,10 @@ export type SableApi = {
     setOverlay(active: boolean): Promise<void>;
   };
   readonly chat: {
-    send(conversationId: string, text: string): Promise<string>;
+    send(conversationId: string, content: ChatSendContent): Promise<string>;
     stop(runId: string): Promise<void>;
     getHistory(conversationId: string): Promise<ChatHistoryMessage[]>;
+    resolveImage(srcUrl: string): Promise<ResolvedImage>;
   };
   readonly settings: {
     get(): Promise<SettingsSnapshot>;
@@ -102,11 +170,18 @@ export type SableApi = {
     hasApiKey(provider: ProviderId): Promise<boolean>;
     removeApiKey(provider: ProviderId): Promise<void>;
   };
+  readonly localModel: {
+    list(): Promise<LocalModelStatus[]>;
+    download(id: LocalModelVariantId): Promise<void>;
+    cancel(id: LocalModelVariantId): Promise<void>;
+    remove(id: LocalModelVariantId): Promise<void>;
+  };
   readonly on: {
     tabUpdated(cb: (state: TabState) => void): () => void;
     tabRemoved(cb: (id: TabId) => void): () => void;
     activeChanged(cb: (id: TabId | null) => void): () => void;
     layoutChanged(cb: (snapshot: LayoutSnapshot) => void): () => void;
     agentEvent(cb: (event: AgentEvent) => void): () => void;
+    localModelEvent(cb: (event: LocalModelEvent) => void): () => void;
   };
 };

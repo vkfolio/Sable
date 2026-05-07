@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import type { Citation } from '../../types';
+import type { Citation, ImageCitation, TextCitation } from '../../types';
 
-const SABLE_QUOTE_MIME = 'application/x-sable-quote+json; v=1';
+const SABLE_QUOTE_MIME_PREFIX = 'application/x-sable-quote+json';
+const SABLE_IMAGE_MIME_PREFIX = 'application/x-sable-image+json';
 
 export function Composer({
   value,
@@ -28,6 +29,7 @@ export function Composer({
 }) {
   const ref = useRef<HTMLTextAreaElement>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [resolveError, setResolveError] = useState<string | null>(null);
 
   // Auto-grow up to 6 rows.
   useEffect(() => {
@@ -47,52 +49,92 @@ export function Composer({
   };
 
   const handleDragOver = (e: React.DragEvent) => {
-    if (!hasSableQuote(e.dataTransfer)) return;
+    if (!hasSableMime(e.dataTransfer)) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = 'copy';
     if (!dragOver) setDragOver(true);
   };
 
   const handleDragLeave = (e: React.DragEvent) => {
-    // Only clear if leaving the composer container, not bubbling from a child.
     if (e.currentTarget === e.target) setDragOver(false);
   };
 
-  const handleDrop = (e: React.DragEvent) => {
-    if (!hasSableQuote(e.dataTransfer)) return;
+  const handleDrop = async (e: React.DragEvent) => {
+    if (!hasSableMime(e.dataTransfer)) return;
     e.preventDefault();
     setDragOver(false);
-    const raw = e.dataTransfer.getData(SABLE_QUOTE_MIME);
-    if (!raw) return;
-    try {
-      const payload = JSON.parse(raw) as {
-        v: number;
-        kind: string;
-        text: string;
-        url: string;
-        title: string;
-        anchor: { selector: string | null };
-        pickedUpAt: number;
-      };
-      if (payload.v !== 1 || payload.kind !== 'quote') return;
-      onAddCitation({
-        id: `cite-${payload.pickedUpAt}-${Math.random().toString(36).slice(2, 8)}`,
-        text: payload.text,
-        url: payload.url,
-        title: payload.title,
-        anchor: payload.anchor ?? { selector: null },
-        pickedUpAt: payload.pickedUpAt,
-      });
-    } catch {
-      // Bad payload; silently drop.
+    setResolveError(null);
+
+    const dt = e.dataTransfer;
+    const quoteRaw = findMime(dt, SABLE_QUOTE_MIME_PREFIX);
+    const imageRaw = findMime(dt, SABLE_IMAGE_MIME_PREFIX);
+
+    if (quoteRaw) {
+      try {
+        const payload = JSON.parse(quoteRaw) as {
+          v: number;
+          kind: string;
+          text: string;
+          url: string;
+          title: string;
+          anchor: { selector: string | null };
+          pickedUpAt: number;
+        };
+        if (payload.v !== 1 || payload.kind !== 'quote') return;
+        const c: TextCitation = {
+          kind: 'text',
+          id: `cite-${payload.pickedUpAt}-${Math.random().toString(36).slice(2, 8)}`,
+          text: payload.text,
+          url: payload.url,
+          title: payload.title,
+          anchor: payload.anchor ?? { selector: null },
+          pickedUpAt: payload.pickedUpAt,
+        };
+        onAddCitation(c);
+      } catch {
+        // bad payload
+      }
+      return;
+    }
+
+    if (imageRaw) {
+      try {
+        const payload = JSON.parse(imageRaw) as {
+          v: number;
+          kind: string;
+          srcUrl: string;
+          alt: string;
+          pageUrl: string;
+          pageTitle: string;
+          pickedUpAt: number;
+        };
+        if (payload.v !== 1 || payload.kind !== 'image') return;
+        // Resolve image bytes via main (bypasses renderer CORS, gives us a
+        // base64 we can ship to the LLM as inline multimodal content).
+        const resolved = await window.sable.chat.resolveImage(payload.srcUrl);
+        const c: ImageCitation = {
+          kind: 'image',
+          id: `cite-${payload.pickedUpAt}-${Math.random().toString(36).slice(2, 8)}`,
+          mimeType: resolved.mimeType,
+          base64: resolved.base64,
+          sourceUrl: payload.srcUrl,
+          pageUrl: payload.pageUrl,
+          pageTitle: payload.pageTitle,
+          alt: payload.alt,
+          pickedUpAt: payload.pickedUpAt,
+        };
+        onAddCitation(c);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        setResolveError(`Couldn't attach image: ${msg}`);
+        setTimeout(() => setResolveError(null), 4000);
+      }
     }
   };
 
   return (
     <div
-      className={`border-t border-border p-2.5 transition-colors ${
-        dragOver ? 'bg-accent/5' : ''
-      }`}
+      className={`border-t border-border p-2.5 transition-colors ${dragOver ? 'bg-accent/5' : ''}`}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -100,9 +142,18 @@ export function Composer({
     >
       {citations.length > 0 && (
         <div className="mb-2 space-y-1.5">
-          {citations.map((c) => (
-            <CitationChip key={c.id} citation={c} onRemove={() => onRemoveCitation(c.id)} />
-          ))}
+          {citations.map((c) =>
+            c.kind === 'text' ? (
+              <TextCitationChip key={c.id} citation={c} onRemove={() => onRemoveCitation(c.id)} />
+            ) : (
+              <ImageCitationChip key={c.id} citation={c} onRemove={() => onRemoveCitation(c.id)} />
+            ),
+          )}
+        </div>
+      )}
+      {resolveError && (
+        <div className="mb-2 px-2.5 py-1.5 bg-red-900/20 border border-red-900/40 rounded text-2xs text-red-300">
+          {resolveError}
         </div>
       )}
       <div className="relative">
@@ -111,9 +162,7 @@ export function Composer({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={
-            dragOver ? 'Drop to attach as a citation' : placeholderHint
-          }
+          placeholder={dragOver ? 'Drop to attach' : placeholderHint}
           disabled={disabled}
           rows={1}
           spellCheck={false}
@@ -135,15 +184,16 @@ export function Composer({
   );
 }
 
-function CitationChip({
+function TextCitationChip({
   citation,
   onRemove,
 }: {
-  citation: Citation;
+  citation: TextCitation;
   onRemove: () => void;
 }) {
   const host = safeHost(citation.url);
-  const truncatedText = citation.text.length > 140 ? citation.text.slice(0, 140) + '…' : citation.text;
+  const truncatedText =
+    citation.text.length > 140 ? citation.text.slice(0, 140) + '…' : citation.text;
 
   return (
     <div className="group flex gap-2 px-2.5 py-2 bg-bg-4 border border-border-strong rounded-md text-sm">
@@ -167,13 +217,62 @@ function CitationChip({
   );
 }
 
-function hasSableQuote(dt: DataTransfer | null): boolean {
+function ImageCitationChip({
+  citation,
+  onRemove,
+}: {
+  citation: ImageCitation;
+  onRemove: () => void;
+}) {
+  const host = safeHost(citation.pageUrl);
+  return (
+    <div className="group flex gap-2 px-2.5 py-2 bg-bg-4 border border-border-strong rounded-md text-sm">
+      <img
+        src={`data:${citation.mimeType};base64,${citation.base64}`}
+        alt={citation.alt}
+        className="w-12 h-12 object-cover rounded border border-border-strong shrink-0"
+      />
+      <div className="flex-1 min-w-0">
+        <div className="text-fg leading-snug truncate">{citation.alt || 'Image'}</div>
+        <div className="mt-1 flex items-center gap-1.5 text-2xs text-fg-dim">
+          <span className="truncate">{citation.pageTitle || host}</span>
+          <span>·</span>
+          <span className="truncate font-mono">{host}</span>
+        </div>
+      </div>
+      <button
+        onClick={onRemove}
+        title="Remove image"
+        className="self-start text-fg-dim hover:text-fg leading-none text-base"
+      >
+        ×
+      </button>
+    </div>
+  );
+}
+
+function hasSableMime(dt: DataTransfer | null): boolean {
   if (!dt) return false;
   for (let i = 0; i < dt.types.length; i++) {
-    const t = dt.types[i];
-    if (t && t.toLowerCase().startsWith('application/x-sable-quote+json')) return true;
+    const t = dt.types[i]?.toLowerCase();
+    if (!t) continue;
+    if (t.startsWith(SABLE_QUOTE_MIME_PREFIX) || t.startsWith(SABLE_IMAGE_MIME_PREFIX)) {
+      return true;
+    }
   }
   return false;
+}
+
+function findMime(dt: DataTransfer | null, prefix: string): string | null {
+  if (!dt) return null;
+  for (let i = 0; i < dt.types.length; i++) {
+    const t = dt.types[i];
+    if (t && t.toLowerCase().startsWith(prefix)) {
+      const v = dt.getData(t);
+      if (v) return v;
+    }
+  }
+  return null;
 }
 
 function safeHost(url: string): string {

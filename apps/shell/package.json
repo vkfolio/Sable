@@ -17,7 +17,8 @@
     "@langchain/langgraph": "^0.2.39",
     "@langchain/openai": "^0.3.16",
     "@sable/layout-engine": "workspace:*",
-    "keytar": "^7.9.0"
+    "keytar": "^7.9.0",
+    "node-llama-cpp": "^3.4.1"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

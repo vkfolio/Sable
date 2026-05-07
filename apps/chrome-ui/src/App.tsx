@@ -7,6 +7,7 @@ import { useLayoutStore } from './state/layout';
 import { useDragStore } from './state/drag';
 import { useChatStore } from './state/chat';
 import { useSettingsStore } from './state/settings';
+import { useLocalModelStore } from './state/local-model';
 
 export function App() {
   const activeTabId = useTabsStore((s) => s.activeTabId);
@@ -24,9 +25,13 @@ export function App() {
     const offActive = window.sable.on.activeChanged(setActive);
     const offLayout = window.sable.on.layoutChanged(applyLayout);
     const offAgent = window.sable.on.agentEvent(applyAgent);
+    const offLocalModel = window.sable.on.localModelEvent((evt) => {
+      useLocalModelStore.getState().applyEvent(evt);
+    });
 
     useTabsStore.getState().setBootstrapped();
     void useSettingsStore.getState().refresh();
+    void useLocalModelStore.getState().refresh();
 
     return () => {
       offUpdate();
@@ -34,6 +39,7 @@ export function App() {
       offActive();
       offLayout();
       offAgent();
+      offLocalModel();
     };
   }, []);
 

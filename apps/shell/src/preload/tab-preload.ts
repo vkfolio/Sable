@@ -21,6 +21,7 @@
 // into the preload pipeline yet.
 
 const SABLE_QUOTE_MIME = 'application/x-sable-quote+json; v=1';
+const SABLE_IMAGE_MIME = 'application/x-sable-image+json; v=1';
 const MAX_QUOTE_LENGTH = 4000;
 
 type SableQuotePayload = {
@@ -33,42 +34,87 @@ type SableQuotePayload = {
   pickedUpAt: number;
 };
 
-document.addEventListener('dragstart', (event) => {
-  // Only act when the drag started from a real text selection. Image drags,
-  // anchor drags, etc. should pass through unchanged so the page's defaults
-  // (and our chat-image drag in Direction B later) keep working.
-  const selection = window.getSelection();
-  const text = selection?.toString().trim() ?? '';
-  if (!text) return;
+type SableImagePayload = {
+  v: 1;
+  kind: 'image';
+  /** Absolute URL of the image asset itself. */
+  srcUrl: string;
+  /** Alt text from the source page, when available. */
+  alt: string;
+  /** Page URL the image was found on. */
+  pageUrl: string;
+  pageTitle: string;
+  pickedUpAt: number;
+};
 
+document.addEventListener('dragstart', (event) => {
   const dt = event.dataTransfer;
   if (!dt) return;
 
-  const truncated = text.length > MAX_QUOTE_LENGTH ? text.slice(0, MAX_QUOTE_LENGTH) + '…' : text;
-
-  const payload: SableQuotePayload = {
-    v: 1,
-    kind: 'quote',
-    text: truncated,
-    url: location.href,
-    title: document.title || location.hostname,
-    anchor: { selector: bestEffortSelector(selection) },
-    pickedUpAt: Date.now(),
-  };
-
-  try {
-    dt.setData(SABLE_QUOTE_MIME, JSON.stringify(payload));
-    // Always provide text/plain so the drag still does something useful if
-    // dropped outside Sable.
-    if (!dt.getData('text/plain')) {
-      dt.setData('text/plain', truncated);
+  // Branch 1: text selection. Highest priority — if the user has text
+  // selected and started the drag from a text node, prefer the quote MIME.
+  const selection = window.getSelection();
+  const text = selection?.toString().trim() ?? '';
+  if (text) {
+    const truncated = text.length > MAX_QUOTE_LENGTH ? text.slice(0, MAX_QUOTE_LENGTH) + '…' : text;
+    const payload: SableQuotePayload = {
+      v: 1,
+      kind: 'quote',
+      text: truncated,
+      url: location.href,
+      title: document.title || location.hostname,
+      anchor: { selector: bestEffortSelector(selection) },
+      pickedUpAt: Date.now(),
+    };
+    try {
+      dt.setData(SABLE_QUOTE_MIME, JSON.stringify(payload));
+      if (!dt.getData('text/plain')) dt.setData('text/plain', truncated);
+    } catch {
+      // page hijacked dataTransfer; fall through to text drag.
     }
-  } catch {
-    // Some pages override dataTransfer or call preventDefault() in their own
-    // dragstart handler. Best-effort: if setData throws, the drag still
-    // works as a normal text drag.
+    return;
+  }
+
+  // Branch 2: image drag. Source target is an <img> (most common case) or
+  // an element with a background-image or that wraps an img. Best-effort —
+  // we resolve the closest <img> upward from the drag target, then fall
+  // back to the page's own resolved-uri if none found.
+  const target = event.target as Element | null;
+  const img = closestImage(target);
+  if (img && img.src) {
+    const payload: SableImagePayload = {
+      v: 1,
+      kind: 'image',
+      srcUrl: img.currentSrc || img.src,
+      alt: img.alt ?? '',
+      pageUrl: location.href,
+      pageTitle: document.title || location.hostname,
+      pickedUpAt: Date.now(),
+    };
+    try {
+      dt.setData(SABLE_IMAGE_MIME, JSON.stringify(payload));
+      // Fallback for non-Sable drop targets: text/uri-list with the image
+      // URL preserves a useful meaning when dropped into a browser address
+      // bar or file manager.
+      if (!dt.getData('text/uri-list')) {
+        dt.setData('text/uri-list', payload.srcUrl);
+      }
+    } catch {
+      // ignore
+    }
   }
 }, true);  // capture: true — we want first crack at the event before page scripts.
+
+function closestImage(el: Element | null): HTMLImageElement | null {
+  let cursor: Element | null = el;
+  while (cursor && cursor.nodeType === 1) {
+    if (cursor.tagName === 'IMG') return cursor as HTMLImageElement;
+    const found = cursor.querySelector?.('img');
+    if (found) return found as HTMLImageElement;
+    cursor = cursor.parentElement;
+  }
+  return null;
+}
 
 /**
  * Compute a CSS selector path to the selection's common ancestor. This is a
