@@ -8,6 +8,25 @@ import { useSettingsStore } from '../../state/settings';
 import { MessageList } from './MessageList';
 import { Composer } from './Composer';
 import { ChatEmptyState } from './ChatEmptyState';
+import type { Citation } from '../../types';
+
+/**
+ * Format a user message that includes attached citations. The LLM sees a
+ * markdown-quoted block per citation followed by the user's own text. We
+ * keep this client-side for V0.1 — Phase 4 will move citation handling
+ * into the chat orchestrator's StateGraph as part of a retrieve node.
+ */
+function formatMessageWithCitations(text: string, citations: Citation[]): string {
+  if (citations.length === 0) return text;
+  const parts: string[] = [];
+  for (const c of citations) {
+    parts.push(`> ${c.text}`);
+    parts.push(`> — [${c.title || c.url}](${c.url})`);
+    parts.push('');
+  }
+  parts.push(text);
+  return parts.join('\n');
+}
 
 export function Chat({ onOpenSettings }: { onOpenSettings: () => void }) {
   const conversationId = useChatStore((s) => s.conversationId);
@@ -22,6 +41,9 @@ export function Chat({ onOpenSettings }: { onOpenSettings: () => void }) {
   const providerKeyStatus = useSettingsStore((s) => s.providerKeyStatus);
   const hasKey = !!providerKeyStatus[activeProvider];
 
+  const [composerText, setComposerText] = useState('');
+  const [citations, setCitations] = useState<Citation[]>([]);
+
   // Hydrate history once on mount.
   useEffect(() => {
     void window.sable.chat
@@ -29,24 +51,38 @@ export function Chat({ onOpenSettings }: { onOpenSettings: () => void }) {
       .then((h) => useChatStore.getState().hydrate(h));
   }, [conversationId]);
 
-  const [composerText, setComposerText] = useState('');
-
   const handleSubmit = async () => {
-    const text = composerText.trim();
-    if (!text || !hasKey || inflight) return;
-    pushUserMessage(text);
+    const userText = composerText.trim();
+    // Allow send if there's at least typed text OR attached citations.
+    if (!hasKey || inflight) return;
+    if (!userText && citations.length === 0) return;
+
+    const formatted = formatMessageWithCitations(
+      userText || '(see citation above)',
+      citations,
+    );
+    pushUserMessage(formatted);
     setComposerText('');
+    setCitations([]);
+
     try {
-      const runId = await window.sable.chat.send(conversationId, text);
+      const runId = await window.sable.chat.send(conversationId, formatted);
       setActiveRun(runId);
     } catch (err) {
-      // RUN_ERROR will normally come through via agent-event; surface ipc-level errors too.
       console.error('chat send failed', err);
     }
   };
 
   const handleStop = () => {
     if (activeRunId) void window.sable.chat.stop(activeRunId);
+  };
+
+  const handleAddCitation = (c: Citation) => {
+    setCitations((prev) => [...prev, c]);
+  };
+
+  const handleRemoveCitation = (id: string) => {
+    setCitations((prev) => prev.filter((c) => c.id !== id));
   };
 
   return (
@@ -69,8 +105,15 @@ export function Chat({ onOpenSettings }: { onOpenSettings: () => void }) {
         disabled={!hasKey}
         inflight={inflight}
         placeholderHint={
-          !hasKey ? 'Add an API key in Settings to begin…' : 'Ask anything…'
+          !hasKey
+            ? 'Add an API key in Settings to begin…'
+            : citations.length > 0
+            ? 'Ask about the citation…'
+            : 'Ask anything · drag a paragraph here to cite'
         }
+        citations={citations}
+        onAddCitation={handleAddCitation}
+        onRemoveCitation={handleRemoveCitation}
       />
     </div>
   );

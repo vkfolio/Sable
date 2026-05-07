@@ -22,6 +22,19 @@ export type ChatHistoryMessage = {
   readonly text: string;
 };
 
+/**
+ * Citation captured from a tab WebContents and dropped into the chat composer.
+ * Mirrors the SableQuotePayload set by tab-preload.ts.
+ */
+export type Citation = {
+  readonly id: string;
+  readonly text: string;
+  readonly url: string;
+  readonly title: string;
+  readonly anchor: { selector: string | null };
+  readonly pickedUpAt: number;
+};
+
 export type AgentEvent = BaseEvent;
 
 export type TabState = {

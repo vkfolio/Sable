@@ -88,26 +88,30 @@ function bestEffortSelector(selection: Selection | null): string | null {
 function cssPath(el: Element): string {
   const parts: string[] = [];
   let current: Element | null = el;
-  while (current && current.nodeType === Node.ELEMENT_NODE && parts.length < 6) {
-    let part = current.tagName.toLowerCase();
-    if (current.id) {
-      part += `#${cssEscape(current.id)}`;
+  while (current && parts.length < 6) {
+    const here: Element = current;
+    let part = here.tagName.toLowerCase();
+    if (here.id) {
+      part += `#${cssEscape(here.id)}`;
       parts.unshift(part);
       break;
     }
-    const className = (current.getAttribute('class') ?? '')
+    const className = (here.getAttribute('class') ?? '')
       .split(/\s+/)
       .filter(Boolean)
       .slice(0, 2)
-      .map((c) => `.${cssEscape(c)}`)
+      .map((c: string) => `.${cssEscape(c)}`)
       .join('');
     if (className) part += className;
-    const parent = current.parentElement;
+    const parent: Element | null = here.parentElement;
     if (parent) {
-      const siblings = Array.from(parent.children).filter((c) => c.tagName === current!.tagName);
+      const tagName = here.tagName;
+      const siblings: Element[] = Array.from(parent.children).filter(
+        (c: Element) => c.tagName === tagName,
+      );
       if (siblings.length > 1) {
-        const idx = siblings.indexOf(current);
-        part += `:nth-of-type(${idx + 1})`;
+        const idx = siblings.indexOf(here);
+        if (idx >= 0) part += `:nth-of-type(${idx + 1})`;
       }
     }
     parts.unshift(part);

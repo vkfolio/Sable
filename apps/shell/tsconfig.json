@@ -4,7 +4,10 @@
     "module": "CommonJS",
     "moduleResolution": "Node",
     "target": "ES2022",
-    "lib": ["ES2022"],
+    // Preload scripts (chrome-preload, tab-preload) run in the renderer and
+    // need DOM types. Main-process code doesn't use them but having them
+    // available is harmless.
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "outDir": "dist",
     "rootDir": "src",
     "sourceMap": true,
