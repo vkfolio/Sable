@@ -32,7 +32,16 @@ import {
 } from '@sable/layout-engine';
 import type { TabManager } from './tab-manager';
 
-const SIDEBAR_WIDTH = 280; // mirror of --sidebar-w in chrome-ui/src/index.css
+// New geometry — chrome reorganized into:
+//   row 1: titlebar (38px, contains horizontal tab strip)
+//   row 2: URL bar row (52px)
+//   row 3: page body (tab WebContentsViews here, with optional right chat sidebar)
+//
+// Mirror these constants in chrome-ui/src/index.css :root.
+const TITLEBAR_HEIGHT = 38;
+const URLBAR_ROW_HEIGHT = 52;
+const TOP_BAR_HEIGHT = TITLEBAR_HEIGHT + URLBAR_ROW_HEIGHT;
+const CHAT_SIDEBAR_WIDTH = 340;
 const DIVIDER_THICKNESS = 4;
 
 export type SnapshotLeaf = {
@@ -61,6 +70,7 @@ export class LayoutController {
   private tree: Pane | null = null;
   private readonly mounted = new Set<TabId>();
   private readonly snapshotListeners = new Set<SnapshotListener>();
+  private chatVisible = true;
 
   constructor(
     private readonly window: BrowserWindow,
@@ -116,6 +126,13 @@ export class LayoutController {
     }
   }
 
+  /** Right chat sidebar visibility — affects pane viewport width. */
+  setChatVisible(visible: boolean): void {
+    if (this.chatVisible === visible) return;
+    this.chatVisible = visible;
+    this.applyLayout();
+  }
+
   /**
    * Apply a drop to the tree. The source tab is plucked from wherever it
    * currently lives in the tree and inserted at the target pane / edge. If
@@ -155,11 +172,15 @@ export class LayoutController {
     const { width, height } = this.window.getContentBounds();
     this.chromeView.setBounds({ x: 0, y: 0, width, height });
 
+    // Top-bar layout: tabs in titlebar (38) + url row (52) = 90.
+    // Right chat sidebar (340) when visible.
+    const topInset = TOP_BAR_HEIGHT;
+    const rightInset = this.chatVisible ? CHAT_SIDEBAR_WIDTH : 0;
     const paneViewport: Rect = {
-      x: SIDEBAR_WIDTH,
-      y: this.titleBarHeight,
-      width: Math.max(0, width - SIDEBAR_WIDTH),
-      height: Math.max(0, height - this.titleBarHeight),
+      x: 0,
+      y: topInset,
+      width: Math.max(0, width - rightInset),
+      height: Math.max(0, height - topInset),
     };
 
     const snapshotLeaves: SnapshotLeaf[] = [];
@@ -176,11 +197,25 @@ export class LayoutController {
         const view = this.tabManager.getView(leaf.tabId);
         if (!rect || !view) continue;
 
-        if (!this.mounted.has(leaf.tabId)) {
-          this.window.contentView.addChildView(view);
-          this.mounted.add(leaf.tabId);
+        // For sable://newtab pseudo-tabs, leave the WebContentsView
+        // unmounted so the chrome's NTP renders into this rect without
+        // occlusion. Still record the leaf in the snapshot so the chrome
+        // knows the geometry.
+        const tabState = this.tabManager.get(leaf.tabId);
+        const isNewTab = tabState?.url === 'sable://newtab';
+
+        if (isNewTab) {
+          if (this.mounted.has(leaf.tabId)) {
+            this.safeRemove(view);
+            this.mounted.delete(leaf.tabId);
+          }
+        } else {
+          if (!this.mounted.has(leaf.tabId)) {
+            this.window.contentView.addChildView(view);
+            this.mounted.add(leaf.tabId);
+          }
+          view.setBounds(rect);
         }
-        view.setBounds(rect);
         wanted.add(leaf.tabId);
 
         snapshotLeaves.push({ paneId: leaf.id, tabId: leaf.tabId, rect });

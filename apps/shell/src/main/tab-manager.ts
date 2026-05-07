@@ -75,12 +75,13 @@ export class TabManager {
       },
     });
 
+    const isNewTab = initialUrl === 'sable://newtab' || !initialUrl;
     const initial: TabState = {
       id,
       url: initialUrl,
-      title: initialUrl,
+      title: isNewTab ? 'New Tab' : initialUrl,
       faviconUrl: undefined,
-      loading: true,
+      loading: !isNewTab,
       canGoBack: false,
       canGoForward: false,
       lastActiveAt: Date.now(),
@@ -89,10 +90,14 @@ export class TabManager {
     };
     this.tabs.set(id, { view, state: initial });
     this.wireEvents(id, view);
-    view.webContents.loadURL(initialUrl).catch((err) => {
-      // navigation errors are normal (typo in url, etc); surface as title.
-      this.update(id, { loading: false, title: `Failed: ${err.message}` });
-    });
+    if (!isNewTab) {
+      view.webContents.loadURL(initialUrl).catch((err) => {
+        // navigation errors are normal (typo in url, etc); surface as title.
+        this.update(id, { loading: false, title: `Failed: ${err.message}` });
+      });
+    }
+    // For sable://newtab the WebContents stays empty and the chrome's NTP
+    // component fills the leaf rect (LayoutController skips mounting it).
     this.emit(initial);
     return id;
   }
@@ -112,7 +117,8 @@ export class TabManager {
   navigate(id: TabId, url: string): void {
     const entry = this.tabs.get(id);
     if (!entry) return;
-    this.update(id, { lastActiveAt: Date.now() });
+    this.update(id, { lastActiveAt: Date.now(), url, loading: url !== 'sable://newtab' });
+    if (url === 'sable://newtab') return;
     entry.view.webContents.loadURL(url).catch((err) => {
       this.update(id, { loading: false, title: `Failed: ${err.message}` });
     });

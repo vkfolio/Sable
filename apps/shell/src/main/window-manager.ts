@@ -25,7 +25,7 @@ import {
   type SpacesSnapshot,
 } from '../shared/ipc-types';
 
-const HOMEPAGE = 'https://duckduckgo.com';
+const HOMEPAGE = 'sable://newtab';
 
 export class WindowManager {
   private window: BrowserWindow | undefined;
@@ -156,6 +156,15 @@ export class WindowManager {
 
     void this.loadChromeInto(chrome);
 
+    const broadcastMaximized = () => {
+      if (win.isDestroyed()) return;
+      this.chrome?.webContents.send(IpcChannels.WindowMaximizedChanged, win.isMaximized());
+    };
+    win.on('maximize', broadcastMaximized);
+    win.on('unmaximize', broadcastMaximized);
+    win.on('enter-full-screen', broadcastMaximized);
+    win.on('leave-full-screen', broadcastMaximized);
+
     win.on('closed', () => {
       this.window = undefined;
       this.chrome = undefined;
@@ -261,6 +270,30 @@ export class WindowManager {
       // underlying primitive — name aside, it's exactly the right
       // mechanism here.
       this.layout?.setDragMode(active);
+    });
+    ipcMain.handle(IpcChannels.ChromeSetChatVisible, (_e, visible: boolean) => {
+      this.layout?.setChatVisible(visible);
+    });
+    ipcMain.handle(IpcChannels.ChromeSetTheme, () => {
+      // No-op now that the chrome paints its own min/max/close — there is no
+      // native title-bar overlay to recolor. Kept as a stable IPC so the
+      // renderer doesn't need a platform branch when applying a theme.
+    });
+
+    // ---- custom window controls ----
+    ipcMain.handle(IpcChannels.WindowMinimize, () => {
+      this.window?.minimize();
+    });
+    ipcMain.handle(IpcChannels.WindowMaximizeToggle, () => {
+      if (!this.window || this.window.isDestroyed()) return;
+      if (this.window.isMaximized()) this.window.unmaximize();
+      else this.window.maximize();
+    });
+    ipcMain.handle(IpcChannels.WindowClose, () => {
+      this.window?.close();
+    });
+    ipcMain.handle(IpcChannels.WindowIsMaximized, () => {
+      return !!this.window && !this.window.isDestroyed() && this.window.isMaximized();
     });
 
     // ---- chat ----

@@ -11,30 +11,46 @@
 import { useShallow } from 'zustand/react/shallow';
 import { useLayoutStore } from '../state/layout';
 import { useDragStore } from '../state/drag';
+import { useTabsStore, selectActiveTab } from '../state/tabs';
 import { DropOverlay } from './DropOverlay';
 import { Divider } from './Divider';
+import { Ntp } from './Ntp';
 import type { Rect, SnapshotLeaf } from '../types';
+
+export const NEW_TAB_URL = 'sable://newtab';
 
 export function PaneArea() {
   const leaves = useLayoutStore(useShallow((s) => s.leaves));
   const dividers = useLayoutStore(useShallow((s) => s.dividers));
   const paneOrigin = useLayoutStore((s) => s.paneOrigin);
   const dragging = useDragStore((s) => s.dragging);
+  const activeTab = useTabsStore(selectActiveTab);
+  const tabsById = useTabsStore((s) => s.tabsById);
 
+  // The whole pane is empty (no tabs in this space): show NTP full-bleed.
   if (leaves.length === 0) {
-    return <main className="flex-1 bg-bg" />;
+    return (
+      <main className="relative flex-1 bg-bg">
+        <Ntp />
+      </main>
+    );
   }
 
   return (
     <main className="relative flex-1 bg-bg">
-      {leaves.map((leaf) => (
-        <PaneSlot
-          key={leaf.paneId}
-          leaf={leaf}
-          origin={paneOrigin}
-          dragActive={!!dragging}
-        />
-      ))}
+      {leaves.map((leaf) => {
+        const tab = tabsById.get(leaf.tabId);
+        const isNewTab = tab?.url === NEW_TAB_URL;
+        return (
+          <PaneSlot
+            key={leaf.paneId}
+            leaf={leaf}
+            origin={paneOrigin}
+            dragActive={!!dragging}
+            isNewTab={isNewTab}
+          />
+        );
+      })}
       {dividers.map((divider) => (
         <Divider key={divider.splitId} divider={divider} origin={paneOrigin} />
       ))}
@@ -46,10 +62,12 @@ function PaneSlot({
   leaf,
   origin,
   dragActive,
+  isNewTab,
 }: {
   leaf: SnapshotLeaf;
   origin: { x: number; y: number };
   dragActive: boolean;
+  isNewTab: boolean;
 }) {
   const localStyle: React.CSSProperties = {
     position: 'absolute',
@@ -63,8 +81,12 @@ function PaneSlot({
     <div
       style={localStyle}
       data-pane-id={leaf.paneId}
-      className={dragActive ? 'ring-1 ring-border-strong rounded-lg' : ''}
+      className={dragActive ? 'ring-1 ring-line-strong rounded-lg' : ''}
     >
+      {/* When the leaf is a new-tab pseudo-tab, render the NTP into the
+          slot. The matching WebContentsView is left unmounted by main, so
+          the chrome's NTP fully owns this rect. */}
+      {isNewTab && !dragActive && <Ntp />}
       {dragActive && <DropOverlay paneId={leaf.paneId} />}
     </div>
   );

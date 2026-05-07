@@ -183,6 +183,8 @@ export type SableApi = {
   };
   readonly chrome: {
     setOverlay(active: boolean): Promise<void>;
+    setChatVisible(visible: boolean): Promise<void>;
+    setTheme(theme: 'light' | 'dark'): Promise<void>;
   };
   readonly chat: {
     send(conversationId: string, content: ChatSendContent): Promise<string>;
@@ -218,6 +220,16 @@ export type SableApi = {
     remove(id: SkillId): Promise<void>;
     resetDefaults(): Promise<void>;
   };
+  readonly env: {
+    /** 'win32' | 'darwin' | 'linux' | 'aix' | 'freebsd' | 'openbsd' | 'sunos' | 'cygwin' | 'netbsd' | 'haiku' | 'android' */
+    readonly platform: string;
+  };
+  readonly window: {
+    minimize(): Promise<void>;
+    maximizeToggle(): Promise<void>;
+    close(): Promise<void>;
+    isMaximized(): Promise<boolean>;
+  };
   readonly on: {
     tabUpdated(cb: (state: TabState) => void): () => void;
     tabRemoved(cb: (id: TabId) => void): () => void;
@@ -227,5 +239,6 @@ export type SableApi = {
     localModelEvent(cb: (event: LocalModelEvent) => void): () => void;
     spacesChanged(cb: (snapshot: SpacesSnapshot) => void): () => void;
     skillsChanged(cb: (skills: Skill[]) => void): () => void;
+    maximizedChanged(cb: (maximized: boolean) => void): () => void;
   };
 };

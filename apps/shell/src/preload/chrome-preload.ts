@@ -58,6 +58,10 @@ const api: SableApi = {
   chrome: {
     setOverlay: (active: boolean) =>
       ipcRenderer.invoke(IpcChannels.ChromeSetOverlay, active) as Promise<void>,
+    setChatVisible: (visible: boolean) =>
+      ipcRenderer.invoke(IpcChannels.ChromeSetChatVisible, visible) as Promise<void>,
+    setTheme: (theme: 'light' | 'dark') =>
+      ipcRenderer.invoke(IpcChannels.ChromeSetTheme, theme) as Promise<void>,
   },
   layout: {
     dragStart: () => ipcRenderer.invoke(IpcChannels.LayoutDragStart) as Promise<void>,
@@ -117,8 +121,18 @@ const api: SableApi = {
     remove: (id: SkillId) => ipcRenderer.invoke(IpcChannels.SkillsRemove, id) as Promise<void>,
     resetDefaults: () => ipcRenderer.invoke(IpcChannels.SkillsResetDefaults) as Promise<void>,
   },
+  env: {
+    platform: process.platform,
+  },
+  window: {
+    minimize: () => ipcRenderer.invoke(IpcChannels.WindowMinimize) as Promise<void>,
+    maximizeToggle: () => ipcRenderer.invoke(IpcChannels.WindowMaximizeToggle) as Promise<void>,
+    close: () => ipcRenderer.invoke(IpcChannels.WindowClose) as Promise<void>,
+    isMaximized: () => ipcRenderer.invoke(IpcChannels.WindowIsMaximized) as Promise<boolean>,
+  },
   on: {
     tabUpdated: (cb) => on<TabState>(IpcChannels.TabsUpdated, cb),
+    maximizedChanged: (cb) => on<boolean>(IpcChannels.WindowMaximizedChanged, cb),
     tabRemoved: (cb) => on<TabId>(IpcChannels.TabsRemoved, cb),
     activeChanged: (cb) => on<TabId | null>(IpcChannels.TabsActiveChanged, cb),
     layoutChanged: (cb) => on<LayoutSnapshot>(IpcChannels.LayoutChanged, cb),

@@ -1,17 +1,17 @@
 import { useEffect, useRef } from 'react';
+import { useSettingsStore } from '../../state/settings';
 import type { ChatMessage } from '../../state/chat';
 
 export function MessageList({ messages }: { messages: ChatMessage[] }) {
   const endRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to the latest message on every update.
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: 'end' });
   }, [messages.length, messages[messages.length - 1]?.text]);
 
   return (
     <div
-      className="flex-1 min-h-0 overflow-auto px-3 py-3 space-y-2.5"
+      className="flex-1 min-h-0 overflow-auto px-3.5 py-3.5 flex flex-col gap-3.5"
       style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
     >
       {messages.map((m) => (
@@ -26,37 +26,41 @@ function Bubble({ message }: { message: ChatMessage }) {
   if (message.role === 'user') {
     return (
       <div className="flex justify-end">
-        <div className="max-w-[88%] rounded-lg rounded-tr-sm bg-bg-4 px-3 py-2 text-base text-fg whitespace-pre-wrap">
+        <div className="max-w-[88%] rounded-[14px] rounded-tr-[3px] bg-surface-3 text-ink-0 px-3 py-2 text-base whitespace-pre-wrap leading-snug">
           {renderInline(message.text)}
         </div>
       </div>
     );
   }
   return (
-    <div className="flex">
-      <div className="max-w-[92%] rounded-lg rounded-tl-sm bg-bg-3 px-3 py-2 text-base text-fg whitespace-pre-wrap">
+    <div className="flex flex-col gap-1.5 text-ink-0">
+      <MetaLine />
+      <div className="text-base leading-snug whitespace-pre-wrap">
         {renderInline(message.text)}
         {message.streaming && (
-          <span className="inline-block w-1.5 h-3 bg-fg-mute ml-0.5 align-middle animate-pulse" />
-        )}
-        {message.error && (
-          <div className="mt-1.5 text-2xs text-red-300">⚠ {message.error}</div>
+          <span className="inline-block w-[7px] h-3 bg-ink-0 ml-0.5 align-[-2px] animate-blink-caret" />
         )}
       </div>
+      {message.error && (
+        <div className="text-[10px] text-bad">⚠ {message.error}</div>
+      )}
     </div>
   );
 }
 
-/**
- * Lightweight inline renderer: handles markdown image syntax `![alt](url)`,
- * which is how Chat.tsx injects user-attached image citations. Everything
- * else renders as plain text. Phase 4+ may swap in react-markdown for
- * richer assistant formatting (code, lists, etc.).
- */
+function MetaLine() {
+  const provider = useSettingsStore((s) => s.activeProvider);
+  const model = useSettingsStore((s) => s.selectedModel);
+  return (
+    <div className="flex items-center gap-1.5 text-[10px] font-mono text-ink-2">
+      <span className="inline-block w-[5px] h-[5px] rounded-full bg-ok shadow-[0_0_0_3px_rgb(var(--ok)/0.18)]" />
+      <span>{provider} · {model}</span>
+    </div>
+  );
+}
+
 function renderInline(text: string): React.ReactNode[] {
   const parts: React.ReactNode[] = [];
-  // Match markdown image ![alt](url). The url can be a long data: URI so we
-  // need a non-greedy match that doesn't choke on commas.
   const imgRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
   let lastIndex = 0;
   let key = 0;
@@ -70,7 +74,7 @@ function renderInline(text: string): React.ReactNode[] {
         key={key++}
         src={match[2]}
         alt={match[1]}
-        className="block max-w-full max-h-64 rounded my-1.5 object-contain bg-bg-3"
+        className="block max-w-full max-h-64 rounded-lg my-1.5 object-contain bg-surface-3 border border-line"
       />,
     );
     lastIndex = match.index + match[0].length;

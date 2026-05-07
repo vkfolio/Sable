@@ -174,6 +174,12 @@ export type SableApi = {
      * receive pointer events without being occluded.
      */
     setOverlay(active: boolean): Promise<void>;
+    /** Chrome reports whether the chat sidebar (right) is visible so main
+     *  recomputes pane WebContentsView bounds (rightInset = chat-w vs 0). */
+    setChatVisible(visible: boolean): Promise<void>;
+    /** Recolor the Win 11 titleBarOverlay min/max/close buttons to match
+     *  the current chrome theme. No-op on macOS / Linux. */
+    setTheme(theme: 'light' | 'dark'): Promise<void>;
   };
   readonly chat: {
     /** Returns the runId so the UI can correlate stop()/error events. */
@@ -211,8 +217,23 @@ export type SableApi = {
     remove(id: SkillId): Promise<void>;
     resetDefaults(): Promise<void>;
   };
+  readonly env: {
+    /** 'win32' | 'darwin' | 'linux' (NodeJS.Platform). Read once at preload. */
+    readonly platform: NodeJS.Platform;
+  };
+  /** Custom window controls — Windows + Linux render their own min/max/close
+   *  in the React titlebar (no native overlay). macOS keeps native traffic
+   *  lights (hiddenInset titleBarStyle). */
+  readonly window: {
+    minimize(): Promise<void>;
+    maximizeToggle(): Promise<void>;
+    close(): Promise<void>;
+    isMaximized(): Promise<boolean>;
+  };
   readonly on: {
     tabUpdated(cb: (state: TabState) => void): () => void;
+    /** Window maximize/restore state changed (push). */
+    maximizedChanged(cb: (maximized: boolean) => void): () => void;
     tabRemoved(cb: (id: TabId) => void): () => void;
     activeChanged(cb: (id: TabId | null) => void): () => void;
     layoutChanged(cb: (snapshot: LayoutSnapshot) => void): () => void;
@@ -245,6 +266,14 @@ export const IpcChannels = {
   LayoutDrop: 'layout:drop',
   LayoutResize: 'layout:resize',
   ChromeSetOverlay: 'chrome:setOverlay',
+  ChromeSetChatVisible: 'chrome:setChatVisible',
+  ChromeSetTheme: 'chrome:setTheme',
+  // window controls (custom min/max/close — no native overlay)
+  WindowMinimize: 'window:minimize',
+  WindowMaximizeToggle: 'window:maximizeToggle',
+  WindowClose: 'window:close',
+  WindowIsMaximized: 'window:isMaximized',
+  WindowMaximizedChanged: 'window:maximizedChanged',
   // chat / settings
   ChatSend: 'chat:send',
   ChatStop: 'chat:stop',

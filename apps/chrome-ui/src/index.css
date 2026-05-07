@@ -2,29 +2,120 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Design tokens — Tailwind reads these via the rgb(var(--token) / <alpha>) bridge. */
-:root {
-  color-scheme: dark;
+/* ───────────────────────────────────────────────
+   Sable design tokens — single source of truth.
+   Light is default, dark applied via [data-theme="dark"].
+   ─────────────────────────────────────────────── */
 
-  --bg: 11 11 12;
-  --bg-2: 19 19 22;
-  --bg-3: 24 24 28;
-  --bg-4: 29 30 35;
+:root, [data-theme="light"] {
+  /* Surfaces */
+  --bg: 244 241 236;        /* #F4F1EC — page void / titlebar */
+  --surface-1: 251 250 247; /* #FBFAF7 — sidebar / panel */
+  --surface-2: 255 255 255; /* #FFFFFF — raised card / popover */
+  --surface-3: 240 237 231; /* #F0EDE7 — hover */
+  --surface-4: 230 226 218; /* #E6E2DA — pressed / strong hover */
 
-  --fg: 231 231 233;
-  --fg-mute: 138 140 147;
-  --fg-dim: 90 92 99;
+  /* Hairlines (translucent so they read on any surface) */
+  --line: 20 16 8 / 0.07;
+  --line-strong: 20 16 8 / 0.12;
 
-  --border: 37 38 43;
-  --border-strong: 52 54 60;
+  /* Ink (text) — 0=primary, 4=disabled */
+  --ink-0: 21 18 13;        /* #15120D primary */
+  --ink-1: 63 58 48;        /* #3F3A30 body */
+  --ink-2: 110 103 89;      /* #6E6759 secondary */
+  --ink-3: 156 147 129;     /* #9C9381 tertiary / placeholder */
+  --ink-4: 186 177 160;     /* #BAB1A0 disabled */
+  --ink-inv: 251 250 247;
 
-  --accent: 107 124 255;
-  --accent-fg: 255 255 255;
+  /* Pastel palette — both light + dark sides have a balanced tint */
+  --p-coral: 255 184 158;   /* #FFB89E */
+  --p-peach: 255 212 155;   /* #FFD49B */
+  --p-butter: 255 230 154;  /* #FFE69A */
+  --p-mint: 179 229 201;    /* #B3E5C9 */
+  --p-sky: 181 212 242;     /* #B5D4F2 */
+  --p-lavender: 201 190 238;/* #C9BEEE */
+  --p-rose: 242 188 208;    /* #F2BCD0 */
 
-  --titlebar-h: 36px;
-  --sidebar-w: 280px;
-  --urlbar-h: 40px;
+  /* Active accent — drives the per-Space tint everywhere */
+  --acc: var(--p-lavender);
+  --acc-ink: 73 56 168;     /* #4938A8 — high-contrast text on acc */
+  --acc-soft: 234 227 251;  /* #EAE3FB — backgrounds tinted with acc */
+  --acc-glow: 155 128 240 / 0.28;
+
+  /* Semantic */
+  --ok: 46 136 86;          /* #2E8856 */
+  --bad: 193 68 45;         /* #C1442D */
+
+  /* Elevation */
+  --shadow-1: 0 1px 2px rgba(20,16,8,.04), 0 1px 1px rgba(20,16,8,.03);
+  --shadow-2: 0 8px 24px rgba(20,16,8,.06), 0 2px 6px rgba(20,16,8,.04);
+  --shadow-3: 0 24px 60px rgba(20,16,8,.12), 0 4px 14px rgba(20,16,8,.08);
+
+  --page-tint: 251 250 247;
+  --grain-opacity: 0.35;
+
+  /* Geometry */
+  --titlebar-h: 38px;
+  --urlbar-row-h: 52px;
+  --chat-w: 340px;
 }
+
+[data-theme="dark"] {
+  --bg: 19 17 16;           /* #131110 */
+  --surface-1: 27 25 23;    /* #1B1917 */
+  --surface-2: 35 33 32;    /* #232120 */
+  --surface-3: 42 40 38;    /* #2A2826 */
+  --surface-4: 52 49 46;    /* #34312E */
+
+  --line: 255 245 225 / 0.07;
+  --line-strong: 255 245 225 / 0.13;
+
+  --ink-0: 242 238 230;     /* #F2EEE6 */
+  --ink-1: 201 195 182;     /* #C9C3B6 */
+  --ink-2: 148 141 126;     /* #948D7E */
+  --ink-3: 107 101 87;      /* #6B6557 */
+  --ink-4: 74 69 56;        /* #4A4538 */
+  --ink-inv: 21 18 13;
+
+  --p-coral: 233 150 125;   /* #E9967D */
+  --p-peach: 229 187 124;   /* #E5BB7C */
+  --p-butter: 233 205 123;  /* #E9CD7B */
+  --p-mint: 139 201 168;    /* #8BC9A8 */
+  --p-sky: 143 183 218;     /* #8FB7DA */
+  --p-lavender: 176 164 220;/* #B0A4DC */
+  --p-rose: 216 160 183;    /* #D8A0B7 */
+
+  --acc: var(--p-lavender);
+  --acc-ink: 221 210 255;   /* #DDD2FF */
+  --acc-soft: 176 164 220 / 0.16;
+  --acc-glow: 176 164 220 / 0.32;
+
+  --ok: 111 203 155;        /* #6FCB9B */
+  --bad: 232 133 108;       /* #E8856C */
+
+  --shadow-1: 0 1px 2px rgba(0,0,0,.4);
+  --shadow-2: 0 12px 32px rgba(0,0,0,.45), 0 2px 6px rgba(0,0,0,.35);
+  --shadow-3: 0 30px 70px rgba(0,0,0,.6), 0 6px 18px rgba(0,0,0,.45);
+
+  --page-tint: 27 25 23;
+  --grain-opacity: 0.55;
+
+  color-scheme: dark;
+}
+
+/* Per-Space accent overrides — set on a wrapper to recolor a subtree.
+   The chrome reads --acc for everything tied to "the active accent". */
+[data-space="lavender"] { --acc: var(--p-lavender); }
+[data-space="rose"]     { --acc: var(--p-rose); }
+[data-space="mint"]     { --acc: var(--p-mint); }
+[data-space="sky"]      { --acc: var(--p-sky); }
+[data-space="butter"]   { --acc: var(--p-butter); }
+[data-space="coral"]    { --acc: var(--p-coral); }
+[data-space="peach"]    { --acc: var(--p-peach); }
+
+/* ───────────────────────────────────────────────
+   Base
+   ─────────────────────────────────────────────── */
 
 html, body, #root {
   height: 100%;
@@ -32,25 +123,49 @@ html, body, #root {
   padding: 0;
   overflow: hidden;
   user-select: none;
-  font-family: -apple-system, "Segoe UI", "Inter", system-ui, sans-serif;
 }
 
 body {
+  font-family: 'Inter', -apple-system, "Segoe UI", system-ui, sans-serif;
+  font-feature-settings: 'cv11', 'ss01', 'ss03';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-weight: 400;
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.45;
+  letter-spacing: -0.005em;
+  background: rgb(var(--bg));
+  color: rgb(var(--ink-0));
 }
 
+.font-mono {
+  font-family: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, monospace;
+  font-feature-settings: 'liga' 0;
+  letter-spacing: -0.005em;
+}
+
+/* Streaming caret used in chat assistant bubbles */
+@keyframes blink-caret { 50% { opacity: 0 } }
+
+/* Subtle pulse for "loading" affordances */
 @keyframes pulse {
-  50% { opacity: 0.35; }
+  50% { opacity: 0.35 }
 }
 
-/* Scrollbar polish — narrow, monochrome */
+/* NTP ambient gradient drift */
+@keyframes shimmer {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%      { transform: translate(-3%, 2%) scale(1.05); }
+  66%      { transform: translate(2%, -1%) scale(0.97); }
+}
+
+/* Scrollbar polish — narrow, tonal */
 *::-webkit-scrollbar { width: 8px; height: 8px; }
 *::-webkit-scrollbar-track { background: transparent; }
 *::-webkit-scrollbar-thumb {
-  background: rgb(var(--border-strong) / 1);
+  background: rgb(var(--surface-4));
   border-radius: 4px;
 }
 *::-webkit-scrollbar-thumb:hover {
-  background: rgb(var(--fg-dim) / 1);
+  background: rgb(var(--ink-3));
 }

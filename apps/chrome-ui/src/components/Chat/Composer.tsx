@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { forwardRef, useEffect, useRef, useState } from 'react';
 import type { Citation, ImageCitation, TextCitation } from '../../types';
 import type { Skill } from '../../state/skills';
 import { SkillsPicker } from './SkillsPicker';
@@ -154,10 +154,7 @@ export function Composer({
 
   return (
     <div
-      className={`border-t border-border p-2.5 transition-colors ${dragOver ? 'bg-accent/5' : ''}`}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
+      className="px-3 py-2"
       style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
     >
       {citations.length > 0 && (
@@ -172,11 +169,21 @@ export function Composer({
         </div>
       )}
       {resolveError && (
-        <div className="mb-2 px-2.5 py-1.5 bg-red-900/20 border border-red-900/40 rounded text-2xs text-red-300">
+        <div className="mb-2 px-2.5 py-1.5 bg-bad/10 border border-bad/30 rounded-md text-[11px] text-bad">
           {resolveError}
         </div>
       )}
-      <div className="relative">
+      {/* Composer card: thick accent border + glow, flush textarea, dark send. */}
+      <div
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        className={`rounded-xl bg-surface-2 px-2.5 pt-2.5 pb-2 flex flex-col gap-1.5 transition-shadow ${
+          dragOver
+            ? 'border-2 border-acc shadow-[0_0_0_6px_rgb(var(--acc-glow))]'
+            : 'border-[1.5px] border-acc shadow-[0_0_0_4px_rgb(var(--acc-glow))]'
+        }`}
+      >
         <textarea
           ref={ref}
           value={value}
@@ -184,41 +191,73 @@ export function Composer({
           onKeyDown={handleKeyDown}
           placeholder={dragOver ? 'Drop to attach' : placeholderHint}
           disabled={disabled}
-          rows={1}
+          rows={2}
           spellCheck={false}
-          className={`w-full resize-none bg-bg-3 border rounded-md px-3 py-2 pr-[68px] text-base text-fg outline-none focus:border-accent placeholder:text-fg-dim disabled:opacity-50 disabled:cursor-not-allowed ${
-            dragOver ? 'border-accent' : 'border-border-strong'
-          }`}
+          className="w-full resize-none border-0 bg-transparent text-base text-ink-0 outline-none placeholder:text-ink-3 leading-snug min-h-[40px] disabled:opacity-50"
         />
-        <SkillsPicker
-          open={skillsOpen}
-          anchorEl={skillsButtonRef.current}
-          onPick={handlePickSkill}
-          onClose={() => setSkillsOpen(false)}
-        />
-        <button
-          ref={skillsButtonRef}
-          type="button"
-          onClick={() => setSkillsOpen((v) => !v)}
-          disabled={disabled}
-          title="Skills"
-          className={`absolute right-9 bottom-1.5 w-7 h-7 inline-flex items-center justify-center rounded text-fg-mute enabled:hover:text-accent disabled:opacity-30 disabled:cursor-default ${
-            skillsOpen ? 'text-accent' : ''
-          }`}
-        >
-          <SkillsIcon />
-        </button>
-        <button
-          type="button"
-          onClick={inflight ? onStop : onSubmit}
-          disabled={disabled || (!inflight && !value.trim() && citations.length === 0)}
-          title={inflight ? 'Stop' : 'Send (Enter)'}
-          className="absolute right-1.5 bottom-1.5 w-7 h-7 inline-flex items-center justify-center rounded text-fg-mute enabled:hover:text-accent disabled:opacity-30 disabled:cursor-default"
-        >
-          {inflight ? <StopIcon /> : <SendIcon />}
-        </button>
+        <div className="flex items-center gap-1.5">
+          <FootBtn
+            ref={skillsButtonRef}
+            label="Skill"
+            onClick={() => setSkillsOpen((v) => !v)}
+            active={skillsOpen}
+            disabled={disabled}
+          >
+            <SparkIcon />
+          </FootBtn>
+          <SkillsPicker
+            open={skillsOpen}
+            anchorEl={skillsButtonRef.current}
+            onPick={handlePickSkill}
+            onClose={() => setSkillsOpen(false)}
+          />
+          <button
+            type="button"
+            onClick={inflight ? onStop : onSubmit}
+            disabled={disabled || (!inflight && !value.trim() && citations.length === 0)}
+            title={inflight ? 'Stop' : 'Send (Enter)'}
+            className="ml-auto w-7 h-[26px] inline-flex items-center justify-center rounded-[7px] bg-ink-0 text-ink-inv hover:brightness-110 disabled:opacity-30 disabled:cursor-default"
+          >
+            {inflight ? <StopIcon /> : <SendIcon />}
+          </button>
+        </div>
       </div>
     </div>
+  );
+}
+
+const FootBtn = forwardRef<
+  HTMLButtonElement,
+  {
+    label: string;
+    onClick: () => void;
+    active?: boolean;
+    disabled?: boolean;
+    children: React.ReactNode;
+  }
+>(function FootBtn({ label, onClick, active, disabled, children }, ref) {
+  return (
+    <button
+      ref={ref}
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={`h-[26px] px-2 rounded-[7px] inline-flex items-center gap-1.5 text-xs font-medium ${
+        active ? 'bg-surface-3 text-ink-0' : 'text-ink-2 hover:bg-surface-3 hover:text-ink-0'
+      } disabled:opacity-40 disabled:cursor-default`}
+    >
+      {children}
+      <span>{label}</span>
+    </button>
+  );
+});
+
+function SparkIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
+      <path d="M12 4l1.6 4.4L18 10l-4.4 1.6L12 16l-1.6-4.4L6 10l4.4-1.6z" />
+      <path d="M18 17l.6 1.4L20 19l-1.4.6L18 21l-.6-1.4L16 19l1.4-.6z" />
+    </svg>
   );
 }
 
@@ -234,11 +273,11 @@ function TextCitationChip({
     citation.text.length > 140 ? citation.text.slice(0, 140) + '…' : citation.text;
 
   return (
-    <div className="group flex gap-2 px-2.5 py-2 bg-bg-4 border border-border-strong rounded-md text-sm">
-      <div className="w-0.5 self-stretch bg-accent/60 rounded shrink-0" />
+    <div className="group flex gap-2 px-2.5 py-2 bg-surface-2 border border-line rounded-lg text-sm shadow-1">
+      <span className="font-mono text-[10.5px] font-semibold text-acc-ink shrink-0">@</span>
       <div className="flex-1 min-w-0">
-        <div className="text-fg-mute italic line-clamp-2 leading-snug">"{truncatedText}"</div>
-        <div className="mt-1 flex items-center gap-1.5 text-2xs text-fg-dim">
+        <div className="text-ink-1 italic line-clamp-2 leading-snug">"{truncatedText}"</div>
+        <div className="mt-1 flex items-center gap-1.5 text-[10px] text-ink-3">
           <span className="truncate">{citation.title || host}</span>
           <span>·</span>
           <span className="truncate font-mono">{host}</span>
@@ -247,9 +286,11 @@ function TextCitationChip({
       <button
         onClick={onRemove}
         title="Remove citation"
-        className="self-start text-fg-dim hover:text-fg leading-none text-base"
+        className="self-start w-3.5 h-3.5 inline-flex items-center justify-center rounded-full text-ink-3 hover:bg-surface-3 hover:text-ink-0"
       >
-        ×
+        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <path d="M5 5l14 14M5 19L19 5" />
+        </svg>
       </button>
     </div>
   );
@@ -264,15 +305,15 @@ function ImageCitationChip({
 }) {
   const host = safeHost(citation.pageUrl);
   return (
-    <div className="group flex gap-2 px-2.5 py-2 bg-bg-4 border border-border-strong rounded-md text-sm">
+    <div className="group flex gap-2 px-2.5 py-2 bg-surface-2 border border-line rounded-lg text-sm shadow-1">
       <img
         src={`data:${citation.mimeType};base64,${citation.base64}`}
         alt={citation.alt}
-        className="w-12 h-12 object-cover rounded border border-border-strong shrink-0"
+        className="w-12 h-12 object-cover rounded border border-line shrink-0"
       />
       <div className="flex-1 min-w-0">
-        <div className="text-fg leading-snug truncate">{citation.alt || 'Image'}</div>
-        <div className="mt-1 flex items-center gap-1.5 text-2xs text-fg-dim">
+        <div className="text-ink-0 leading-snug truncate font-medium">{citation.alt || 'Image'}</div>
+        <div className="mt-1 flex items-center gap-1.5 text-[10px] text-ink-3">
           <span className="truncate">{citation.pageTitle || host}</span>
           <span>·</span>
           <span className="truncate font-mono">{host}</span>
@@ -281,9 +322,11 @@ function ImageCitationChip({
       <button
         onClick={onRemove}
         title="Remove image"
-        className="self-start text-fg-dim hover:text-fg leading-none text-base"
+        className="self-start w-3.5 h-3.5 inline-flex items-center justify-center rounded-full text-ink-3 hover:bg-surface-3 hover:text-ink-0"
       >
-        ×
+        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <path d="M5 5l14 14M5 19L19 5" />
+        </svg>
       </button>
     </div>
   );
