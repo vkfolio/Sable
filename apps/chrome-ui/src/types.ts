@@ -105,6 +105,17 @@ export type SpacesSnapshot = {
   readonly spaces: readonly SpaceSummary[];
 };
 
+// ---- skills ----
+export type SkillId = string;
+
+export type Skill = {
+  readonly id: SkillId;
+  readonly label: string;
+  readonly description: string;
+  readonly template: string;
+  readonly builtin?: boolean;
+};
+
 export type AgentEvent = BaseEvent;
 
 export type TabState = {
@@ -201,6 +212,12 @@ export type SableApi = {
     setAccent(id: SpaceId, accent: string): Promise<void>;
     remove(id: SpaceId): Promise<void>;
   };
+  readonly skills: {
+    list(): Promise<Skill[]>;
+    save(skill: Skill): Promise<Skill>;
+    remove(id: SkillId): Promise<void>;
+    resetDefaults(): Promise<void>;
+  };
   readonly on: {
     tabUpdated(cb: (state: TabState) => void): () => void;
     tabRemoved(cb: (id: TabId) => void): () => void;
@@ -209,5 +226,6 @@ export type SableApi = {
     agentEvent(cb: (event: AgentEvent) => void): () => void;
     localModelEvent(cb: (event: LocalModelEvent) => void): () => void;
     spacesChanged(cb: (snapshot: SpacesSnapshot) => void): () => void;
+    skillsChanged(cb: (skills: Skill[]) => void): () => void;
   };
 };

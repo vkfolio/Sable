@@ -333,3 +333,19 @@ function StopIcon() {
     </svg>
   );
 }
+
+function SkillsIcon() {
+  // Sparkle. Three asymmetric stars suggesting prompt composition.
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        d="M12 2L13.6 8.4L20 10L13.6 11.6L12 18L10.4 11.6L4 10L10.4 8.4L12 2Z"
+        fill="currentColor"
+      />
+      <path
+        d="M19 16L19.6 18.4L22 19L19.6 19.6L19 22L18.4 19.6L16 19L18.4 18.4L19 16Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}

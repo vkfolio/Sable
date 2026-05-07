@@ -2,7 +2,8 @@
 // Filterable by typing; arrow keys navigate; Enter / click selects.
 
 import { useEffect, useRef, useState } from 'react';
-import { DEFAULT_SKILLS, type Skill } from '../../state/skills';
+import { useShallow } from 'zustand/react/shallow';
+import { useSkillsStore, type Skill } from '../../state/skills';
 
 export function SkillsPicker({
   open,
@@ -36,15 +37,16 @@ export function SkillsPicker({
 
   if (!open) return null;
 
+  const allSkills = useSkillsStore(useShallow((s) => s.skills));
   const q = query.trim().toLowerCase();
   const filtered = q
-    ? DEFAULT_SKILLS.filter(
+    ? allSkills.filter(
         (s) =>
           s.label.toLowerCase().includes(q) ||
           s.id.toLowerCase().includes(q) ||
           s.description.toLowerCase().includes(q),
       )
-    : DEFAULT_SKILLS;
+    : allSkills;
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'ArrowDown') {
