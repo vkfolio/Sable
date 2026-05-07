@@ -6,7 +6,10 @@
 // them to AG-UI events, and emit. Conversation state is in-memory per
 // window for V0.1; SqliteSaver checkpointer comes when persistence matters.
 
+import { app } from 'electron';
 import { randomUUID } from 'node:crypto';
+import fs from 'node:fs/promises';
+import path from 'node:path';
 import { StateGraph, MessagesAnnotation, START, END } from '@langchain/langgraph';
 import { HumanMessage, AIMessage, AIMessageChunk, type BaseMessage } from '@langchain/core/messages';
 import { buildActiveModel } from './llm-factory';
@@ -37,24 +40,39 @@ export type ChatSendContent = {
   readonly images?: readonly ChatImageAttachment[];
 };
 
+type PersistedMessage = { role: 'user' | 'assistant' | 'system'; text: string };
+type PersistedFile = {
+  schemaVersion: 1;
+  conversations: Record<ConversationId, PersistedMessage[]>;
+};
+
 export class ChatOrchestrator {
   private readonly conversations = new Map<ConversationId, BaseMessage[]>();
   private readonly activeRuns = new Map<RunId, AbortController>();
+  private persistTimer: NodeJS.Timeout | null = null;
+  private loaded = false;
 
   constructor(
     private readonly settings: SettingsStore,
     private readonly emit: ChatEmitter,
     private readonly localModels: LocalModelManager,
-  ) {}
+  ) {
+    void this.loadFromDisk();
+  }
 
   async send(conversationId: ConversationId, content: ChatSendContent): Promise<RunId> {
     const text = content.text.trim();
     const images = content.images ?? [];
     if (!text && images.length === 0) throw new Error('empty message');
 
+    // Wait for the initial disk load before mutating, so a fast first send
+    // doesn't clobber persisted history.
+    if (!this.loaded) await this.loadFromDisk();
+
     const messages = this.conversations.get(conversationId) ?? [];
     messages.push(buildUserMessage(text, images));
     this.conversations.set(conversationId, messages);
+    this.schedulePersist();
 
     const runId = `run-${randomUUID()}`;
     const abort = new AbortController();
@@ -91,6 +109,77 @@ export class ChatOrchestrator {
   }
 
   // ---- internals ----
+
+  // ---- persistence ----
+
+  private path(): string {
+    return path.join(app.getPath('userData'), 'conversations.json');
+  }
+
+  /**
+   * Load text-only conversation history from disk. Multimodal images are
+   * NOT persisted (base64 data is too large) — V0 limitation; their
+   * surrounding text comes back as plain text. Always-completes (sets
+   * `loaded` even on file-not-found) so subsequent sends don't block.
+   */
+  private async loadFromDisk(): Promise<void> {
+    if (this.loaded) return;
+    try {
+      const raw = await fs.readFile(this.path(), 'utf8');
+      const parsed = JSON.parse(raw) as PersistedFile;
+      if (parsed.schemaVersion === 1 && parsed.conversations) {
+        for (const [convId, msgs] of Object.entries(parsed.conversations)) {
+          const reconstructed: BaseMessage[] = [];
+          for (const m of msgs) {
+            if (m.role === 'user') reconstructed.push(new HumanMessage(m.text));
+            else if (m.role === 'assistant') reconstructed.push(new AIMessage(m.text));
+          }
+          if (reconstructed.length > 0) this.conversations.set(convId, reconstructed);
+        }
+      }
+    } catch {
+      // first run, missing or corrupt; fall through with empty state
+    }
+    this.loaded = true;
+  }
+
+  /**
+   * Debounced disk save. ~500 ms after the last call, write the full
+   * conversations Map to a single JSON file. Single file is fine for V0:
+   * a typical user has < 100 conversations, each < 100 KB.
+   */
+  private schedulePersist(): void {
+    if (this.persistTimer) clearTimeout(this.persistTimer);
+    this.persistTimer = setTimeout(() => {
+      this.persistTimer = null;
+      void this.persist();
+    }, 500);
+  }
+
+  private async persist(): Promise<void> {
+    const out: PersistedFile = { schemaVersion: 1, conversations: {} };
+    for (const [convId, msgs] of this.conversations) {
+      const serialized: PersistedMessage[] = [];
+      for (const m of msgs) {
+        const role: PersistedMessage['role'] =
+          m instanceof HumanMessage
+            ? 'user'
+            : m instanceof AIMessage || m instanceof AIMessageChunk
+            ? 'assistant'
+            : 'system';
+        const text = extractText(m.content);
+        if (text) serialized.push({ role, text });
+      }
+      if (serialized.length > 0) out.conversations[convId] = serialized;
+    }
+    try {
+      const dir = app.getPath('userData');
+      await fs.mkdir(dir, { recursive: true });
+      await fs.writeFile(this.path(), JSON.stringify(out, null, 2), 'utf8');
+    } catch (err) {
+      process.stderr.write(`[chat] persist failed: ${String(err)}\n`);
+    }
+  }
 
   private async runStream(
     runId: RunId,
@@ -146,7 +235,10 @@ export class ChatOrchestrator {
         // store consistent with the model's full reply.
         if (event.event === 'on_chain_end' && event.name === 'LangGraph') {
           const out = (event.data as { output?: { messages?: BaseMessage[] } }).output;
-          if (out?.messages) this.conversations.set(conversationId, out.messages);
+          if (out?.messages) {
+            this.conversations.set(conversationId, out.messages);
+            this.schedulePersist();
+          }
         }
         const translated = translateEvent(event, ctx);
         for (const e of translated) this.emit(e);

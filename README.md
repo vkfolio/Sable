@@ -19,7 +19,7 @@
 
 ---
 
-Sable is an AI-first desktop browser inspired by Dia. The chat panel doesn't just *read* the page — it **interoperates** with it. Drag a paragraph from a webpage into chat for an auto-citation. Drag an AI-generated image into a webpage upload field. Cmd-click multiple tabs to make them one unified AI context. Drag any tab to any pane edge for arbitrary BSP-nested splits.
+Sable is an AI-first desktop browser. The chat panel doesn't just *read* the page — it **interoperates** with it. Drag a paragraph from a webpage into chat for an auto-citation. Drag an AI-generated image into a webpage upload field. Cmd-click multiple tabs to make them one unified AI context. Drag any tab to any pane edge for arbitrary BSP-nested splits.
 
 It's not a Chrome wrapper with a chat button. It's a real browser shell built on Electron + `WebContentsView`, with a custom binary-space-partitioning layout engine, a LangGraphJS orchestrator emitting open [AG-UI Protocol](https://docs.ag-ui.com) events, embedded Qwen 3 (Apache 2.0, runs offline) plus BYOK Anthropic / OpenAI for higher-quality work, and a privacy-first roadmap for personal knowledge graphs and agentic browsing.
 
@@ -369,16 +369,18 @@ sable/
 
 ---
 
-## Inspirations
+## Built on
 
 Sable stands on the shoulders of:
 
-- **[Dia](https://www.diabrowser.com)** (The Browser Company) — omnibar-as-everything, Spaces, density
-- **[Arc](https://arc.net)** — vertical tabs, accent-per-space
-- **[Linear](https://linear.app)** / **[Raycast](https://raycast.com)** / **[Cursor](https://cursor.com)** — design language, motion economy, BYOK affordances
-- **[LangChain](https://langchain.com)** + **[AG-UI Protocol](https://docs.ag-ui.com)** — agent orchestration + standardized events
-- **[Mozilla Readability](https://github.com/mozilla/readability)** + **[Defuddle](https://github.com/kepano/defuddle)** — page extraction
-- **[llama.cpp](https://github.com/ggml-org/llama.cpp)** + **[node-llama-cpp](https://github.com/withcatai/node-llama-cpp)** + the **[Qwen team](https://qwenlm.github.io)** — local inference
+- **[LangChain](https://langchain.com)** + **[LangGraph.js](https://langchain-ai.github.io/langgraphjs/)** — chat + agent orchestration
+- **[AG-UI Protocol](https://docs.ag-ui.com)** — standardized agent ↔ frontend events
+- **[Anthropic SDK](https://github.com/anthropics/anthropic-sdk-typescript)** + **[OpenAI SDK](https://github.com/openai/openai-node)** — BYOK provider adapters via `@langchain/anthropic` and `@langchain/openai`
+- **[llama.cpp](https://github.com/ggml-org/llama.cpp)** + **[node-llama-cpp](https://github.com/withcatai/node-llama-cpp)** — embedded LLM inference (Vulkan / CUDA / Metal / CPU)
+- **[Qwen 3](https://qwenlm.github.io)** (Apache 2.0) — bundled embedded model
+- **[Mozilla Readability](https://github.com/mozilla/readability)** + **[Defuddle](https://github.com/kepano/defuddle)** — page main-content extraction *(slated)*
+- **[LanceDB](https://lancedb.com)** — embedded vector store *(V0.2)*
+- **[Electron](https://electronjs.org)** + **[React](https://react.dev)** + **[Tailwind](https://tailwindcss.com)** + **[Zustand](https://zustand-demo.pmnd.rs)** + **[Vite](https://vitejs.dev)** — desktop shell & UI
 
 ---
 
