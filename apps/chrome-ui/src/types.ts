@@ -90,6 +90,21 @@ export type LocalModelEvent =
   | { kind: 'error'; id: LocalModelVariantId; error: string }
   | { kind: 'removed'; id: LocalModelVariantId };
 
+// ---- spaces ----
+export type SpaceId = string;
+
+export type SpaceSummary = {
+  readonly id: SpaceId;
+  readonly name: string;
+  readonly accent: string;
+  readonly conversationId: string;
+};
+
+export type SpacesSnapshot = {
+  readonly activeSpaceId: SpaceId;
+  readonly spaces: readonly SpaceSummary[];
+};
+
 export type AgentEvent = BaseEvent;
 
 export type TabState = {
@@ -102,6 +117,7 @@ export type TabState = {
   readonly canGoForward: boolean;
   readonly lastActiveAt: number;
   readonly selectedForContext: boolean;
+  readonly spaceId: string;
 };
 
 export type ExtractedTabContent = {
@@ -145,6 +161,7 @@ export type SableApi = {
     reload(id: TabId): Promise<void>;
     list(): Promise<TabState[]>;
     setSelectedForContext(id: TabId, selected: boolean): Promise<void>;
+    setSpace(id: TabId, spaceId: SpaceId): Promise<void>;
     extractContent(id: TabId): Promise<ExtractedTabContent | null>;
   };
   readonly layout: {
@@ -176,6 +193,14 @@ export type SableApi = {
     cancel(id: LocalModelVariantId): Promise<void>;
     remove(id: LocalModelVariantId): Promise<void>;
   };
+  readonly spaces: {
+    get(): Promise<SpacesSnapshot>;
+    create(name: string): Promise<SpaceSummary>;
+    setActive(id: SpaceId): Promise<void>;
+    rename(id: SpaceId, name: string): Promise<void>;
+    setAccent(id: SpaceId, accent: string): Promise<void>;
+    remove(id: SpaceId): Promise<void>;
+  };
   readonly on: {
     tabUpdated(cb: (state: TabState) => void): () => void;
     tabRemoved(cb: (id: TabId) => void): () => void;
@@ -183,5 +208,6 @@ export type SableApi = {
     layoutChanged(cb: (snapshot: LayoutSnapshot) => void): () => void;
     agentEvent(cb: (event: AgentEvent) => void): () => void;
     localModelEvent(cb: (event: LocalModelEvent) => void): () => void;
+    spacesChanged(cb: (snapshot: SpacesSnapshot) => void): () => void;
   };
 };

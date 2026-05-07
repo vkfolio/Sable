@@ -5,11 +5,17 @@
 // downloaded into userData/models. The "active" provider is what the chat
 // orchestrator uses; for qwen-local the selectedModel is the variant id.
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useSettingsStore } from '../../state/settings';
 import { useLocalModelStore } from '../../state/local-model';
-import type { LocalModelStatus, LocalModelVariantId, ProviderId } from '../../types';
+import { useSpacesStore } from '../../state/spaces';
+import type {
+  LocalModelStatus,
+  LocalModelVariantId,
+  ProviderId,
+  SpaceSummary,
+} from '../../types';
 
 type ProviderMeta = {
   id: ProviderId;
@@ -230,8 +236,186 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
               {meta.label}: {meta.disabledReason ?? 'Not yet supported'}
             </div>
           )}
+
+          <div className="border-t border-border pt-4">
+            <SpacesSection />
+          </div>
         </section>
       </div>
+    </div>
+  );
+}
+
+// ---- Spaces management ----
+
+const ACCENT_OPTIONS = [
+  '#6b7cff',
+  '#7adabf',
+  '#f59e0b',
+  '#f472b6',
+  '#a78bfa',
+  '#fb7185',
+];
+
+function SpacesSection() {
+  const spaces = useSpacesStore(useShallow((s) => s.spaces));
+  const activeSpaceId = useSpacesStore((s) => s.activeSpaceId);
+  const [adding, setAdding] = useState(false);
+  const [newName, setNewName] = useState('');
+
+  const submitNew = async () => {
+    const name = newName.trim();
+    setAdding(false);
+    setNewName('');
+    if (name) await window.sable.spaces.create(name);
+  };
+
+  return (
+    <div>
+      <label className="block text-2xs font-semibold tracking-wider uppercase text-fg-dim mb-1.5">
+        Spaces
+      </label>
+      <p className="text-2xs text-fg-dim mb-2">
+        Each space has its own tabs, layout, and chat history. Switch from the titlebar.
+      </p>
+      <div className="space-y-1.5">
+        {spaces.map((s) => (
+          <SpaceRow
+            key={s.id}
+            space={s}
+            canDelete={spaces.length > 1}
+            isActive={s.id === activeSpaceId}
+          />
+        ))}
+        {adding ? (
+          <div className="flex items-center gap-2 px-2.5 py-2 bg-bg-3 border border-accent rounded-md">
+            <span className="inline-block w-3 h-3 rounded-full bg-fg-dim" />
+            <input
+              autoFocus
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              onBlur={() => void submitNew()}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') (e.currentTarget as HTMLInputElement).blur();
+                if (e.key === 'Escape') {
+                  setNewName('');
+                  setAdding(false);
+                }
+              }}
+              placeholder="Space name…"
+              className="flex-1 bg-transparent text-sm text-fg outline-none placeholder:text-fg-dim"
+            />
+          </div>
+        ) : (
+          <button
+            onClick={() => setAdding(true)}
+            className="w-full flex items-center gap-2 px-2.5 py-1.5 bg-bg-3 border border-border-strong rounded-md text-sm text-fg-mute hover:text-fg hover:border-fg-dim"
+          >
+            <span className="text-base leading-none">+</span>
+            <span>New space</span>
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SpaceRow({
+  space,
+  canDelete,
+  isActive,
+}: {
+  space: SpaceSummary;
+  canDelete: boolean;
+  isActive: boolean;
+}) {
+  const [name, setName] = useState(space.name);
+  const [accentOpen, setAccentOpen] = useState(false);
+  const accentRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => setName(space.name), [space.name]);
+
+  // Click-away for accent picker
+  useEffect(() => {
+    if (!accentOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (accentRef.current && !accentRef.current.contains(e.target as Node)) {
+        setAccentOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [accentOpen]);
+
+  const commitName = () => {
+    const trimmed = name.trim();
+    if (trimmed && trimmed !== space.name) {
+      void window.sable.spaces.rename(space.id, trimmed);
+    } else {
+      setName(space.name);
+    }
+  };
+
+  const handlePickAccent = (color: string) => {
+    void window.sable.spaces.setAccent(space.id, color);
+    setAccentOpen(false);
+  };
+
+  const handleDelete = () => {
+    if (!canDelete) return;
+    void window.sable.spaces.remove(space.id);
+  };
+
+  return (
+    <div className="flex items-center gap-2 px-2.5 py-2 bg-bg-3 border border-border-strong rounded-md">
+      <div ref={accentRef} className="relative shrink-0">
+        <button
+          onClick={() => setAccentOpen((v) => !v)}
+          title="Change accent"
+          className="w-3 h-3 rounded-full ring-1 ring-border-strong hover:ring-fg-dim"
+          style={{ background: space.accent }}
+        />
+        {accentOpen && (
+          <div className="absolute top-full left-0 mt-1.5 z-10 flex gap-1.5 bg-bg-2 border border-border-strong rounded-lg p-2 shadow-lg">
+            {ACCENT_OPTIONS.map((c) => (
+              <button
+                key={c}
+                onClick={() => handlePickAccent(c)}
+                className={`w-5 h-5 rounded-full ring-1 transition-all ${
+                  c === space.accent ? 'ring-fg' : 'ring-border-strong hover:ring-fg-dim'
+                }`}
+                style={{ background: c }}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+      <input
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        onBlur={commitName}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') (e.currentTarget as HTMLInputElement).blur();
+          if (e.key === 'Escape') {
+            setName(space.name);
+            (e.currentTarget as HTMLInputElement).blur();
+          }
+        }}
+        className="flex-1 px-2 py-0.5 bg-transparent border border-transparent rounded text-sm text-fg outline-none focus:bg-bg-2 focus:border-border-strong"
+      />
+      {isActive && (
+        <span className="text-2xs px-1 py-0.5 rounded bg-emerald-500/15 text-emerald-300">
+          active
+        </span>
+      )}
+      <button
+        onClick={handleDelete}
+        disabled={!canDelete}
+        title={canDelete ? 'Delete space' : 'Cannot delete the last space'}
+        className="text-fg-dim hover:text-red-300 disabled:opacity-30 disabled:cursor-default leading-none px-1 text-base"
+      >
+        ×
+      </button>
     </div>
   );
 }

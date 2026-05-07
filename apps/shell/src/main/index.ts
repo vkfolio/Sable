@@ -26,7 +26,8 @@ if (!gotLock) {
     }
   });
 
-  app.whenReady().then(() => {
+  app.whenReady().then(async () => {
+    await windowManager.preload();
     windowManager.open();
 
     app.on('activate', () => {

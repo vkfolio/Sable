@@ -110,18 +110,12 @@ export class QwenLocalChatModel extends BaseChatModel<BaseChatModelCallOptions> 
       }
     }
 
-    const t0 = Date.now();
-    process.stdout.write(`[qwen-local] _streamResponseChunks start (modelPath=${this.modelPath})\n`);
     const mod = await loadLlamaModule();
     const { context } = await getOrLoad(this.modelPath, this.contextSize);
-    process.stdout.write(`[qwen-local] model loaded in ${Date.now() - t0}ms\n`);
 
     const { systemPrompt, history, lastUserText } = splitMessages(
       messages,
       this.defaultSystemPrompt,
-    );
-    process.stdout.write(
-      `[qwen-local] split: history=${history.length} lastUserLen=${lastUserText.length}\n`,
     );
 
     const sequence = context.getSequence();
@@ -154,25 +148,17 @@ export class QwenLocalChatModel extends BaseChatModel<BaseChatModelCallOptions> 
     // answer. They render as visible whitespace + jargon in the chat bubble.
     // Strip them inline so streaming UX is preserved for the real reply.
     const thinkFilter = new ThinkBlockFilter();
-    let chunkCount = 0;
     const runPromise = session
       .prompt(lastUserText, {
         signal: options.signal,
         onTextChunk(chunk: string) {
-          chunkCount += 1;
           const visible = thinkFilter.process(chunk);
           if (visible) queue.push(visible);
           wakeIfWaiting();
         },
       })
       .then(
-        (full) => {
-          process.stdout.write(
-            `[qwen-local] prompt done · ${chunkCount} chunks · fullLen=${full.length}\n`,
-          );
-          // First 200 chars, with newlines escaped for readability
-          const preview = full.slice(0, 200).replace(/\n/g, '\\n');
-          process.stdout.write(`[qwen-local] full[0..200]: ${preview}\n`);
+        () => {
           done = true;
           wakeIfWaiting();
         },
@@ -194,12 +180,10 @@ export class QwenLocalChatModel extends BaseChatModel<BaseChatModelCallOptions> 
 
     inflight = runPromise;
 
-    let yieldCount = 0;
     try {
       while (true) {
         if (queue.length > 0) {
           const chunk = queue.shift()!;
-          yieldCount += 1;
           // handleLLMNewToken is what makes the LangChain runtime emit
           // an `on_chat_model_stream` event. Custom BaseChatModels MUST call
           // this — the framework's auto-emission only kicks in for models
@@ -217,7 +201,6 @@ export class QwenLocalChatModel extends BaseChatModel<BaseChatModelCallOptions> 
           wake = resolve;
         });
       }
-      process.stdout.write(`[qwen-local] yielded ${yieldCount} chunks\n`);
       if (errored) {
         // Surface the error to the LangGraph runtime; aborts are normal.
         const aborted =

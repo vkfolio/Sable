@@ -8,6 +8,7 @@ import { useDragStore } from './state/drag';
 import { useChatStore } from './state/chat';
 import { useSettingsStore } from './state/settings';
 import { useLocalModelStore } from './state/local-model';
+import { useSpacesStore } from './state/spaces';
 
 export function App() {
   const activeTabId = useTabsStore((s) => s.activeTabId);
@@ -28,10 +29,14 @@ export function App() {
     const offLocalModel = window.sable.on.localModelEvent((evt) => {
       useLocalModelStore.getState().applyEvent(evt);
     });
+    const offSpaces = window.sable.on.spacesChanged((snap) => {
+      useSpacesStore.getState().apply(snap);
+    });
 
     useTabsStore.getState().setBootstrapped();
     void useSettingsStore.getState().refresh();
     void useLocalModelStore.getState().refresh();
+    void useSpacesStore.getState().refresh();
 
     return () => {
       offUpdate();
@@ -40,6 +45,7 @@ export function App() {
       offLayout();
       offAgent();
       offLocalModel();
+      offSpaces();
     };
   }, []);
 

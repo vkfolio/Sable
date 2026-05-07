@@ -14,6 +14,7 @@ import { useChatStore } from '../../state/chat';
 import { useSettingsStore } from '../../state/settings';
 import { useTabsStore } from '../../state/tabs';
 import { useLocalModelStore } from '../../state/local-model';
+import { selectActiveSpace, useSpacesStore } from '../../state/spaces';
 import { MessageList } from './MessageList';
 import { Composer } from './Composer';
 import { ChatEmptyState } from './ChatEmptyState';
@@ -29,7 +30,10 @@ import type {
 const TAB_CONTEXT_CHAR_BUDGET = 18000;
 
 export function Chat({ onOpenSettings }: { onOpenSettings: () => void }) {
-  const conversationId = useChatStore((s) => s.conversationId);
+  const activeSpace = useSpacesStore(selectActiveSpace);
+  // Conversation id follows active space — switching spaces switches chat
+  // history. Falls back to 'default' until spaces have hydrated.
+  const conversationId = activeSpace?.conversationId ?? useChatStore.getState().conversationId;
   const messages = useChatStore(useShallow((s) => s.messages));
   const inflight = useChatStore((s) => s.inflight);
   const lastError = useChatStore((s) => s.lastError);
@@ -61,7 +65,8 @@ export function Chat({ onOpenSettings }: { onOpenSettings: () => void }) {
   const [extracting, setExtracting] = useState(false);
   const [excludedTabsNote, setExcludedTabsNote] = useState<string | null>(null);
 
-  // Hydrate history once on mount.
+  // Re-hydrate history every time the conversation id changes (which
+  // happens whenever the active space changes).
   useEffect(() => {
     void window.sable.chat
       .getHistory(conversationId)

@@ -16,7 +16,13 @@ import { LayoutController } from './layout-controller';
 import { ChatOrchestrator, resolveImage } from './chat-orchestrator';
 import { SettingsStore, type ProviderId } from './settings-store';
 import { LocalModelManager, type LocalModelVariantId } from './local-model-manager';
-import { IpcChannels, type ChatSendContent, type SettingsSnapshot } from '../shared/ipc-types';
+import { SpaceManager, type SpaceId } from './space-manager';
+import {
+  IpcChannels,
+  type ChatSendContent,
+  type SettingsSnapshot,
+  type SpacesSnapshot,
+} from '../shared/ipc-types';
 
 const HOMEPAGE = 'https://duckduckgo.com';
 
@@ -28,8 +34,17 @@ export class WindowManager {
   private chat: ChatOrchestrator | undefined;
   private readonly settings = new SettingsStore();
   private readonly localModels = new LocalModelManager();
+  private readonly spaces = new SpaceManager();
+  private spacesLoaded = false;
   private activeTabId: TabId | null = null;
   private ipcRegistered = false;
+
+  /** Load persistence + native sidecars before showing UI. */
+  async preload(): Promise<void> {
+    if (this.spacesLoaded) return;
+    await this.spaces.load();
+    this.spacesLoaded = true;
+  }
 
   open(): BrowserWindow {
     if (this.window && !this.window.isDestroyed()) {
@@ -89,9 +104,11 @@ export class WindowManager {
       process.stdout.write(`[chrome] ${message}\n`);
     });
 
-    // Open DevTools for the chrome WebContents in dev. Detached so it doesn't
-    // crowd the small window. Toggle via F12 (handled below).
-    chrome.webContents.openDevTools({ mode: 'detach' });
+    // Auto-open DevTools only when SABLE_DEV is set. F12 toggles it
+    // anytime regardless.
+    if (process.env['SABLE_DEV']) {
+      chrome.webContents.openDevTools({ mode: 'detach' });
+    }
 
     // F12 / Ctrl+Shift+I toggle DevTools for the chrome (and tab views in
     // future). before-input-event sees keys before the renderer.
@@ -116,9 +133,16 @@ export class WindowManager {
     this.wireTabForwarding();
 
     chrome.webContents.once('did-finish-load', () => {
-      // Open the first tab AFTER the chrome's preload + initial render is up,
-      // so the chrome's tab list reflects it.
-      this.openTab(HOMEPAGE);
+      this.broadcastSpacesSnapshot();
+      // If the active space already has a layout tree (because we switched
+      // back into it within this session), reuse it. Otherwise open the
+      // homepage as the seed.
+      const seedTree = this.spacesLoaded ? this.spaces.active().layoutTree : null;
+      if (seedTree) {
+        this.layout?.setTree(seedTree);
+      } else {
+        this.openTab(HOMEPAGE);
+      }
       if (!win.isDestroyed()) win.show();
     });
 
@@ -145,7 +169,8 @@ export class WindowManager {
   // ------- tab orchestration -------
 
   private openTab(url: string): TabId {
-    const id = this.tabs!.create(url);
+    const spaceId = this.spacesLoaded ? this.spaces.activeId() : '';
+    const id = this.tabs!.create(url, spaceId);
     this.layout!.setTree({ kind: 'leaf', id: `pane-${id}`, tabId: id });
     this.activeTabId = id;
     this.tabs!.markActive(id);
@@ -201,6 +226,9 @@ export class WindowManager {
     });
     ipcMain.handle(IpcChannels.TabsExtractContent, async (_e, id: TabId) => {
       return (await this.tabs?.extractContent(id)) ?? null;
+    });
+    ipcMain.handle(IpcChannels.TabsSetSpace, (_e, id: TabId, spaceId: SpaceId) => {
+      this.tabs?.setSpace(id, spaceId);
     });
 
     ipcMain.handle(IpcChannels.LayoutDragStart, () => this.layout?.setDragMode(true));
@@ -280,6 +308,44 @@ export class WindowManager {
     ipcMain.handle(IpcChannels.LocalModelRemove, async (_e, id: LocalModelVariantId) => {
       await this.localModels.remove(id);
     });
+
+    // ---- spaces ----
+    ipcMain.handle(IpcChannels.SpacesGet, () => this.buildSpacesSnapshot());
+    ipcMain.handle(IpcChannels.SpacesCreate, (_e, name: string) => {
+      const created = this.spaces.create(name);
+      return {
+        id: created.id,
+        name: created.name,
+        accent: created.accent,
+        conversationId: created.conversationId,
+      };
+    });
+    ipcMain.handle(IpcChannels.SpacesSetActive, (_e, id: SpaceId) => {
+      this.switchSpace(id);
+    });
+    ipcMain.handle(IpcChannels.SpacesRename, (_e, id: SpaceId, name: string) => {
+      this.spaces.rename(id, name);
+    });
+    ipcMain.handle(IpcChannels.SpacesSetAccent, (_e, id: SpaceId, accent: string) => {
+      this.spaces.setAccent(id, accent);
+    });
+    ipcMain.handle(IpcChannels.SpacesRemove, (_e, id: SpaceId) => {
+      this.spaces.remove(id);
+    });
+  }
+
+  private buildSpacesSnapshot(): SpacesSnapshot {
+    return {
+      activeSpaceId: this.spacesLoaded ? this.spaces.activeId() : '',
+      spaces: this.spacesLoaded
+        ? this.spaces.list().map((s) => ({
+            id: s.id,
+            name: s.name,
+            accent: s.accent,
+            conversationId: s.conversationId,
+          }))
+        : [],
+    };
   }
 
   private async settingsSnapshot(): Promise<SettingsSnapshot> {
@@ -302,10 +368,44 @@ export class WindowManager {
     });
     this.layout!.onSnapshot((snapshot) => {
       this.chrome?.webContents.send(IpcChannels.LayoutChanged, snapshot);
+      // Persist active space's tree on every reflow so layout survives a
+      // space switch within the session.
+      if (this.spacesLoaded) this.spaces.setActiveLayoutTree(snapshot.tree);
     });
     this.localModels.onEvent((event) => {
       this.chrome?.webContents.send(IpcChannels.LocalModelEvent, event);
     });
+    this.spaces.onChange(() => {
+      this.broadcastSpacesSnapshot();
+    });
+  }
+
+  private broadcastSpacesSnapshot(): void {
+    if (!this.chrome || !this.spacesLoaded) return;
+    const snapshot: SpacesSnapshot = {
+      activeSpaceId: this.spaces.activeId(),
+      spaces: this.spaces.list().map((s) => ({
+        id: s.id,
+        name: s.name,
+        accent: s.accent,
+        conversationId: s.conversationId,
+      })),
+    };
+    this.chrome.webContents.send(IpcChannels.SpacesChanged, snapshot);
+  }
+
+  /**
+   * Switch to a different space: save current layout tree to old active,
+   * pull new active's tree into LayoutController, broadcast.
+   */
+  private switchSpace(id: SpaceId): void {
+    if (!this.spacesLoaded || !this.layout) return;
+    // Save current tree to whatever is presently active.
+    this.spaces.setActiveLayoutTree(this.layout.getTree());
+    if (!this.spaces.setActive(id)) return;
+    const newTree = this.spaces.active().layoutTree;
+    this.layout.setTree(newTree);
+    this.broadcastSpacesSnapshot();
   }
 
   private broadcastActiveChanged(): void {

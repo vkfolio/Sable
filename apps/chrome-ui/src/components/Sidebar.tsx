@@ -6,14 +6,21 @@ import { Chat } from './Chat/Chat';
 import { SettingsDialog } from './Settings/SettingsDialog';
 import { useTabsStore } from '../state/tabs';
 import { useLayoutStore } from '../state/layout';
+import { useSpacesStore } from '../state/spaces';
 
 export function Sidebar() {
-  const totalTabs = useTabsStore((s) => s.tabsById.size);
-  const panesInTree = useLayoutStore(useShallow((s) => s.leaves.length));
-  const selectedCount = useTabsStore(
-    useShallow((s) => Array.from(s.tabsById.values()).filter((t) => t.selectedForContext).length),
+  const activeSpaceId = useSpacesStore((s) => s.activeSpaceId);
+  // Tabs in active space only — global counts would mislead when spaces hide tabs.
+  const tabsInSpace = useTabsStore(
+    useShallow((s) =>
+      Array.from(s.tabsById.values()).filter((t) =>
+        activeSpaceId ? t.spaceId === activeSpaceId : true,
+      ),
+    ),
   );
-  const sleeping = Math.max(0, totalTabs - panesInTree);
+  const panesInTree = useLayoutStore(useShallow((s) => s.leaves.length));
+  const selectedCount = tabsInSpace.filter((t) => t.selectedForContext).length;
+  const sleeping = Math.max(0, tabsInSpace.length - panesInTree);
 
   const [settingsOpen, setSettingsOpen] = useState(false);
 

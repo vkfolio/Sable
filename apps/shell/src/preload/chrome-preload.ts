@@ -20,6 +20,9 @@ import {
   type ResolvedImage,
   type SableApi,
   type SettingsSnapshot,
+  type SpaceId,
+  type SpaceSummary,
+  type SpacesSnapshot,
   type TabId,
   type TabState,
 } from '../shared/ipc-types';
@@ -45,6 +48,8 @@ const api: SableApi = {
     list: () => ipcRenderer.invoke(IpcChannels.TabsList) as Promise<TabState[]>,
     setSelectedForContext: (id: TabId, selected: boolean) =>
       ipcRenderer.invoke(IpcChannels.TabsSetSelectedForContext, id, selected) as Promise<void>,
+    setSpace: (id: TabId, spaceId: SpaceId) =>
+      ipcRenderer.invoke(IpcChannels.TabsSetSpace, id, spaceId) as Promise<void>,
     extractContent: (id: TabId) =>
       ipcRenderer.invoke(IpcChannels.TabsExtractContent, id) as Promise<ExtractedTabContent | null>,
   },
@@ -91,6 +96,19 @@ const api: SableApi = {
     remove: (id: LocalModelVariantId) =>
       ipcRenderer.invoke(IpcChannels.LocalModelRemove, id) as Promise<void>,
   },
+  spaces: {
+    get: () => ipcRenderer.invoke(IpcChannels.SpacesGet) as Promise<SpacesSnapshot>,
+    create: (name: string) =>
+      ipcRenderer.invoke(IpcChannels.SpacesCreate, name) as Promise<SpaceSummary>,
+    setActive: (id: SpaceId) =>
+      ipcRenderer.invoke(IpcChannels.SpacesSetActive, id) as Promise<void>,
+    rename: (id: SpaceId, name: string) =>
+      ipcRenderer.invoke(IpcChannels.SpacesRename, id, name) as Promise<void>,
+    setAccent: (id: SpaceId, accent: string) =>
+      ipcRenderer.invoke(IpcChannels.SpacesSetAccent, id, accent) as Promise<void>,
+    remove: (id: SpaceId) =>
+      ipcRenderer.invoke(IpcChannels.SpacesRemove, id) as Promise<void>,
+  },
   on: {
     tabUpdated: (cb) => on<TabState>(IpcChannels.TabsUpdated, cb),
     tabRemoved: (cb) => on<TabId>(IpcChannels.TabsRemoved, cb),
@@ -98,6 +116,7 @@ const api: SableApi = {
     layoutChanged: (cb) => on<LayoutSnapshot>(IpcChannels.LayoutChanged, cb),
     agentEvent: (cb) => on<AgentEvent>(IpcChannels.ChatAgentEvent, cb),
     localModelEvent: (cb) => on<LocalModelEvent>(IpcChannels.LocalModelEvent, cb),
+    spacesChanged: (cb) => on<SpacesSnapshot>(IpcChannels.SpacesChanged, cb),
   },
 };
 

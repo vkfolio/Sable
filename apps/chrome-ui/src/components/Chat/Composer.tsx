@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Citation, ImageCitation, TextCitation } from '../../types';
+import type { Skill } from '../../state/skills';
+import { SkillsPicker } from './SkillsPicker';
 
 const SABLE_QUOTE_MIME_PREFIX = 'application/x-sable-quote+json';
 const SABLE_IMAGE_MIME_PREFIX = 'application/x-sable-image+json';
@@ -30,6 +32,23 @@ export function Composer({
   const ref = useRef<HTMLTextAreaElement>(null);
   const [dragOver, setDragOver] = useState(false);
   const [resolveError, setResolveError] = useState<string | null>(null);
+  const [skillsOpen, setSkillsOpen] = useState(false);
+
+  const handlePickSkill = (skill: Skill) => {
+    setSkillsOpen(false);
+    // Replace empty composer with the template; otherwise append (cursor
+    // ends at the position the user can type into).
+    onChange(value.trim() ? `${value}\n\n${skill.template}` : skill.template);
+    // Re-focus the textarea after a tick so the picker click doesn't
+    // immediately steal focus back.
+    setTimeout(() => {
+      const el = ref.current;
+      if (!el) return;
+      el.focus();
+      const len = el.value.length;
+      el.setSelectionRange(len, len);
+    }, 0);
+  };
 
   // Auto-grow up to 6 rows.
   useEffect(() => {
@@ -166,10 +185,26 @@ export function Composer({
           disabled={disabled}
           rows={1}
           spellCheck={false}
-          className={`w-full resize-none bg-bg-3 border rounded-md px-3 py-2 pr-9 text-base text-fg outline-none focus:border-accent placeholder:text-fg-dim disabled:opacity-50 disabled:cursor-not-allowed ${
+          className={`w-full resize-none bg-bg-3 border rounded-md px-3 py-2 pr-[68px] text-base text-fg outline-none focus:border-accent placeholder:text-fg-dim disabled:opacity-50 disabled:cursor-not-allowed ${
             dragOver ? 'border-accent' : 'border-border-strong'
           }`}
         />
+        <SkillsPicker
+          open={skillsOpen}
+          onPick={handlePickSkill}
+          onClose={() => setSkillsOpen(false)}
+        />
+        <button
+          type="button"
+          onClick={() => setSkillsOpen((v) => !v)}
+          disabled={disabled}
+          title="Skills"
+          className={`absolute right-9 bottom-1.5 w-7 h-7 inline-flex items-center justify-center rounded text-fg-mute enabled:hover:text-accent disabled:opacity-30 disabled:cursor-default ${
+            skillsOpen ? 'text-accent' : ''
+          }`}
+        >
+          <SkillsIcon />
+        </button>
         <button
           type="button"
           onClick={inflight ? onStop : onSubmit}

@@ -132,7 +132,6 @@ export class ChatOrchestrator {
       .compile();
 
     this.emit(makeRunStarted(ctx));
-    process.stdout.write(`[chat] runStarted · provider=${built.provider} modelId=${built.modelId}\n`);
 
     const messages = this.conversations.get(conversationId) ?? [];
 
@@ -141,12 +140,8 @@ export class ChatOrchestrator {
         { messages },
         { version: 'v2', signal },
       );
-      let evtCount = 0;
-      let translatedCount = 0;
       for await (const event of events) {
         if (signal.aborted) break;
-        evtCount += 1;
-        process.stdout.write(`[chat:event] ${event.event} (${event.name})\n`);
         // Capture final state on graph completion to keep our conversation
         // store consistent with the model's full reply.
         if (event.event === 'on_chain_end' && event.name === 'LangGraph') {
@@ -154,12 +149,8 @@ export class ChatOrchestrator {
           if (out?.messages) this.conversations.set(conversationId, out.messages);
         }
         const translated = translateEvent(event, ctx);
-        translatedCount += translated.length;
         for (const e of translated) this.emit(e);
       }
-      process.stdout.write(
-        `[chat] graph done · langchain events=${evtCount} agui events=${translatedCount}\n`,
-      );
       this.emit(makeRunFinished(ctx));
     } catch (err) {
       if (signal.aborted) {

@@ -1,44 +1,92 @@
+import { useEffect, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useTabsStore } from '../state/tabs';
 import { useDragStore } from '../state/drag';
+import { useSpacesStore } from '../state/spaces';
 import type { TabState } from '../types';
 
 const DRAG_THRESHOLD_PX = 4;
 
+type ContextMenuState = {
+  x: number;
+  y: number;
+  tab: TabState;
+} | null;
+
 export function TabList() {
-  // useShallow so a fresh-array result with identical contents doesn't re-render.
-  const tabs = useTabsStore(useShallow((s) => Array.from(s.tabsById.values())));
+  const activeSpaceId = useSpacesStore((s) => s.activeSpaceId);
+  // Filter to active space's tabs only.
+  const tabs = useTabsStore(
+    useShallow((s) =>
+      Array.from(s.tabsById.values()).filter((t) =>
+        activeSpaceId ? t.spaceId === activeSpaceId : true,
+      ),
+    ),
+  );
   const activeTabId = useTabsStore((s) => s.activeTabId);
+
+  const [menu, setMenu] = useState<ContextMenuState>(null);
+
+  // Click-away / Escape close. We don't need to retract tab views — the
+  // menu is clamped to stay within the sidebar's chrome region (see below).
+  useEffect(() => {
+    if (!menu) return;
+    const onDown = () => setMenu(null);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenu(null);
+    };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [menu]);
 
   if (tabs.length === 0) {
     return (
       <div className="px-4 py-3 text-sm text-fg-dim">
-        No tabs. Press + or Ctrl+T to open one.
+        No tabs in this space. Press + or Ctrl+T.
       </div>
     );
   }
 
   return (
-    <div className="flex-1 overflow-auto" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
-      {tabs.map((tab) => (
-        <TabRow key={tab.id} tab={tab} active={tab.id === activeTabId} />
-      ))}
-    </div>
+    <>
+      <div
+        className="flex-1 overflow-auto"
+        style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+      >
+        {tabs.map((tab) => (
+          <TabRow
+            key={tab.id}
+            tab={tab}
+            active={tab.id === activeTabId}
+            onContextMenu={(x, y) => setMenu({ x, y, tab })}
+          />
+        ))}
+      </div>
+      {menu && <TabContextMenu state={menu} onClose={() => setMenu(null)} />}
+    </>
   );
 }
 
-function TabRow({ tab, active }: { tab: TabState; active: boolean }) {
+function TabRow({
+  tab,
+  active,
+  onContextMenu,
+}: {
+  tab: TabState;
+  active: boolean;
+  onContextMenu: (x: number, y: number) => void;
+}) {
   const startDrag = useDragStore((s) => s.start);
   const dragging = useDragStore((s) => s.dragging);
   const isBeingDragged = dragging?.tabId === tab.id;
   const isSelected = tab.selectedForContext;
 
-  // Pointer-down captures position; only enter drag mode after the user moves
-  // beyond DRAG_THRESHOLD_PX so a plain click still selects the tab. Ctrl/Cmd
-  // modifies the click semantics: select-for-context instead of switch-active.
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
-    // Don't start a drag for ctrl/meta-click — those are toggles.
     if (e.ctrlKey || e.metaKey) return;
     const startX = e.clientX;
     const startY = e.clientY;
@@ -63,13 +111,17 @@ function TabRow({ tab, active }: { tab: TabState; active: boolean }) {
   };
 
   const handleClick = (e: React.MouseEvent) => {
-    // Ctrl/Cmd-click toggles "selected for chat context" instead of switching.
     if (e.ctrlKey || e.metaKey) {
       e.preventDefault();
       void window.sable.tabs.setSelectedForContext(tab.id, !isSelected);
       return;
     }
     void window.sable.tabs.setActive(tab.id);
+  };
+
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    onContextMenu(e.clientX, e.clientY);
   };
 
   const handleClose = (e: React.MouseEvent) => {
@@ -81,7 +133,12 @@ function TabRow({ tab, active }: { tab: TabState; active: boolean }) {
     <div
       onPointerDown={handlePointerDown}
       onClick={handleClick}
-      title={isSelected ? 'Selected for chat context · Ctrl+click to deselect' : 'Ctrl+click to add as chat context'}
+      onContextMenu={handleContextMenu}
+      title={
+        isSelected
+          ? 'Selected for chat context · Ctrl+click to deselect · Right-click for more'
+          : 'Right-click for more · Ctrl+click to add as chat context'
+      }
       className={`group flex items-center gap-2.5 px-4 py-1.5 text-base cursor-default transition-colors select-none ${
         active
           ? 'bg-bg-4 text-fg'
@@ -130,6 +187,125 @@ function TabRow({ tab, active }: { tab: TabState; active: boolean }) {
       >
         ×
       </button>
+    </div>
+  );
+}
+
+function TabContextMenu({
+  state,
+  onClose,
+}: {
+  state: NonNullable<ContextMenuState>;
+  onClose: () => void;
+}) {
+  const spaces = useSpacesStore((s) => s.spaces);
+  const otherSpaces = spaces.filter((s) => s.id !== state.tab.spaceId);
+
+  // Clamp menu position to stay inside the sidebar (280px) so it doesn't
+  // extend into the pane area where tab WebContentsViews would occlude it.
+  // Window CSS variables: --sidebar-w=280px. Menu width ~210px → max left = 70.
+  const MENU_WIDTH = 210;
+  const SIDEBAR_W = 280;
+  const left = Math.max(8, Math.min(state.x, SIDEBAR_W - MENU_WIDTH - 8));
+  const top = Math.min(state.y, window.innerHeight - 260);
+
+  const handleMove = (spaceId: string) => {
+    void window.sable.tabs.setSpace(state.tab.id, spaceId);
+    onClose();
+  };
+
+  const handleToggleContext = () => {
+    void window.sable.tabs.setSelectedForContext(
+      state.tab.id,
+      !state.tab.selectedForContext,
+    );
+    onClose();
+  };
+
+  const handleClose = () => {
+    void window.sable.tabs.close(state.tab.id);
+    onClose();
+  };
+
+  // Stop the click-away listener from firing on the menu itself.
+  const stop = (e: React.MouseEvent) => e.stopPropagation();
+
+  return (
+    <div
+      onMouseDown={stop}
+      onClick={stop}
+      style={{
+        position: 'fixed',
+        left,
+        top,
+        width: MENU_WIDTH,
+        zIndex: 60,
+        WebkitAppRegion: 'no-drag',
+      } as React.CSSProperties}
+      className="bg-bg-2 border border-border-strong rounded-lg shadow-2xl py-1"
+    >
+      <MenuItem
+        label={state.tab.selectedForContext ? 'Remove from chat context' : 'Add as chat context'}
+        onClick={handleToggleContext}
+      />
+      <div className="border-t border-border my-1" />
+      {otherSpaces.length > 0 ? (
+        <>
+          <MenuLabel text="Move to space" />
+          {otherSpaces.map((s) => (
+            <MenuItem
+              key={s.id}
+              label={
+                <>
+                  <span
+                    className="inline-block w-2 h-2 rounded-full"
+                    style={{ background: s.accent }}
+                  />
+                  {s.name}
+                </>
+              }
+              onClick={() => handleMove(s.id)}
+            />
+          ))}
+          <div className="border-t border-border my-1" />
+        </>
+      ) : (
+        <MenuLabel text="No other spaces · open Settings to add one" muted />
+      )}
+      <MenuItem label="Close tab" onClick={handleClose} variant="danger" />
+    </div>
+  );
+}
+
+function MenuItem({
+  label,
+  onClick,
+  variant,
+}: {
+  label: React.ReactNode;
+  onClick: () => void;
+  variant?: 'danger';
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full flex items-center gap-2 px-3 py-1.5 text-sm text-left hover:bg-bg-3 ${
+        variant === 'danger' ? 'text-red-300 hover:text-red-200' : 'text-fg-mute hover:text-fg'
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
+
+function MenuLabel({ text, muted }: { text: string; muted?: boolean }) {
+  return (
+    <div
+      className={`px-3 py-1 text-2xs font-semibold tracking-wider uppercase ${
+        muted ? 'text-fg-dim font-normal normal-case tracking-normal' : 'text-fg-dim'
+      }`}
+    >
+      {text}
     </div>
   );
 }

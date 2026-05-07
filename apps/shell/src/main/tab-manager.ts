@@ -39,6 +39,10 @@ export type TabState = {
    *  ingests every selected tab's extracted main content as additional
    *  context for the next outgoing message. */
   readonly selectedForContext: boolean;
+  /** The space this tab belongs to. Set on creation, can be reassigned via
+   *  setSpace() to "move" the tab between spaces. Sidebar filters its tab
+   *  list by the active space, so tabs from inactive spaces are hidden. */
+  readonly spaceId: string;
 };
 
 /** Result of running the in-page content extractor (Phase 4). */
@@ -61,7 +65,7 @@ export class TabManager {
 
   constructor(private readonly window: BrowserWindow) {}
 
-  create(initialUrl: string): TabId {
+  create(initialUrl: string, spaceId: string): TabId {
     const id = randomUUID();
     const view = new WebContentsView({
       webPreferences: {
@@ -81,6 +85,7 @@ export class TabManager {
       canGoForward: false,
       lastActiveAt: Date.now(),
       selectedForContext: false,
+      spaceId,
     };
     this.tabs.set(id, { view, state: initial });
     this.wireEvents(id, view);
@@ -138,6 +143,11 @@ export class TabManager {
   setSelectedForContext(id: TabId, selected: boolean): void {
     if (!this.tabs.has(id)) return;
     this.update(id, { selectedForContext: selected });
+  }
+
+  setSpace(id: TabId, spaceId: string): void {
+    if (!this.tabs.has(id)) return;
+    this.update(id, { spaceId });
   }
 
   /**
