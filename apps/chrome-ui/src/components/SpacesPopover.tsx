@@ -8,6 +8,19 @@ import { useShallow } from 'zustand/react/shallow';
 import { useSpacesStore } from '../state/spaces';
 import type { SpaceSummary } from '../types';
 
+/** Pastel palette offered when creating / editing a space. The hex value is
+ *  what's stored on `Space.accent`; the matching `data-space="{id}"` block
+ *  in index.css drives the per-space shell tint. */
+export const SPACE_ACCENTS: ReadonlyArray<{ id: string; label: string; hex: string }> = [
+  { id: 'lavender', label: 'Lavender', hex: '#C9BEEE' },
+  { id: 'rose', label: 'Rose', hex: '#F2BCD0' },
+  { id: 'mint', label: 'Mint', hex: '#B3E5C9' },
+  { id: 'sky', label: 'Sky', hex: '#B5D4F2' },
+  { id: 'butter', label: 'Butter', hex: '#FFE69A' },
+  { id: 'coral', label: 'Coral', hex: '#FFB89E' },
+  { id: 'peach', label: 'Peach', hex: '#FFD49B' },
+];
+
 export function SpacesPopover({
   open,
   anchor,
@@ -23,6 +36,7 @@ export function SpacesPopover({
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState('');
+  const [newAccent, setNewAccent] = useState<string>(SPACE_ACCENTS[0]!.hex);
 
   useLayoutEffect(() => {
     if (!open || !anchor.current) return;
@@ -67,10 +81,15 @@ export function SpacesPopover({
 
   const submitNew = async () => {
     const name = newName.trim();
+    const accent = newAccent;
     setAdding(false);
     setNewName('');
+    setNewAccent(SPACE_ACCENTS[0]!.hex);
     if (!name) return;
     const created = await window.sable.spaces.create(name);
+    // The IPC `create` doesn't take an accent yet — set it as a follow-up.
+    // Done before setActive so the colour switches in lockstep with focus.
+    void window.sable.spaces.setAccent(created.id, accent);
     void window.sable.spaces.setActive(created.id);
     onClose();
   };
@@ -95,27 +114,85 @@ export function SpacesPopover({
           />
         ))}
       </div>
+      {/* Active space accent picker — change the current space's color in
+          one click. The whole shell retints immediately because the active
+          space's `accent` is what App.tsx's `data-space` attribute is bound
+          to. */}
+      {activeSpaceId && (
+        <div className="mt-1 pt-1 border-t border-line px-2 py-1.5 flex items-center gap-1.5">
+          <span className="text-[10px] font-mono text-ink-3 uppercase tracking-[0.12em]">Color</span>
+          <div className="flex-1 flex items-center justify-between gap-1">
+            {SPACE_ACCENTS.map((a) => {
+              const active = spaces.find((s) => s.id === activeSpaceId);
+              const selected = active && a.hex.toLowerCase() === active.accent.toLowerCase();
+              return (
+                <button
+                  key={a.id}
+                  type="button"
+                  title={a.label}
+                  onClick={() => void window.sable.spaces.setAccent(activeSpaceId, a.hex)}
+                  className={`w-5 h-5 rounded-md transition-shadow ${
+                    selected
+                      ? 'shadow-[0_0_0_2px_rgb(var(--ink-0))]'
+                      : 'hover:scale-110'
+                  }`}
+                  style={{ background: a.hex }}
+                />
+              );
+            })}
+          </div>
+        </div>
+      )}
       <div className="mt-1 pt-1 border-t border-line">
         {adding ? (
-          <div className="flex items-center gap-2.5 px-2.5 h-[38px]">
-            <span className="inline-block w-[22px] h-[22px] rounded-[7px] bg-surface-3 flex items-center justify-center text-ink-3 text-xs">
-              +
-            </span>
-            <input
-              autoFocus
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              onBlur={() => void submitNew()}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') (e.currentTarget as HTMLInputElement).blur();
-                if (e.key === 'Escape') {
-                  setNewName('');
-                  setAdding(false);
-                }
-              }}
-              placeholder="Name…"
-              className="flex-1 bg-transparent text-base text-ink-0 outline-none placeholder:text-ink-3"
-            />
+          <div className="px-2.5 py-2 flex flex-col gap-2">
+            <div className="flex items-center gap-2.5">
+              <span
+                className="inline-block w-[22px] h-[22px] rounded-[7px] shrink-0"
+                style={{ background: newAccent }}
+              />
+              <input
+                autoFocus
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') void submitNew();
+                  if (e.key === 'Escape') {
+                    setNewName('');
+                    setAdding(false);
+                  }
+                }}
+                placeholder="Space name…"
+                className="flex-1 bg-transparent text-base text-ink-0 outline-none placeholder:text-ink-3"
+              />
+            </div>
+            <div className="flex items-center justify-between gap-1">
+              {SPACE_ACCENTS.map((a) => {
+                const selected = a.hex.toLowerCase() === newAccent.toLowerCase();
+                return (
+                  <button
+                    key={a.id}
+                    type="button"
+                    onClick={() => setNewAccent(a.hex)}
+                    title={a.label}
+                    className={`w-6 h-6 rounded-[7px] inline-flex items-center justify-center transition-shadow ${
+                      selected
+                        ? 'shadow-[0_0_0_2px_rgb(var(--ink-0))] ring-0'
+                        : 'hover:scale-110'
+                    }`}
+                    style={{ background: a.hex }}
+                  />
+                );
+              })}
+            </div>
+            <button
+              type="button"
+              onClick={() => void submitNew()}
+              disabled={!newName.trim()}
+              className="self-end px-2.5 h-7 rounded-md bg-ink-0 text-ink-inv text-xs font-medium disabled:opacity-30"
+            >
+              Create
+            </button>
           </div>
         ) : (
           <button
