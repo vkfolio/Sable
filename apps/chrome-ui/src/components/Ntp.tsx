@@ -13,6 +13,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useChatStore } from '../state/chat';
 import { useSpacesStore, selectActiveSpace } from '../state/spaces';
 import { useTabsStore, selectActiveTab } from '../state/tabs';
+import { useChromeStore } from '../state/chrome';
 import { resolveSuggestions, type Suggestion } from '../ntp-resolver';
 
 const SUGGESTIONS = [
@@ -36,6 +37,7 @@ export function Ntp() {
   const conversationId = activeSpace?.conversationId ?? 'default';
   const pushUserMessage = useChatStore((s) => s.pushUserMessage);
   const setActiveRun = useChatStore((s) => s.setActiveRun);
+  const userName = useChromeStore((s) => s.userName);
 
   const [query, setQuery] = useState('');
   const [now, setNow] = useState(() => formatTime(new Date()));
@@ -145,7 +147,7 @@ export function Ntp() {
       {/* Greeting + cmd + suggestions (centered) */}
       <div className="relative w-full max-w-[560px] px-6 text-center">
         <h2 className="text-[36px] font-medium tracking-[-0.025em] leading-[1.1] m-0 text-ink-0">
-          {greeting()}
+          {greeting(userName)}
         </h2>
         <p className="mt-3 mb-0 text-sm leading-6 text-ink-2">
           Open a page, ask across selected tabs, or turn the current space into something usable.
@@ -260,12 +262,14 @@ function AiGlyph() {
   );
 }
 
-function greeting(): ReactNode {
+function greeting(name: string): ReactNode {
   const h = new Date().getHours();
   const word = h < 5 ? 'Good night' : h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
+  const trimmed = name.trim();
+  const lead = trimmed ? `${word}, ${trimmed}.` : `${word}.`;
   return (
     <>
-      {word}. <span className="text-acc-ink">Where should we start?</span>
+      {lead} <span className="text-acc-ink">Where should we start?</span>
     </>
   );
 }

@@ -3,6 +3,7 @@ import { TitleBar } from './components/TitleBar';
 import { UrlBar } from './components/UrlBar';
 import { PaneArea } from './components/PaneArea';
 import { ChatSidebar } from './components/ChatSidebar';
+import { OnboardingDialog } from './components/Onboarding/OnboardingDialog';
 import { useTabsStore } from './state/tabs';
 import { useLayoutStore } from './state/layout';
 import { useDragStore } from './state/drag';
@@ -16,6 +17,7 @@ export function App() {
   const activeTabId = useTabsStore((s) => s.activeTabId);
   const chatVisible = useChromeStore((s) => s.chatVisible);
   const theme = useChromeStore((s) => s.theme);
+  const firstLaunchSeen = useChromeStore((s) => s.firstLaunchSeen);
   const activeSpace = useSpacesStore(selectActiveSpace);
 
   // Theme + active-Space accent applied to <html> so all CSS vars rebind.
@@ -151,6 +153,7 @@ export function App() {
         <PaneArea />
         {chatVisible && <ChatSidebar />}
       </div>
+      {!firstLaunchSeen && <OnboardingDialog />}
     </div>
   );
 }

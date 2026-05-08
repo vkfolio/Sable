@@ -573,6 +573,20 @@ export class WindowManager {
    * Prod: load the chrome-ui's built dist/index.html.
    */
   private async loadChromeInto(chrome: WebContentsView): Promise<void> {
+    // Optional one-shot reset for development. Run with `SABLE_RESET=1` to
+    // wipe the chrome's localStorage (including onboarding state) before
+    // loading the renderer — useful for re-seeing the splash + onboarding
+    // flow without juggling DevTools.
+    if (process.env['SABLE_RESET']) {
+      try {
+        await chrome.webContents.session.clearStorageData({
+          storages: ['localstorage'],
+        });
+        process.stdout.write('[main] SABLE_RESET — chrome localStorage cleared\n');
+      } catch (err) {
+        process.stderr.write(`[main] SABLE_RESET failed: ${String(err)}\n`);
+      }
+    }
     const devUrl = process.env['SABLE_DEV_URL'];
     if (devUrl) {
       await chrome.webContents.loadURL(devUrl);

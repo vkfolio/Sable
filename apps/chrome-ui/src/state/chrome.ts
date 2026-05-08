@@ -16,17 +16,27 @@ type ChromeStore = {
   chatVisible: boolean;
   /** Pixel width of the chat sidebar. Clamped to [280, 720] on set. */
   chatWidth: number;
+  /** Display name captured during onboarding — used for NTP greeting and
+   *  any future "Hi, {name}" affordances. Empty string means unset. */
+  userName: string;
+  /** False on the very first launch — drives the onboarding modal. Flipped
+   *  to true when the user finishes the onboarding flow. */
+  firstLaunchSeen: boolean;
 
   setTheme: (t: Theme) => void;
   toggleChat: () => void;
   setChatVisible: (v: boolean) => void;
   setChatWidth: (w: number) => void;
+  setUserName: (s: string) => void;
+  setFirstLaunchSeen: (v: boolean) => void;
 };
 
 type Persisted = {
   theme?: Theme;
   chatVisible?: boolean;
   chatWidth?: number;
+  userName?: string;
+  firstLaunchSeen?: boolean;
 };
 
 function clampWidth(w: number): number {
@@ -34,7 +44,15 @@ function clampWidth(w: number): number {
   return Math.min(CHAT_WIDTH_MAX, Math.max(CHAT_WIDTH_MIN, Math.round(w)));
 }
 
-function loadInitial(): { theme: Theme; chatVisible: boolean; chatWidth: number } {
+type Initial = {
+  theme: Theme;
+  chatVisible: boolean;
+  chatWidth: number;
+  userName: string;
+  firstLaunchSeen: boolean;
+};
+
+function loadInitial(): Initial {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
@@ -43,15 +61,23 @@ function loadInitial(): { theme: Theme; chatVisible: boolean; chatWidth: number 
         theme: parsed.theme === 'dark' || parsed.theme === 'light' ? parsed.theme : 'light',
         chatVisible: typeof parsed.chatVisible === 'boolean' ? parsed.chatVisible : true,
         chatWidth: clampWidth(typeof parsed.chatWidth === 'number' ? parsed.chatWidth : CHAT_WIDTH_DEFAULT),
+        userName: typeof parsed.userName === 'string' ? parsed.userName : '',
+        firstLaunchSeen: parsed.firstLaunchSeen === true,
       };
     }
   } catch {
     // ignore
   }
-  return { theme: 'light', chatVisible: true, chatWidth: CHAT_WIDTH_DEFAULT };
+  return {
+    theme: 'light',
+    chatVisible: true,
+    chatWidth: CHAT_WIDTH_DEFAULT,
+    userName: '',
+    firstLaunchSeen: false,
+  };
 }
 
-function persist(state: { theme: Theme; chatVisible: boolean; chatWidth: number }): void {
+function persist(state: Initial): void {
   try {
     localStorage.setItem(
       STORAGE_KEY,
@@ -59,7 +85,9 @@ function persist(state: { theme: Theme; chatVisible: boolean; chatWidth: number 
         theme: state.theme,
         chatVisible: state.chatVisible,
         chatWidth: state.chatWidth,
-      }),
+        userName: state.userName,
+        firstLaunchSeen: state.firstLaunchSeen,
+      } satisfies Persisted),
     );
   } catch {
     // ignore
@@ -72,21 +100,41 @@ export const useChromeStore = create<ChromeStore>((set, get) => ({
   theme: initial.theme,
   chatVisible: initial.chatVisible,
   chatWidth: initial.chatWidth,
+  userName: initial.userName,
+  firstLaunchSeen: initial.firstLaunchSeen,
 
   setTheme: (t) => {
     set({ theme: t });
-    persist({ ...get() });
+    persist(snapshot(get()));
   },
   toggleChat: () => {
     set({ chatVisible: !get().chatVisible });
-    persist({ ...get() });
+    persist(snapshot(get()));
   },
   setChatVisible: (v) => {
     set({ chatVisible: v });
-    persist({ ...get() });
+    persist(snapshot(get()));
   },
   setChatWidth: (w) => {
     set({ chatWidth: clampWidth(w) });
-    persist({ ...get() });
+    persist(snapshot(get()));
+  },
+  setUserName: (s) => {
+    set({ userName: s.trim().slice(0, 60) });
+    persist(snapshot(get()));
+  },
+  setFirstLaunchSeen: (v) => {
+    set({ firstLaunchSeen: v });
+    persist(snapshot(get()));
   },
 }));
+
+function snapshot(s: ChromeStore): Initial {
+  return {
+    theme: s.theme,
+    chatVisible: s.chatVisible,
+    chatWidth: s.chatWidth,
+    userName: s.userName,
+    firstLaunchSeen: s.firstLaunchSeen,
+  };
+}
