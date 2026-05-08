@@ -11,7 +11,7 @@ import { randomUUID } from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { StateGraph, MessagesAnnotation, START, END } from '@langchain/langgraph';
-import { HumanMessage, AIMessage, AIMessageChunk, type BaseMessage } from '@langchain/core/messages';
+import { HumanMessage, AIMessage, AIMessageChunk, SystemMessage, type BaseMessage } from '@langchain/core/messages';
 import { buildActiveModel } from './llm-factory';
 import { SettingsStore } from './settings-store';
 import type { LocalModelManager } from './local-model-manager';
@@ -58,6 +58,37 @@ export class ChatOrchestrator {
     private readonly localModels: LocalModelManager,
   ) {
     void this.loadFromDisk();
+  }
+
+  /**
+   * Stateless one-shot completion using the active provider/model. Used by
+   * the NTP intent resolver — separate code path from `send()` because we
+   * don't want this to mutate any conversation, persist anything, or emit
+   * AG-UI events. Returns the assistant's plain-text response, or throws.
+   *
+   * Important: the model that ChatOrchestrator builds defaults to a low
+   * `max_tokens` for some providers (Anthropic ≈ 256 by default in some
+   * SDK versions), which truncates JSON output mid-URL. We pass a generous
+   * 1024 here so a 5-destination JSON list always fits.
+   */
+  async oneShot(system: string, user: string, signal?: AbortSignal): Promise<string> {
+    const built = await buildActiveModel(this.settings, this.localModels);
+    if (!built.ok) {
+      throw new Error(
+        built.error.kind === 'no-key'
+          ? `No API key configured for ${built.error.provider}`
+          : built.error.kind === 'local-model-missing'
+          ? `Local model ${built.error.variantId} not downloaded`
+          : `Provider ${built.error.provider} not supported`,
+      );
+    }
+    const messages: BaseMessage[] = [new SystemMessage(system), new HumanMessage(user)];
+    // Bind generous max-token budget for the response. .bind() accepts
+    // CallOptions which different model adapters interpret slightly
+    // differently — Anthropic / OpenAI both honour `maxTokens`.
+    const bound = built.model.bind({ maxTokens: 1024 } as Record<string, unknown>);
+    const res = await bound.invoke(messages, signal ? { signal } : undefined);
+    return extractText(res.content);
   }
 
   async send(conversationId: ConversationId, content: ChatSendContent): Promise<RunId> {

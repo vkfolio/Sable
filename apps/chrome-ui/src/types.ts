@@ -199,6 +199,9 @@ export type SableApi = {
     getHistory(conversationId: string): Promise<ChatHistoryMessage[]>;
     resolveImage(srcUrl: string): Promise<ResolvedImage>;
   };
+  readonly intent: {
+    resolve(query: string): Promise<readonly { label: string; description: string; url: string; color?: string }[]>;
+  };
   readonly settings: {
     get(): Promise<SettingsSnapshot>;
     setActiveProvider(provider: ProviderId): Promise<void>;

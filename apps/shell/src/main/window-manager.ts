@@ -41,6 +41,10 @@ export class WindowManager {
   private skillsLoaded = false;
   private activeTabId: TabId | null = null;
   private ipcRegistered = false;
+  /** Single-flight controller for the NTP intent resolver — cancelled when
+   *  a new resolve arrives while one is in flight (local Qwen can't handle
+   *  concurrent generations). */
+  private intentAbort: AbortController | null = null;
 
   /** Load persistence + native sidecars before showing UI. */
   async preload(): Promise<void> {
@@ -390,6 +394,37 @@ export class WindowManager {
     ipcMain.handle(IpcChannels.ChatResolveImage, async (_e, srcUrl: string) => {
       return resolveImage(srcUrl);
     });
+    ipcMain.handle(IpcChannels.IntentResolve, async (_e, query: string) => {
+      if (!this.chat) return [];
+      // Single-flight: cancel any in-flight intent resolve before starting
+      // a new one. The local llama.cpp runtime only supports one generation
+      // sequence at a time and throws "No sequences left" otherwise; remote
+      // providers don't care but burning their tokens on stale typing
+      // keystrokes is wasteful too.
+      this.intentAbort?.abort();
+      const ac = new AbortController();
+      this.intentAbort = ac;
+      try {
+        const raw = await this.chat.oneShot(
+          INTENT_SYSTEM_PROMPT,
+          `Query: "${query}"`,
+          ac.signal,
+        );
+        if (ac.signal.aborted) return [];
+        return parseIntentResponse(raw);
+      } catch (err) {
+        const aborted =
+          ac.signal.aborted ||
+          /abort/i.test(String(err)) ||
+          /no sequences left/i.test(String(err));
+        if (!aborted) {
+          process.stdout.write(`[intent] error: ${String(err)}\n`);
+        }
+        return [];
+      } finally {
+        if (this.intentAbort === ac) this.intentAbort = null;
+      }
+    });
 
     // ---- settings ----
     ipcMain.handle(IpcChannels.SettingsGet, async () => this.settingsSnapshot());
@@ -571,4 +606,88 @@ export class WindowManager {
     // __dirname is dist/main, so up one and into preload/.
     return path.join(__dirname, '..', 'preload', 'chrome-preload.js');
   }
+}
+
+// ── Intent resolution prompt + parser ────────────────────────────────────
+
+const INTENT_SYSTEM_PROMPT = `You are a browser address-bar destination resolver for the Sable browser.
+Given a user's free-form query, return a JSON list of 3-5 web destinations
+that best match what they're trying to do. Each destination must have a
+short label and a working URL with the user's query embedded as a search
+parameter when applicable.
+
+Rules:
+- Use real, well-known sites only (Amazon, YouTube, GitHub, Wikipedia,
+  Reddit, Stack Overflow, Reuters, Spotify, Apple/Google Maps, LinkedIn,
+  arXiv, Coursera, Booking, Airbnb, etc).
+- Always URL-encode the search query in the link.
+- Order destinations by relevance — most likely first.
+- Keep labels under 18 characters.
+- Return ONLY a JSON object with a "destinations" array. No prose, no
+  markdown fences. Example:
+  {"destinations":[{"label":"Amazon","description":"Search for laptops","url":"https://www.amazon.com/s?k=laptop"}]}`;
+
+type IntentChip = { label: string; description: string; url: string; color?: string };
+
+function parseIntentResponse(raw: string): IntentChip[] {
+  if (!raw) return [];
+
+  // Strip markdown code fences the model often emits despite instructions.
+  let body = raw.trim();
+  body = body.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '');
+
+  // Path A — clean JSON. Try the cheap path first.
+  const start = body.indexOf('{');
+  const end = body.lastIndexOf('}');
+  if (start >= 0 && end > start) {
+    try {
+      const parsed = JSON.parse(body.slice(start, end + 1)) as { destinations?: unknown };
+      const dests = parsed?.destinations;
+      if (Array.isArray(dests)) {
+        const out = collect(dests);
+        if (out.length > 0) return out;
+      }
+    } catch {
+      // fall through to salvage
+    }
+  }
+
+  // Path B — salvage. The response was truncated mid-URL or otherwise
+  // malformed. Grab every `{…}` object that contains both a label and a
+  // url field via regex, parse each in isolation, and accept whatever
+  // survives. This way a partial response still yields usable chips.
+  const objects = body.match(/\{[^{}]*"label"[^{}]*"url"[^{}]*\}/g) ?? [];
+  const salvaged: unknown[] = [];
+  for (const o of objects) {
+    try {
+      salvaged.push(JSON.parse(o));
+    } catch {
+      // try to repair a missing trailing brace
+      try {
+        salvaged.push(JSON.parse(o + (o.endsWith('}') ? '' : '}')));
+      } catch {
+        // skip
+      }
+    }
+  }
+  return collect(salvaged);
+}
+
+function collect(items: readonly unknown[]): IntentChip[] {
+  const out: IntentChip[] = [];
+  for (const d of items) {
+    if (!d || typeof d !== 'object') continue;
+    const label = (d as { label?: unknown }).label;
+    const url = (d as { url?: unknown }).url;
+    const description = (d as { description?: unknown }).description;
+    if (typeof label !== 'string' || typeof url !== 'string') continue;
+    if (!/^https?:\/\//i.test(url)) continue;
+    out.push({
+      label: label.slice(0, 24),
+      description: typeof description === 'string' ? description.slice(0, 120) : url,
+      url,
+    });
+    if (out.length >= 6) break;
+  }
+  return out;
 }

@@ -12,11 +12,8 @@ import { SettingsDialog } from './Settings/SettingsDialog';
 import { useSettingsStore } from '../state/settings';
 import { useChromeStore } from '../state/chrome';
 
-type SubTab = 'chat' | 'history' | 'skills';
-
 export function ChatSidebar() {
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [subTab, setSubTab] = useState<SubTab>('chat');
   const activeProvider = useSettingsStore((s) => s.activeProvider);
   const selectedModel = useSettingsStore((s) => s.selectedModel);
   const chatWidth = useChromeStore((s) => s.chatWidth);
@@ -29,16 +26,7 @@ export function ChatSidebar() {
       >
         <ResizeHandle />
         <Header onOpenSettings={() => setSettingsOpen(true)} provider={activeProvider} model={selectedModel} />
-        <SubTabs active={subTab} onChange={setSubTab} />
-        {subTab === 'chat' ? (
-          <Chat onOpenSettings={() => setSettingsOpen(true)} />
-        ) : (
-          <div className="flex-1 px-4 py-6 text-base text-ink-2">
-            {subTab === 'history'
-              ? 'History view — coming soon. (Conversations persist; switching spaces shows that space’s history.)'
-              : 'Skills are managed inline in the composer (✨ button) and in Settings.'}
-          </div>
-        )}
+        <Chat onOpenSettings={() => setSettingsOpen(true)} />
       </aside>
       {settingsOpen && <SettingsDialog onClose={() => setSettingsOpen(false)} />}
     </>
@@ -109,30 +97,6 @@ function Header({
   );
 }
 
-function SubTabs({ active, onChange }: { active: SubTab; onChange: (t: SubTab) => void }) {
-  const items: { id: SubTab; label: string }[] = [
-    { id: 'chat', label: 'Chat' },
-    { id: 'history', label: 'History' },
-    { id: 'skills', label: 'Skills' },
-  ];
-  return (
-    <div className="flex gap-0 px-2 pt-2 border-b border-line">
-      {items.map((it) => (
-        <button
-          key={it.id}
-          onClick={() => onChange(it.id)}
-          className={`flex-1 py-2 text-sm font-medium rounded-t-md ${
-            active === it.id
-              ? 'text-ink-0 shadow-[inset_0_-2px_0_rgb(var(--acc-ink))]'
-              : 'text-ink-2 hover:text-ink-0'
-          }`}
-        >
-          {it.label}
-        </button>
-      ))}
-    </div>
-  );
-}
 
 function AiGlyph() {
   // Soft gradient orb; matches the design's pastel-blend aesthetic.

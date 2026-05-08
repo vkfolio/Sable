@@ -3,16 +3,17 @@
 // unmounted by LayoutController, so this component owns that whole rect.
 //
 // Pulls patterns from "Hero · 02 — new tab" in v3 design system:
-//   greeting · live timestamp · AI command card · suggestion chips · pinned shortcuts
+//   greeting · live timestamp · omnibox · suggestion chips · pinned shortcuts
 //
-// Hitting Enter in the cmd input or clicking a suggestion sends the query
-// to chat; clicking a pin navigates the active tab.
+// Hitting Enter in the omnibox always navigates the active tab — typed
+// URLs go directly, plain text becomes a Google search. Suggestion chips
+// remain the explicit AI-prompt path (they go to chat).
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useChatStore } from '../state/chat';
 import { useSpacesStore, selectActiveSpace } from '../state/spaces';
 import { useTabsStore, selectActiveTab } from '../state/tabs';
-import { normalizeUrl } from '../url';
+import { resolveSuggestions, type Suggestion } from '../ntp-resolver';
 
 const SUGGESTIONS = [
   'summarize selected tabs',
@@ -44,16 +45,81 @@ export function Ntp() {
     return () => clearInterval(id);
   }, []);
 
-  const submit = async (text: string) => {
-    const t = text.trim();
-    if (!t) return;
-    setQuery('');
-    if (looksLikeUrl(t)) {
-      // navigate the active (this) tab
-      if (activeTab) await window.sable.tabs.navigate(activeTab.id, normalizeUrl(t) ?? t);
+  /**
+   * Static resolver results — instant, synchronous, rule-based. Always the
+   * first chip(s) the user sees. The LLM-resolved list (below) merges in
+   * after a brief debounce when the active model is configured.
+   */
+  const staticSuggestions = useMemo(() => resolveSuggestions(query), [query]);
+  const [llmSuggestions, setLlmSuggestions] = useState<Suggestion[]>([]);
+  const [resolving, setResolving] = useState(false);
+  const llmTokenRef = useRef(0);
+
+  // Hybrid resolver: kick off an LLM call ~350 ms after the user stops
+  // typing. We only call when the static layer doesn't already have a
+  // strong answer (a site shortcut hit, a URL, or any intent-rule match
+  // beyond the bare Google fallback). On any failure we silently keep the
+  // static list — `intent.resolve` returns [] on errors.
+  useEffect(() => {
+    const t = query.trim();
+    if (!t || t.length < 4) {
+      setLlmSuggestions([]);
+      setResolving(false);
       return;
     }
-    // ask chat — push locally, dispatch over IPC
+    // If the static layer already produced multiple chips (intent matched),
+    // skip the LLM — rules cover this case instantly.
+    if (staticSuggestions.length > 1) {
+      setLlmSuggestions([]);
+      setResolving(false);
+      return;
+    }
+    const token = ++llmTokenRef.current;
+    setResolving(true);
+    const id = setTimeout(async () => {
+      const chips = await window.sable.intent.resolve(t).catch(() => []);
+      if (token !== llmTokenRef.current) return; // stale
+      setLlmSuggestions(chips.map((c) => ({ ...c })));
+      setResolving(false);
+    }, 350);
+    return () => clearTimeout(id);
+  }, [query, staticSuggestions.length]);
+
+  // The full ordered list shown to the user. Static chips come first,
+  // LLM chips append after, deduped by URL.
+  const suggestions = useMemo(() => {
+    const seen = new Set<string>();
+    const merged: Suggestion[] = [];
+    for (const s of [...staticSuggestions, ...llmSuggestions]) {
+      if (seen.has(s.url)) continue;
+      seen.add(s.url);
+      merged.push(s);
+    }
+    return merged;
+  }, [staticSuggestions, llmSuggestions]);
+
+  const navigateTo = async (url: string) => {
+    setQuery('');
+    if (activeTab) await window.sable.tabs.navigate(activeTab.id, url);
+  };
+
+  /**
+   * Enter on the omnibox commits to the top suggestion if one exists,
+   * else does nothing (empty query).
+   */
+  const navigateActive = async () => {
+    const top = suggestions[0];
+    if (top) await navigateTo(top.url);
+  };
+
+  /**
+   * Suggestion chips are explicit AI prompts — they bypass navigation and
+   * push the user's message into the chat conversation. Used by the chips
+   * row below the omnibox.
+   */
+  const askChat = async (text: string) => {
+    const t = text.trim();
+    if (!t) return;
     pushUserMessage(t);
     try {
       const runId = await window.sable.chat.send(conversationId, { text: t });
@@ -62,10 +128,6 @@ export function Ntp() {
       // surfaced via RUN_ERROR; nothing to do here
       void err;
     }
-  };
-
-  const navigateTo = (url: string) => {
-    if (activeTab) void window.sable.tabs.navigate(activeTab.id, url);
   };
 
   return (
@@ -101,24 +163,36 @@ export function Ntp() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') void submit(query);
+              if (e.key === 'Enter') void navigateActive();
             }}
-            placeholder="Ask Sable, or enter a URL"
+            placeholder="Search, enter URL, or describe what you want…"
             spellCheck={false}
             className="flex-1 min-w-0 bg-transparent border-0 outline-none text-base text-ink-0 placeholder:text-ink-3"
           />
+          {resolving && (
+            <span
+              title="Asking the model for smarter destinations…"
+              className="w-3.5 h-3.5 rounded-full border-2 border-acc/40 border-t-acc"
+              style={{ animation: 'spin 0.8s linear infinite' }}
+            />
+          )}
           <kbd className="font-mono text-[10px] text-ink-2 bg-surface-3 px-1.5 py-0.5 rounded-md border border-line">Enter</kbd>
         </div>
         <div className="mt-4 flex flex-wrap justify-center gap-1.5">
-          {SUGGESTIONS.map((s) => (
-            <button
-              key={s}
-              onClick={() => void submit(s)}
-              className="inline-flex items-center gap-1.5 px-3 py-[5px] text-xs text-ink-1 bg-surface-2 border border-line rounded-full hover:bg-surface-3"
-            >
-              {s}
-            </button>
-          ))}
+          {query.trim()
+            ? suggestions.map((s, i) => (
+                <SuggestionChip key={s.url} suggestion={s} primary={i === 0} onPick={navigateTo} />
+              ))
+            : SUGGESTIONS.map((s) => (
+                <button
+                  key={s}
+                  onClick={() => void askChat(s)}
+                  title="Send to Sable chat"
+                  className="inline-flex items-center gap-1.5 px-3 py-[5px] text-xs text-ink-1 bg-surface-2 border border-line rounded-full hover:bg-surface-3"
+                >
+                  {s}
+                </button>
+              ))}
         </div>
       </div>
       {/* Pinned shortcuts — bottom row */}
@@ -140,6 +214,36 @@ export function Ntp() {
         ))}
       </div>
     </div>
+  );
+}
+
+function SuggestionChip({
+  suggestion,
+  primary,
+  onPick,
+}: {
+  suggestion: Suggestion;
+  primary: boolean;
+  onPick: (url: string) => void;
+}) {
+  return (
+    <button
+      onClick={() => onPick(suggestion.url)}
+      title={suggestion.description}
+      className={`inline-flex items-center gap-1.5 px-3 py-[5px] text-xs rounded-full border transition-colors ${
+        primary
+          ? 'bg-ink-0 text-ink-inv border-ink-0 shadow-[0_0_0_3px_rgb(var(--acc-glow))]'
+          : 'text-ink-1 bg-surface-2 border-line hover:bg-surface-3 hover:text-ink-0'
+      }`}
+    >
+      {suggestion.color && (
+        <span
+          className="w-2 h-2 rounded-full"
+          style={{ background: suggestion.color }}
+        />
+      )}
+      <span className="font-medium">{suggestion.label}</span>
+    </button>
   );
 }
 
@@ -174,6 +278,3 @@ function formatTime(d: Date): string {
   return `${days[d.getDay()]} / ${mons[d.getMonth()]} ${d.getDate()} / ${hr}:${mn}`;
 }
 
-function looksLikeUrl(s: string): boolean {
-  return /^[\w-]+(\.[\w-]+)+(\/.*)?$/i.test(s.trim()) || /^https?:\/\//i.test(s.trim());
-}

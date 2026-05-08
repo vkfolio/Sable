@@ -90,6 +90,12 @@ const api: SableApi = {
     resolveImage: (srcUrl: string) =>
       ipcRenderer.invoke(IpcChannels.ChatResolveImage, srcUrl) as Promise<ResolvedImage>,
   },
+  intent: {
+    resolve: (query: string) =>
+      ipcRenderer.invoke(IpcChannels.IntentResolve, query) as Promise<
+        readonly { label: string; description: string; url: string; color?: string }[]
+      >,
+  },
   settings: {
     get: () => ipcRenderer.invoke(IpcChannels.SettingsGet) as Promise<SettingsSnapshot>,
     setActiveProvider: (provider: ProviderId) =>

@@ -208,6 +208,12 @@ export type SableApi = {
     /** Fetch an image url in main (bypasses renderer CORS), return base64. */
     resolveImage(srcUrl: string): Promise<ResolvedImage>;
   };
+  readonly intent: {
+    /** LLM-resolved intent suggestions for an NTP omnibox query. Returns
+     *  an empty array on any failure (no model, parse error, network) so
+     *  callers can silently fall back to the static rules. */
+    resolve(query: string): Promise<readonly { label: string; description: string; url: string; color?: string }[]>;
+  };
   readonly settings: {
     get(): Promise<SettingsSnapshot>;
     setActiveProvider(provider: ProviderId): Promise<void>;
@@ -307,6 +313,7 @@ export const IpcChannels = {
   ChatGetHistory: 'chat:getHistory',
   ChatResolveImage: 'chat:resolveImage',
   ChatAgentEvent: 'chat:agentEvent',
+  IntentResolve: 'intent:resolve',
   SettingsGet: 'settings:get',
   SettingsSetActiveProvider: 'settings:setActiveProvider',
   SettingsSetSelectedModel: 'settings:setSelectedModel',
