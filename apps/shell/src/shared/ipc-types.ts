@@ -193,6 +193,9 @@ export type SableApi = {
     /** Chrome reports whether the chat sidebar (right) is visible so main
      *  recomputes pane WebContentsView bounds (rightInset = chat-w vs 0). */
     setChatVisible(visible: boolean): Promise<void>;
+    /** Tell main the chrome's chat sidebar width changed so tab WCV bounds
+     *  can reflow. Live during resize-handle drag. */
+    setChatWidth(width: number): Promise<void>;
     /** Recolor the Win 11 titleBarOverlay min/max/close buttons to match
      *  the current chrome theme. No-op on macOS / Linux. */
     setTheme(theme: 'light' | 'dark'): Promise<void>;
@@ -290,6 +293,7 @@ export const IpcChannels = {
   LayoutResize: 'layout:resize',
   ChromeSetOverlay: 'chrome:setOverlay',
   ChromeSetChatVisible: 'chrome:setChatVisible',
+  ChromeSetChatWidth: 'chrome:setChatWidth',
   ChromeSetTheme: 'chrome:setTheme',
   // window controls (custom min/max/close — no native overlay)
   WindowMinimize: 'window:minimize',

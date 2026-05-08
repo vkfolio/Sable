@@ -10,6 +10,7 @@ import { Cog6ToothIcon } from '@heroicons/react/24/outline';
 import { Chat } from './Chat/Chat';
 import { SettingsDialog } from './Settings/SettingsDialog';
 import { useSettingsStore } from '../state/settings';
+import { useChromeStore } from '../state/chrome';
 
 type SubTab = 'chat' | 'history' | 'skills';
 
@@ -18,13 +19,15 @@ export function ChatSidebar() {
   const [subTab, setSubTab] = useState<SubTab>('chat');
   const activeProvider = useSettingsStore((s) => s.activeProvider);
   const selectedModel = useSettingsStore((s) => s.selectedModel);
+  const chatWidth = useChromeStore((s) => s.chatWidth);
 
   return (
     <>
       <aside
-        className="shrink-0 flex flex-col bg-surface-1 border-l border-line min-h-0"
-        style={{ width: 'var(--chat-w)' }}
+        className="relative shrink-0 flex flex-col bg-surface-1 border-l border-line min-h-0"
+        style={{ width: chatWidth }}
       >
+        <ResizeHandle />
         <Header onOpenSettings={() => setSettingsOpen(true)} provider={activeProvider} model={selectedModel} />
         <SubTabs active={subTab} onChange={setSubTab} />
         {subTab === 'chat' ? (
@@ -39,6 +42,43 @@ export function ChatSidebar() {
       </aside>
       {settingsOpen && <SettingsDialog onClose={() => setSettingsOpen(false)} />}
     </>
+  );
+}
+
+/**
+ * 4 px wide drag handle pinned to the left edge of the sidebar. Drag right
+ * to shrink the chat, left to widen. The chrome store clamps to a sane
+ * range; main is told the new width on every move so tab WebContentsViews
+ * resize live, not just on release.
+ */
+function ResizeHandle() {
+  const setChatWidth = useChromeStore((s) => s.setChatWidth);
+  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = useChromeStore.getState().chatWidth;
+    const onMove = (ev: PointerEvent) => {
+      // Sidebar lives on the right — moving the cursor LEFT widens it.
+      const delta = startX - ev.clientX;
+      setChatWidth(startWidth + delta);
+      // Push the new width to main so the tab views' bounds reflow on every
+      // frame (cheap — setBounds is essentially a number swap).
+      void window.sable.chrome.setChatWidth(useChromeStore.getState().chatWidth);
+    };
+    const onUp = () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  };
+  return (
+    <div
+      onPointerDown={onPointerDown}
+      title="Drag to resize chat"
+      className="absolute top-0 bottom-0 -left-[2px] w-[5px] cursor-ew-resize z-20 hover:bg-acc/30 transition-colors"
+    />
   );
 }
 

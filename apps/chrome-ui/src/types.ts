@@ -190,6 +190,7 @@ export type SableApi = {
   readonly chrome: {
     setOverlay(active: boolean): Promise<void>;
     setChatVisible(visible: boolean): Promise<void>;
+    setChatWidth(width: number): Promise<void>;
     setTheme(theme: 'light' | 'dark'): Promise<void>;
   };
   readonly chat: {

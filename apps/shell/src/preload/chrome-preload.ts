@@ -66,6 +66,8 @@ const api: SableApi = {
       ipcRenderer.invoke(IpcChannels.ChromeSetOverlay, active) as Promise<void>,
     setChatVisible: (visible: boolean) =>
       ipcRenderer.invoke(IpcChannels.ChromeSetChatVisible, visible) as Promise<void>,
+    setChatWidth: (width: number) =>
+      ipcRenderer.invoke(IpcChannels.ChromeSetChatWidth, width) as Promise<void>,
     setTheme: (theme: 'light' | 'dark') =>
       ipcRenderer.invoke(IpcChannels.ChromeSetTheme, theme) as Promise<void>,
   },

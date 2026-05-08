@@ -142,6 +142,13 @@ export function App() {
     void window.sable.chrome.setChatVisible(chatVisible);
   }, [chatVisible]);
 
+  // Hydrate the persisted chat-sidebar width into main once on mount so the
+  // initial WCV bounds match the chrome's restored width (resize handle
+  // pushes width on every drag thereafter).
+  useEffect(() => {
+    void window.sable.chrome.setChatWidth(useChromeStore.getState().chatWidth);
+  }, []);
+
   return (
     <div className="h-full flex flex-col">
       <TitleBar />

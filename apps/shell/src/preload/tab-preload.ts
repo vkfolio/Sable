@@ -47,6 +47,36 @@ type SableImagePayload = {
   pickedUpAt: number;
 };
 
+// ── Thin overlay-style scrollbars ────────────────────────────────────
+// Chromium's default OS scrollbar (especially on Windows) is a heavy 17 px
+// gray bar that visually clashes with Sable's chrome. We inject a thin,
+// translucent overlay-style scrollbar as a user-agent default. Sites that
+// have their own ::-webkit-scrollbar rules naturally win because their
+// styles ship later in cascade order.
+function installSableScrollbarStyles(): void {
+  const css = [
+    '::-webkit-scrollbar { width: 10px; height: 10px; background: transparent; }',
+    '::-webkit-scrollbar-track { background: transparent; }',
+    '::-webkit-scrollbar-thumb { background: rgba(120,120,120,0.35); border-radius: 5px; border: 2px solid transparent; background-clip: padding-box; }',
+    '::-webkit-scrollbar-thumb:hover { background: rgba(120,120,120,0.55); background-clip: padding-box; border: 2px solid transparent; }',
+    '::-webkit-scrollbar-corner { background: transparent; }',
+  ].join('\n');
+  const style = document.createElement('style');
+  style.setAttribute('data-sable', 'scrollbar');
+  style.textContent = css;
+  // Insert as the FIRST node in <head> so any site-defined scrollbar styles
+  // shipped later in cascade order take precedence — we're a default, not a
+  // mandate.
+  const head = document.head ?? document.documentElement;
+  head.insertBefore(style, head.firstChild ?? null);
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', installSableScrollbarStyles, { once: true });
+} else {
+  installSableScrollbarStyles();
+}
+
 document.addEventListener('dragstart', (event) => {
   const dt = event.dataTransfer;
   if (!dt) return;

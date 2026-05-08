@@ -351,6 +351,9 @@ export class WindowManager {
     ipcMain.handle(IpcChannels.ChromeSetChatVisible, (_e, visible: boolean) => {
       this.layout?.setChatVisible(visible);
     });
+    ipcMain.handle(IpcChannels.ChromeSetChatWidth, (_e, width: number) => {
+      this.layout?.setChatWidth(width);
+    });
     ipcMain.handle(IpcChannels.ChromeSetTheme, () => {
       // No-op now that the chrome paints its own min/max/close — there is no
       // native title-bar overlay to recolor. Kept as a stable IPC so the

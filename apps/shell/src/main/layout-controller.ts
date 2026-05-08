@@ -45,7 +45,8 @@ import type { TabManager } from './tab-manager';
 const TITLEBAR_HEIGHT = 38;
 const URLBAR_ROW_HEIGHT = 52;
 const TOP_BAR_HEIGHT = TITLEBAR_HEIGHT + URLBAR_ROW_HEIGHT;
-const CHAT_SIDEBAR_WIDTH = 340;
+/** Default chat sidebar width — overridden live by `setChatWidth` IPC. */
+const CHAT_SIDEBAR_WIDTH_DEFAULT = 340;
 const DIVIDER_THICKNESS = 4;
 /**
  * Reserved height at the top of every pane in multi-pane mode for the
@@ -87,6 +88,7 @@ export class LayoutController {
   private readonly mounted = new Set<TabId>();
   private readonly snapshotListeners = new Set<SnapshotListener>();
   private chatVisible = true;
+  private chatWidth = CHAT_SIDEBAR_WIDTH_DEFAULT;
 
   /** Last-seen URL per tab — used to detect transitions in/out of
    *  sable://newtab so we can mount/unmount the WebContentsView. */
@@ -164,6 +166,16 @@ export class LayoutController {
   setChatVisible(visible: boolean): void {
     if (this.chatVisible === visible) return;
     this.chatVisible = visible;
+    this.applyLayout();
+  }
+
+  /** Update the chat sidebar's pixel width and reflow tab views. Called
+   *  every pointermove of the chrome's resize handle so resize feels live.
+   *  Bounds are clamped here too — defensive, the chrome already clamps. */
+  setChatWidth(width: number): void {
+    const clamped = Math.min(900, Math.max(240, Math.round(width)));
+    if (this.chatWidth === clamped) return;
+    this.chatWidth = clamped;
     this.applyLayout();
   }
 
@@ -306,7 +318,7 @@ export class LayoutController {
     const allLeaves = this.tree ? leaves(this.tree) : [];
     const isMultiPane = allLeaves.length > 1;
     const topInset = isMultiPane ? TITLEBAR_HEIGHT : TOP_BAR_HEIGHT;
-    const rightInset = this.chatVisible ? CHAT_SIDEBAR_WIDTH : 0;
+    const rightInset = this.chatVisible ? this.chatWidth : 0;
     const paneViewport: Rect = {
       x: 0,
       y: topInset,
