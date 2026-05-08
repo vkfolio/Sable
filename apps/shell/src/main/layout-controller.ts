@@ -72,6 +72,10 @@ export class LayoutController {
   private readonly snapshotListeners = new Set<SnapshotListener>();
   private chatVisible = true;
 
+  /** Last-seen URL per tab — used to detect transitions in/out of
+   *  sable://newtab so we can mount/unmount the WebContentsView. */
+  private readonly lastUrl = new Map<TabId, string>();
+
   constructor(
     private readonly window: BrowserWindow,
     private readonly tabManager: TabManager,
@@ -84,6 +88,20 @@ export class LayoutController {
     window.on('unmaximize', apply);
     window.on('enter-full-screen', apply);
     window.on('leave-full-screen', apply);
+
+    // When a tab transitions across the sable://newtab boundary (either
+    // direction), the WebContentsView's mount state must change. Reflow.
+    tabManager.onUpdate((state) => {
+      const prev = this.lastUrl.get(state.id);
+      this.lastUrl.set(state.id, state.url);
+      if (prev === undefined) return;
+      const wasNewTab = prev === 'sable://newtab';
+      const isNewTab = state.url === 'sable://newtab';
+      if (wasNewTab !== isNewTab) this.applyLayout();
+    });
+    tabManager.onRemove((id) => {
+      this.lastUrl.delete(id);
+    });
   }
 
   setTree(tree: Pane | null): void {
