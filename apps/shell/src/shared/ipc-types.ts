@@ -248,6 +248,8 @@ export type SableApi = {
   };
   readonly on: {
     tabUpdated(cb: (state: TabState) => void): () => void;
+    /** Tabs reordered — fires with the full new ordered TabId list. */
+    tabsReordered(cb: (orderedIds: readonly TabId[]) => void): () => void;
     /** Window maximize/restore state changed (push). */
     maximizedChanged(cb: (maximized: boolean) => void): () => void;
     tabRemoved(cb: (id: TabId) => void): () => void;
@@ -279,6 +281,7 @@ export const IpcChannels = {
   TabsUpdated: 'tabs:updated',
   TabsRemoved: 'tabs:removed',
   TabsActiveChanged: 'tabs:activeChanged',
+  TabsReordered: 'tabs:reordered',
   LayoutChanged: 'layout:changed',
   LayoutDragStart: 'layout:dragStart',
   LayoutDragEnd: 'layout:dragEnd',

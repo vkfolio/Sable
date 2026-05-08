@@ -265,11 +265,21 @@ export class WindowManager {
       this.tabs?.setSpace(id, spaceId);
     });
     ipcMain.handle(IpcChannels.TabsJoinGroup, (_e, sourceId: TabId, targetId: TabId) => {
-      const gid = this.tabs?.joinGroup(sourceId, targetId) ?? null;
-      // Auto-split: lay the whole group out as a horizontal split so each
-      // tab is visible side-by-side. The dragged tab becomes the focused
-      // leaf so the user sees its content.
-      if (gid && this.tabs) {
+      if (!this.tabs) return null;
+      const sState = this.tabs.get(sourceId);
+      const tState = this.tabs.get(targetId);
+      if (!sState || !tState) return null;
+      // Already in the same group → reorder: place source right after target
+      // and rebuild the split with the new ordering.
+      if (sState.groupId && sState.groupId === tState.groupId) {
+        this.tabs.reorderAfter(sourceId, targetId);
+        const members = this.tabs.groupMembers(sourceId);
+        if (members.length > 1) this.layout?.openGroup(members);
+        return sState.groupId;
+      }
+      // Otherwise: form / fold the group and auto-split.
+      const gid = this.tabs.joinGroup(sourceId, targetId) ?? null;
+      if (gid) {
         const members = this.tabs.groupMembers(sourceId);
         if (members.length > 1) {
           this.layout?.openGroup(members);
@@ -479,6 +489,9 @@ export class WindowManager {
     });
     this.tabs!.onRemove((id) => {
       this.chrome?.webContents.send(IpcChannels.TabsRemoved, id);
+    });
+    this.tabs!.onReorder((orderedIds) => {
+      this.chrome?.webContents.send(IpcChannels.TabsReordered, orderedIds);
     });
     this.layout!.onSnapshot((snapshot) => {
       this.chrome?.webContents.send(IpcChannels.LayoutChanged, snapshot);

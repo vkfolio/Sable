@@ -14,8 +14,11 @@ import { useDragStore } from '../state/drag';
 import { useTabsStore } from '../state/tabs';
 import { DropOverlay, previewRect } from './DropOverlay';
 import { Divider } from './Divider';
+import { MiniUrlBar } from './MiniUrlBar';
 import { Ntp } from './Ntp';
-import type { DropEdge, Rect, SnapshotLeaf } from '../types';
+import type { DropEdge, Rect, SnapshotLeaf, TabState } from '../types';
+
+const PANE_HEADER_HEIGHT = 36;
 
 export const NEW_TAB_URL = 'sable://newtab';
 
@@ -36,6 +39,8 @@ export function PaneArea() {
     );
   }
 
+  const isMultiPane = leaves.length > 1;
+
   return (
     <main className="relative flex-1 bg-bg">
       {leaves.map((leaf) => {
@@ -46,10 +51,12 @@ export function PaneArea() {
           <PaneSlot
             key={leaf.paneId}
             leaf={leaf}
+            tab={tab}
             origin={paneOrigin}
             dragActive={!!dragging}
             isNewTab={isNewTab}
             dropPulse={dropPulse}
+            showMiniUrlBar={isMultiPane}
           />
         );
       })}
@@ -62,16 +69,20 @@ export function PaneArea() {
 
 function PaneSlot({
   leaf,
+  tab,
   origin,
   dragActive,
   isNewTab,
   dropPulse,
+  showMiniUrlBar,
 }: {
   leaf: SnapshotLeaf;
+  tab: TabState | undefined;
   origin: { x: number; y: number };
   dragActive: boolean;
   isNewTab: boolean;
   dropPulse: DropEdge | null;
+  showMiniUrlBar: boolean;
 }) {
   const localStyle: React.CSSProperties = {
     position: 'absolute',
@@ -87,10 +98,21 @@ function PaneSlot({
       data-pane-id={leaf.paneId}
       className={dragActive ? 'ring-1 ring-line-strong rounded-lg' : ''}
     >
-      {/* When the leaf is a new-tab pseudo-tab, render the NTP into the
-          slot. The matching WebContentsView is left unmounted by main, so
-          the chrome's NTP fully owns this rect. */}
-      {isNewTab && !dragActive && <Ntp />}
+      {/* Per-pane mini URL bar (multi-pane only). LayoutController insets the
+          WCV bounds by PANE_HEADER_HEIGHT so this bar isn't covered. */}
+      {showMiniUrlBar && tab && !dragActive && <MiniUrlBar tab={tab} />}
+
+      {/* NTP fills the area below the mini bar (or the whole rect in single-
+          pane). The matching WebContentsView is left unmounted by main when
+          the active tab is a sable://newtab. */}
+      {isNewTab && !dragActive && (
+        <div
+          className="absolute left-0 right-0 bottom-0"
+          style={{ top: showMiniUrlBar ? PANE_HEADER_HEIGHT : 0 }}
+        >
+          <Ntp />
+        </div>
+      )}
       {dragActive && <DropOverlay paneId={leaf.paneId} />}
       {/* Post-drop pulse — fires after a successful commit. The new layout
           has already taken effect; this ghost rect lasts ~180ms to make the

@@ -47,6 +47,13 @@ const URLBAR_ROW_HEIGHT = 52;
 const TOP_BAR_HEIGHT = TITLEBAR_HEIGHT + URLBAR_ROW_HEIGHT;
 const CHAT_SIDEBAR_WIDTH = 340;
 const DIVIDER_THICKNESS = 4;
+/**
+ * Reserved height at the top of every pane in multi-pane mode for the
+ * chrome's per-pane mini URL bar. The WCV mounts inset by this much from
+ * the top so it doesn't paint over the bar; in single-pane mode the inset
+ * is 0 (the global URL bar handles navigation).
+ */
+const PANE_HEADER_HEIGHT = 36;
 
 export type SnapshotLeaf = {
   readonly paneId: PaneId;
@@ -288,9 +295,17 @@ export class LayoutController {
     const { width, height } = this.window.getContentBounds();
     this.chromeView.setBounds({ x: 0, y: 0, width, height });
 
-    // Top-bar layout: tabs in titlebar (38) + url row (52) = 90.
-    // Right chat sidebar (340) when visible.
-    const topInset = TOP_BAR_HEIGHT;
+    // Top-bar layout depends on pane count:
+    //   single-pane → titlebar (38) + global URL bar (52) = 90
+    //   multi-pane  → titlebar only (38), global URL bar is hidden, every
+    //                  pane carries its own 36 px mini URL bar
+    // The chrome side mirrors this conditional in `UrlBar` (returns null
+    // when leaves.length > 1) and in `PaneArea` (renders MiniUrlBar). Both
+    // sides MUST agree — a divergence opens a visible gap between the mini
+    // bar and the tab WebContentsView.
+    const allLeaves = this.tree ? leaves(this.tree) : [];
+    const isMultiPane = allLeaves.length > 1;
+    const topInset = isMultiPane ? TITLEBAR_HEIGHT : TOP_BAR_HEIGHT;
     const rightInset = this.chatVisible ? CHAT_SIDEBAR_WIDTH : 0;
     const paneViewport: Rect = {
       x: 0,
@@ -307,8 +322,9 @@ export class LayoutController {
     } else {
       const rects = layout(this.tree, paneViewport, DIVIDER_THICKNESS);
       const wanted = new Set<TabId>();
+      const headerInset = isMultiPane ? PANE_HEADER_HEIGHT : 0;
 
-      for (const leaf of leaves(this.tree)) {
+      for (const leaf of allLeaves) {
         const rect = rects.get(leaf.id);
         if (!rect) continue;
         // Only the leaf's active tab gets mounted; the others sit in the
@@ -329,7 +345,14 @@ export class LayoutController {
             this.window.contentView.addChildView(view);
             this.mounted.add(activeTabId);
           }
-          view.setBounds(rect);
+          // WCV mounts under the mini URL bar in multi-pane. Snapshot keeps
+          // the full pane rect so the chrome can position the bar.
+          view.setBounds({
+            x: rect.x,
+            y: rect.y + headerInset,
+            width: rect.width,
+            height: Math.max(0, rect.height - headerInset),
+          });
           wanted.add(activeTabId);
         }
         // (If view is missing or it's a new-tab pseudo-tab, we just don't

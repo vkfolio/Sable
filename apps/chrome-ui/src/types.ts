@@ -238,6 +238,7 @@ export type SableApi = {
   };
   readonly on: {
     tabUpdated(cb: (state: TabState) => void): () => void;
+    tabsReordered(cb: (orderedIds: readonly TabId[]) => void): () => void;
     tabRemoved(cb: (id: TabId) => void): () => void;
     activeChanged(cb: (id: TabId | null) => void): () => void;
     layoutChanged(cb: (snapshot: LayoutSnapshot) => void): () => void;

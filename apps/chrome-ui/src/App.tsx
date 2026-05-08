@@ -44,6 +44,9 @@ export function App() {
 
     const offUpdate = window.sable.on.tabUpdated(upsert);
     const offRemove = window.sable.on.tabRemoved(remove);
+    const offReorder = window.sable.on.tabsReordered((ids) => {
+      useTabsStore.getState().setTabOrder(ids);
+    });
     const offActive = window.sable.on.activeChanged(setActive);
     const offLayout = window.sable.on.layoutChanged(applyLayout);
     const offAgent = window.sable.on.agentEvent(applyAgent);
@@ -66,6 +69,7 @@ export function App() {
     return () => {
       offUpdate();
       offRemove();
+      offReorder();
       offActive();
       offLayout();
       offAgent();

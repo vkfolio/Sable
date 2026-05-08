@@ -140,6 +140,7 @@ const api: SableApi = {
   },
   on: {
     tabUpdated: (cb) => on<TabState>(IpcChannels.TabsUpdated, cb),
+    tabsReordered: (cb) => on<readonly TabId[]>(IpcChannels.TabsReordered, cb),
     maximizedChanged: (cb) => on<boolean>(IpcChannels.WindowMaximizedChanged, cb),
     tabRemoved: (cb) => on<TabId>(IpcChannels.TabsRemoved, cb),
     activeChanged: (cb) => on<TabId | null>(IpcChannels.TabsActiveChanged, cb),

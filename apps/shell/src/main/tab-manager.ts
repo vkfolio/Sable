@@ -61,11 +61,13 @@ export type ExtractedTabContent = {
 
 type UpdateListener = (state: TabState) => void;
 type RemoveListener = (id: TabId) => void;
+type ReorderListener = (orderedIds: readonly TabId[]) => void;
 
 export class TabManager {
   private readonly tabs = new Map<TabId, { view: WebContentsView; state: TabState }>();
   private readonly updateListeners = new Set<UpdateListener>();
   private readonly removeListeners = new Set<RemoveListener>();
+  private readonly reorderListeners = new Set<ReorderListener>();
 
   constructor(private readonly window: BrowserWindow) {}
 
@@ -303,6 +305,33 @@ export class TabManager {
     return () => {
       this.removeListeners.delete(listener);
     };
+  }
+
+  onReorder(listener: ReorderListener): () => void {
+    this.reorderListeners.add(listener);
+    return () => {
+      this.reorderListeners.delete(listener);
+    };
+  }
+
+  /**
+   * Move `sourceId` to sit immediately after `targetId` in the tabs Map's
+   * iteration order. Used to reorder tabs within a group when the user
+   * drags a pill onto another pill in the same group. Mutates the Map in
+   * place (clear + re-set) and broadcasts the new full ordering.
+   */
+  reorderAfter(sourceId: TabId, targetId: TabId): void {
+    if (sourceId === targetId) return;
+    const source = this.tabs.get(sourceId);
+    if (!source || !this.tabs.has(targetId)) return;
+    const entries = Array.from(this.tabs.entries()).filter(([id]) => id !== sourceId);
+    const tIdx = entries.findIndex(([id]) => id === targetId);
+    if (tIdx === -1) return;
+    entries.splice(tIdx + 1, 0, [sourceId, source]);
+    this.tabs.clear();
+    for (const [id, entry] of entries) this.tabs.set(id, entry);
+    const orderedIds = entries.map(([id]) => id);
+    for (const cb of this.reorderListeners) cb(orderedIds);
   }
 
   private wireEvents(id: TabId, view: WebContentsView): void {

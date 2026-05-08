@@ -5,6 +5,7 @@
 // Right-side actions: tab counter pill, chat toggle, menu.
 
 import { useEffect, useRef, useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import {
   ArrowPathIcon,
   ChatBubbleLeftIcon,
@@ -16,9 +17,22 @@ import {
 import { useTabsStore, selectActiveTab } from '../state/tabs';
 import { useChromeStore } from '../state/chrome';
 import { useSpacesStore } from '../state/spaces';
+import { useLayoutStore } from '../state/layout';
 import { normalizeUrl } from '../url';
 
+/**
+ * Outer wrapper: in multi-pane layouts, each pane carries its own MiniUrlBar
+ * — the global bar would be ambiguous (which pane is it for?). Hide it then.
+ * The actual hook-using body is in `UrlBarBody` to keep the Rules of Hooks
+ * satisfied (no conditional hook calls).
+ */
 export function UrlBar() {
+  const leaves = useLayoutStore(useShallow((s) => s.leaves));
+  if (leaves.length > 1) return null;
+  return <UrlBarBody />;
+}
+
+function UrlBarBody() {
   const active = useTabsStore(selectActiveTab);
   const tabsCount = useTabsStore((s) => {
     const space = useSpacesStore.getState().activeSpaceId;
