@@ -39,7 +39,7 @@ export function PaneArea() {
   return (
     <main className="relative flex-1 bg-bg">
       {leaves.map((leaf) => {
-        const tab = tabsById.get(leaf.tabId);
+        const tab = tabsById.get(leaf.activeTabId);
         const isNewTab = tab?.url === NEW_TAB_URL;
         const dropPulse = dropping && dropping.paneId === leaf.paneId ? dropping.edge : null;
         return (

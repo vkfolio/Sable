@@ -14,10 +14,21 @@ export type SplitDirection = 'h' | 'v';
  * 'v' = vertical split (top / bottom). The two children stack.
  */
 
+/**
+ * A pane is a stack of one or more tabs sharing one rectangle. Only the tab
+ * matching `activeTabId` is rendered into the rect; the others are kept in
+ * the strip for the user to switch between (Chrome-style tab group).
+ *
+ * Invariants (enforced by all transforms):
+ *   - `tabIds` is non-empty
+ *   - `activeTabId ∈ tabIds`
+ *   - no tab id appears in more than one leaf in a tree
+ */
 export type LeafPane = {
   readonly kind: 'leaf';
   readonly id: PaneId;
-  readonly tabId: TabId;
+  readonly tabIds: readonly TabId[];
+  readonly activeTabId: TabId;
 };
 
 export type SplitPane = {
@@ -41,7 +52,8 @@ export type Rect = {
 
 /**
  * Where a drag drops on a target pane.
- *  - center  : replace the target leaf's tab with the source tab.
+ *  - center  : stack — append source onto the target leaf's tab list and
+ *              activate it. (Pre-stack version replaced the target's tab.)
  *  - left    : split horizontally; source on the left, target on the right.
  *  - right   : split horizontally; target on the left, source on the right.
  *  - top     : split vertically;   source on top,    target on the bottom.

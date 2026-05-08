@@ -16,6 +16,8 @@ export { dividers, type Divider } from './dividers';
 export { applyDrop, defaultPaneIdGenerator } from './apply-drop';
 export type { ApplyDropOptions } from './apply-drop';
 export { removeTab } from './remove-tab';
+export { activateTab } from './activate-tab';
+export { popTab, type PopTabEdge } from './pop-tab';
 export { resize } from './resize';
 export {
   isLeaf,

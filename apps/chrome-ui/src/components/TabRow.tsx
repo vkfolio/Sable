@@ -8,8 +8,7 @@ import { XMarkIcon } from '@heroicons/react/24/outline';
 import { useTabsStore } from '../state/tabs';
 import { useDragStore } from '../state/drag';
 import { useSpacesStore } from '../state/spaces';
-import { useLayoutStore } from '../state/layout';
-import type { PaneId, TabId, TabState } from '../types';
+import type { TabId, TabState } from '../types';
 
 const DRAG_THRESHOLD_PX = 4;
 
@@ -19,9 +18,10 @@ const PALETTE_VAR = ['--p-coral', '--p-peach', '--p-butter', '--p-mint', '--p-sk
 type ContextMenuState = { x: number; y: number; tab: TabState } | null;
 
 type TabGroupSpec = {
-  paneId: PaneId | null; // null = "ungrouped" trailing background tabs
+  /** groupId for grouped runs; null for solo / ungrouped tabs. */
+  groupId: string | null;
   tabs: TabState[];
-  leadTab: TabState | undefined;
+  leadTab: TabState;
 };
 
 export function TabRow() {
@@ -34,7 +34,6 @@ export function TabRow() {
     ),
   );
   const activeTabId = useTabsStore((s) => s.activeTabId);
-  const leaves = useLayoutStore(useShallow((s) => s.leaves));
   const [menu, setMenu] = useState<ContextMenuState>(null);
 
   useEffect(() => {
@@ -51,8 +50,42 @@ export function TabRow() {
     };
   }, [menu]);
 
-  const groups = computeGroups(tabs, leaves);
-  const activePaneId = activeTabId ? findPaneIdForTab(activeTabId, leaves) : null;
+  // While a tab drag is active, walk up from the element under the cursor on
+  // every pointermove and look for a `data-tab-pill` ancestor. Whichever pill
+  // we land on (other than the source) is the current grouping target. This
+  // is the authoritative source for `hoveredPill` — onPointerEnter on the
+  // pill alone races the dragstart re-render and frequently misses the very
+  // first hover after the drag begins.
+  useEffect(() => {
+    const onMove = (e: PointerEvent) => {
+      const drag = useDragStore.getState();
+      if (!drag.dragging) return;
+      let el = document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null;
+      let pill = el?.closest('[data-tab-pill]') as HTMLElement | null;
+      // Match the pointerup projection: if the cursor is anywhere below the
+      // strip but within a pill's X column, treat it as if hovering that
+      // pill. Gives the hover ring a much bigger effective hit area while
+      // dragging — the user can see what they'll group with even when
+      // they're in the pane area.
+      if (!pill) {
+        const STRIP_PROBE_Y = 20;
+        el = document.elementFromPoint(e.clientX, STRIP_PROBE_Y) as HTMLElement | null;
+        pill = el?.closest('[data-tab-pill]') as HTMLElement | null;
+      }
+      const pillId = pill?.getAttribute('data-tab-pill') ?? null;
+      const next = pillId && pillId !== drag.dragging.tabId ? pillId : null;
+      if (next !== drag.hoveredPill) drag.setHoveredPill(next);
+    };
+    document.addEventListener('pointermove', onMove);
+    return () => document.removeEventListener('pointermove', onMove);
+  }, []);
+
+  // Stable Chrome-like ordering: tabs appear in TabManager insertion order
+  // (which is the order the user opened them). The activation state moves
+  // the highlight, not the tab's position. computeGroups walks this list and
+  // wraps any consecutive tabs that share a groupId — so a 3-tab group built
+  // by drag-pill-onto-pill stays bracketed regardless of which tab is active.
+  const groups = computeGroups(tabs);
 
   return (
     <div
@@ -71,10 +104,10 @@ export function TabRow() {
     >
       {groups.map((group, idx) => (
         <TabGroup
-          key={group.paneId ?? `ungrouped-${idx}`}
+          key={group.groupId ?? `solo-${idx}`}
           group={group}
           activeTabId={activeTabId}
-          isActivePane={group.paneId !== null && group.paneId === activePaneId}
+          isActiveGroup={!!group.groupId && group.tabs.some((t) => t.id === activeTabId)}
           onContextMenu={(x, y, tab) => setMenu({ x, y, tab })}
         />
       ))}
@@ -84,39 +117,33 @@ export function TabRow() {
 }
 
 /**
- * Group active-space tabs by their pane membership. Tabs sharing a pane sit
- * adjacent in the strip, in the order their pane appears in the BSP in-order
- * traversal (which is what `leaves` already is). Tabs not in any leaf
- * (background — pulled out of layout but still in the space) trail at the
- * end as a single "ungrouped" group with no bracket.
+ * Walk the (already space-filtered, insertion-ordered) tab list and bucket
+ * tabs into groups by `groupId`. The first time a groupId is seen, we
+ * create the group at that position — every subsequent member with the
+ * same groupId is pulled into that bucket regardless of where it sits in
+ * the insertion-ordered list.
+ *
+ * This lets the user form a group of t1+t3 (skipping t2) and see them
+ * collapse into one visual wrap — Chrome's tab-group UX, where adding a
+ * tab to a group also moves it adjacent to its group members.
  */
-function computeGroups(tabs: readonly TabState[], leaves: readonly { paneId: PaneId; tabId: TabId }[]): TabGroupSpec[] {
-  const tabsById = new Map(tabs.map((t) => [t.id, t]));
+function computeGroups(tabs: readonly TabState[]): TabGroupSpec[] {
   const groups: TabGroupSpec[] = [];
-  const claimed = new Set<TabId>();
-
-  for (const leaf of leaves) {
-    const tab = tabsById.get(leaf.tabId);
-    if (!tab) continue;
-    claimed.add(tab.id);
-    const last = groups[groups.length - 1];
-    if (last && last.paneId === leaf.paneId) {
-      last.tabs.push(tab);
+  const groupIdxByGroupId = new Map<string, number>();
+  for (const tab of tabs) {
+    if (tab.groupId) {
+      const idx = groupIdxByGroupId.get(tab.groupId);
+      if (idx !== undefined) {
+        groups[idx]!.tabs.push(tab);
+      } else {
+        groupIdxByGroupId.set(tab.groupId, groups.length);
+        groups.push({ groupId: tab.groupId, tabs: [tab], leadTab: tab });
+      }
     } else {
-      groups.push({ paneId: leaf.paneId, tabs: [tab], leadTab: tab });
+      groups.push({ groupId: null, tabs: [tab], leadTab: tab });
     }
   }
-
-  const trailing = tabs.filter((t) => !claimed.has(t.id));
-  if (trailing.length > 0) {
-    groups.push({ paneId: null, tabs: trailing, leadTab: trailing[0] });
-  }
   return groups;
-}
-
-function findPaneIdForTab(tabId: TabId, leaves: readonly { paneId: PaneId; tabId: TabId }[]): PaneId | null {
-  for (const l of leaves) if (l.tabId === tabId) return l.paneId;
-  return null;
 }
 
 /**
@@ -130,29 +157,27 @@ function pastelVarForTab(tab: TabState | undefined): string {
   return PALETTE_VAR[idx]!;
 }
 
+type TabPosition = 'solo' | 'first' | 'middle' | 'last';
+
 function TabGroup({
   group,
   activeTabId,
-  isActivePane,
+  isActiveGroup,
   onContextMenu,
 }: {
   group: TabGroupSpec;
   activeTabId: TabId | null;
-  isActivePane: boolean;
+  isActiveGroup: boolean;
   onContextMenu: (x: number, y: number, tab: TabState) => void;
 }) {
-  const showBracket = group.paneId !== null;
+  const isWrappedGroup = group.groupId !== null && group.tabs.length > 1;
   const colorVar = pastelVarForTab(group.leadTab);
-  return (
-    <div className="flex flex-col items-stretch">
-      {showBracket ? (
-        <TabGroupBracket colorVar={colorVar} active={isActivePane} />
-      ) : (
-        // Ungrouped tabs still need to align to the bottom; reserve the
-        // same 4 px slot the bracket would have occupied so the row baseline
-        // stays consistent across grouped/ungrouped neighbours.
-        <div className="h-[4px] shrink-0" aria-hidden />
-      )}
+
+  // Single-tab leaves and the trailing "ungrouped" bucket render plain pills
+  // — no wrap. Only multi-tab leaves get the connected-pills + pastel-wash
+  // wrap (Chrome / Edge tab-group idiom).
+  if (!isWrappedGroup) {
+    return (
       <div
         className="flex items-end gap-[2px]"
         style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
@@ -162,36 +187,67 @@ function TabGroup({
             key={tab.id}
             tab={tab}
             active={tab.id === activeTabId}
+            position="solo"
             onContextMenu={(x, y) => onContextMenu(x, y, tab)}
           />
         ))}
+      </div>
+    );
+  }
+
+  // Wrapped multi-tab group. Background/border tinted with the lead tab's
+  // pastel; active pane bumps both opacity and border weight.
+  const wrapStyle = {
+    background: `rgb(var(${colorVar}) / ${isActiveGroup ? 0.18 : 0.1})`,
+    borderColor: `rgb(var(${colorVar}) / ${isActiveGroup ? 0.55 : 0.35})`,
+    borderWidth: isActiveGroup ? 2 : 1.5,
+    WebkitAppRegion: 'no-drag',
+  } as React.CSSProperties;
+
+  return (
+    <div
+      style={wrapStyle}
+      className="self-end flex items-stretch gap-0 px-1 pt-[3px] pb-[2px] rounded-[12px] border-solid"
+    >
+      <GroupChip colorVar={colorVar} count={group.tabs.length} />
+      <div className="flex items-end gap-0">
+        {group.tabs.map((tab, idx) => {
+          const position: TabPosition =
+            group.tabs.length === 1
+              ? 'solo'
+              : idx === 0
+              ? 'first'
+              : idx === group.tabs.length - 1
+              ? 'last'
+              : 'middle';
+          return (
+            <Tab
+              key={tab.id}
+              tab={tab}
+              active={tab.id === activeTabId}
+              position={position}
+              onContextMenu={(x, y) => onContextMenu(x, y, tab)}
+            />
+          );
+        })}
       </div>
     </div>
   );
 }
 
-function TabGroupBracket({ colorVar, active }: { colorVar: string; active: boolean }) {
-  // Thin SVG cap drawn just above the group's tab pills. Active pane gets a
-  // bolder line + full opacity. Width is 100% via SVG preserveAspectRatio.
+/** Leading "@N" chip on a wrapped group — signals the group is feeding chat
+ *  context (auto-context behaviour wired in Chat.tsx). */
+function GroupChip({ colorVar, count }: { colorVar: string; count: number }) {
   return (
-    <div className="h-[3px] shrink-0 px-[3px]" aria-hidden>
-      <svg
-        viewBox="0 0 100 3"
-        preserveAspectRatio="none"
-        className="w-full h-full"
-        style={{ color: `rgb(var(${colorVar}))`, opacity: active ? 1 : 0.55 }}
-      >
-        <line
-          x1="2"
-          y1="1.5"
-          x2="98"
-          y2="1.5"
-          stroke="currentColor"
-          strokeWidth={active ? 2 : 1.5}
-          strokeLinecap="round"
-          vectorEffect="non-scaling-stroke"
-        />
-      </svg>
+    <div
+      className="self-end mr-1 mb-[1px] inline-flex items-center justify-center h-[22px] min-w-[26px] px-1.5 rounded-full text-[10px] font-mono font-semibold tracking-tight"
+      style={{
+        background: `rgb(var(${colorVar}) / 0.45)`,
+        color: 'rgb(var(--ink-0))',
+      }}
+      title={`${count} tabs grouped — all sent to chat as context`}
+    >
+      @{count}
     </div>
   );
 }
@@ -199,15 +255,19 @@ function TabGroupBracket({ colorVar, active }: { colorVar: string; active: boole
 function Tab({
   tab,
   active,
+  position = 'solo',
   onContextMenu,
 }: {
   tab: TabState;
   active: boolean;
+  position?: TabPosition;
   onContextMenu: (x: number, y: number) => void;
 }) {
   const startDrag = useDragStore((s) => s.start);
   const dragging = useDragStore((s) => s.dragging);
+  const hoveredPill = useDragStore((s) => s.hoveredPill);
   const isBeingDragged = dragging?.tabId === tab.id;
+  const isHoveredPill = hoveredPill === tab.id && !!dragging && dragging.tabId !== tab.id;
   const isCtx = tab.selectedForContext;
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -250,8 +310,21 @@ function Tab({
     ? 'bg-acc-soft text-ink-0'
     : 'text-ink-1 hover:bg-surface-3 hover:text-ink-0';
 
+  // Inside a wrapped group, tabs sit flush — flatten the corners on touching
+  // sides so the row reads as one connected unit. Solo tabs keep the full
+  // top-rounded silhouette.
+  const corner =
+    position === 'solo'
+      ? 'rounded-t-[8px]'
+      : position === 'first'
+      ? 'rounded-tl-[8px]'
+      : position === 'last'
+      ? 'rounded-tr-[8px]'
+      : 'rounded-none';
+
   return (
     <div
+      data-tab-pill={tab.id}
       onPointerDown={handlePointerDown}
       onClick={handleClick}
       onContextMenu={(e) => {
@@ -259,8 +332,12 @@ function Tab({
         onContextMenu(e.clientX, e.clientY);
       }}
       style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
-      className={`group h-[30px] inline-flex items-center gap-2 pl-3 pr-2.5 rounded-t-[8px] cursor-default select-none flex-shrink-0 max-w-[200px] min-w-[90px] text-xs transition-[colors,transform,opacity] ease-out-quint duration-200 ${tone} ${
+      className={`group h-[30px] inline-flex items-center gap-2 pl-3 pr-2.5 ${corner} cursor-default select-none flex-shrink-0 max-w-[200px] min-w-[90px] text-xs transition-[colors,transform,opacity] ease-out-quint duration-200 ${tone} ${
         isBeingDragged ? 'opacity-40 rotate-[2deg] cursor-grabbing' : ''
+      } ${
+        isHoveredPill
+          ? 'ring-2 ring-acc shadow-[0_0_0_4px_rgb(var(--acc-glow))]'
+          : ''
       }`}
     >
       {isCtx && <span className="font-mono text-[10px] font-semibold text-acc-ink -mr-0.5">@</span>}
@@ -319,6 +396,10 @@ function TabContextMenu({ state, onClose }: { state: NonNullable<ContextMenuStat
   const spaces = useSpacesStore((s) => s.spaces);
   const otherSpaces = spaces.filter((s) => s.id !== state.tab.spaceId);
 
+  // Groups now live on TabState.groupId (decoupled from BSP). "Ungroup tab"
+  // is offered whenever the right-clicked tab has a groupId set.
+  const canUngroup = !!state.tab.groupId;
+
   // Tab is in the titlebar at the top; the menu drops below the cursor.
   // Clamp to viewport.
   const MENU_W = 220;
@@ -331,6 +412,14 @@ function TabContextMenu({ state, onClose }: { state: NonNullable<ContextMenuStat
   };
   const handleToggleContext = () => {
     void window.sable.tabs.setSelectedForContext(state.tab.id, !state.tab.selectedForContext);
+    onClose();
+  };
+  const handleUngroup = () => {
+    void window.sable.tabs.leaveGroup(state.tab.id);
+    onClose();
+  };
+  const handleUnsplit = () => {
+    void window.sable.tabs.dissolveGroup(state.tab.id);
     onClose();
   };
   const handleClose = () => {
@@ -356,6 +445,12 @@ function TabContextMenu({ state, onClose }: { state: NonNullable<ContextMenuStat
         label={state.tab.selectedForContext ? 'Remove from chat context' : 'Add as chat context'}
         onClick={handleToggleContext}
       />
+      {canUngroup && (
+        <MenuItem label="Ungroup tab" onClick={handleUngroup} />
+      )}
+      {canUngroup && (
+        <MenuItem label="Unsplit" onClick={handleUnsplit} />
+      )}
       <Sep />
       {otherSpaces.length > 0 ? (
         <>

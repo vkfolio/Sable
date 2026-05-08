@@ -54,6 +54,12 @@ const api: SableApi = {
       ipcRenderer.invoke(IpcChannels.TabsSetSpace, id, spaceId) as Promise<void>,
     extractContent: (id: TabId) =>
       ipcRenderer.invoke(IpcChannels.TabsExtractContent, id) as Promise<ExtractedTabContent | null>,
+    joinGroup: (sourceId: TabId, targetId: TabId) =>
+      ipcRenderer.invoke(IpcChannels.TabsJoinGroup, sourceId, targetId) as Promise<string | null>,
+    leaveGroup: (id: TabId) =>
+      ipcRenderer.invoke(IpcChannels.TabsLeaveGroup, id) as Promise<void>,
+    dissolveGroup: (id: TabId) =>
+      ipcRenderer.invoke(IpcChannels.TabsDissolveGroup, id) as Promise<void>,
   },
   chrome: {
     setOverlay: (active: boolean) =>
@@ -68,6 +74,8 @@ const api: SableApi = {
     dragEnd: () => ipcRenderer.invoke(IpcChannels.LayoutDragEnd) as Promise<void>,
     drop: (sourceTabId: TabId, targetPaneId: PaneId, edge: DropEdge) =>
       ipcRenderer.invoke(IpcChannels.LayoutDrop, sourceTabId, targetPaneId, edge) as Promise<void>,
+    popTab: (paneId: PaneId, tabId: TabId) =>
+      ipcRenderer.invoke(IpcChannels.LayoutPopTab, paneId, tabId) as Promise<void>,
     resize: (splitId: PaneId, newRatio: number) =>
       ipcRenderer.invoke(IpcChannels.LayoutResize, splitId, newRatio) as Promise<void>,
   },

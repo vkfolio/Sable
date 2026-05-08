@@ -104,11 +104,29 @@ export function App() {
     return () => document.removeEventListener('keydown', handler);
   }, [activeTabId]);
 
-  // Document-wide pointerup ends drag-to-split.
+  // Document-wide pointerup ends a drag. We read the event target itself
+  // (rather than the stored `hoveredPill`) to find the actual pill under
+  // the cursor at release — `hoveredPill` is driven by pointermove and
+  // becomes null the instant the cursor crosses any 2 px gap between pills,
+  // so trusting it for the commit causes "drop just barely off the pill"
+  // misses. The live pointermove tracking still drives the hover ring.
   useEffect(() => {
-    const handler = () => {
+    const handler = (e: PointerEvent) => {
       const drag = useDragStore.getState();
-      if (drag.dragging) drag.end(true);
+      if (!drag.dragging) return;
+      const targetEl = e.target as HTMLElement | null;
+      let pill = targetEl?.closest('[data-tab-pill]') as HTMLElement | null;
+      // Forgiving target: if the user released below the strip but in the
+      // same X column as a pill, project up to the strip and find the pill
+      // there. Without this, the drop zone in the pane area always swallows
+      // the release because the cursor is below the strip's y-range.
+      if (!pill) {
+        const STRIP_PROBE_Y = 20; // mid-strip — strip is y 0..38
+        const projected = document.elementFromPoint(e.clientX, STRIP_PROBE_Y) as HTMLElement | null;
+        pill = projected?.closest('[data-tab-pill]') as HTMLElement | null;
+      }
+      const pillId = pill?.getAttribute('data-tab-pill') ?? null;
+      drag.end(true, { pillId });
     };
     document.addEventListener('pointerup', handler);
     return () => document.removeEventListener('pointerup', handler);

@@ -94,7 +94,10 @@ export type AgentEvent = BaseEvent;
 /** A single leaf pane with its tab and current screen rect. */
 export type SnapshotLeaf = {
   readonly paneId: PaneId;
-  readonly tabId: TabId;
+  /** Every tab stacked into this pane (one rect, multiple tabs). */
+  readonly tabIds: readonly TabId[];
+  /** The tab whose WebContentsView is currently mounted into the rect. */
+  readonly activeTabId: TabId;
   readonly rect: Rect;
 };
 
@@ -131,6 +134,7 @@ export type TabState = {
   readonly lastActiveAt: number;
   readonly selectedForContext: boolean;
   readonly spaceId: string;
+  readonly groupId: string | undefined;
 };
 
 export type ExtractedTabContent = {
@@ -156,6 +160,15 @@ export type SableApi = {
     setSelectedForContext(id: TabId, selected: boolean): Promise<void>;
     setSpace(id: TabId, spaceId: SpaceId): Promise<void>;
     extractContent(id: TabId): Promise<ExtractedTabContent | null>;
+    /** Group two tabs together (or fold one into the other's existing group).
+     *  Returns the resulting groupId, or null if the operation failed. */
+    joinGroup(sourceId: TabId, targetId: TabId): Promise<string | null>;
+    /** Pull a tab out of its group. Dissolves the group if only one tab is
+     *  left. */
+    leaveGroup(id: TabId): Promise<void>;
+    /** Dissolve the entire group containing this tab — every member becomes
+     *  ungrouped and the layout collapses to single-pane. */
+    dissolveGroup(id: TabId): Promise<void>;
   };
   readonly layout: {
     /** Hide all tab WebContentsViews so chrome-side drop overlays receive events. */
@@ -164,6 +177,9 @@ export type SableApi = {
     dragEnd(): Promise<void>;
     /** Apply a drop to the tree and reflow. */
     drop(sourceTabId: TabId, targetPaneId: PaneId, edge: DropEdge): Promise<void>;
+    /** Pop a tab out of its multi-tab leaf into a new sibling pane to the
+     *  right. No-op if the leaf has only one tab. */
+    popTab(paneId: PaneId, tabId: TabId): Promise<void>;
     /** Resize a split's ratio (live during divider drag). */
     resize(splitId: PaneId, newRatio: number): Promise<void>;
   };
@@ -257,6 +273,9 @@ export const IpcChannels = {
   TabsSetSelectedForContext: 'tabs:setSelectedForContext',
   TabsSetSpace: 'tabs:setSpace',
   TabsExtractContent: 'tabs:extractContent',
+  TabsJoinGroup: 'tabs:joinGroup',
+  TabsLeaveGroup: 'tabs:leaveGroup',
+  TabsDissolveGroup: 'tabs:dissolveGroup',
   TabsUpdated: 'tabs:updated',
   TabsRemoved: 'tabs:removed',
   TabsActiveChanged: 'tabs:activeChanged',
@@ -264,6 +283,7 @@ export const IpcChannels = {
   LayoutDragStart: 'layout:dragStart',
   LayoutDragEnd: 'layout:dragEnd',
   LayoutDrop: 'layout:drop',
+  LayoutPopTab: 'layout:popTab',
   LayoutResize: 'layout:resize',
   ChromeSetOverlay: 'chrome:setOverlay',
   ChromeSetChatVisible: 'chrome:setChatVisible',

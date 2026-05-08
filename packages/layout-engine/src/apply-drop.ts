@@ -3,12 +3,12 @@
 // Conventions:
 //   - Drops are only applied to *leaf* targets. The chrome's hit-testing must
 //     resolve overlay drops to the leaf under the cursor before calling this.
-//   - 'center' replaces the target leaf's tab with the source tab. If the
-//     source tab was already in the tree, it must be removed by the caller
-//     first (use removeTab) — this keeps applyDrop pure and free of orphan
-//     handling.
-//   - Edge drops always insert a *new* split node containing the source as
-//     a fresh leaf and the original target as the other side.
+//   - 'center' STACKS the source onto the target leaf's tab list (Chrome-
+//     style tab group). The source becomes the activeTabId of that leaf.
+//     If the source tab was already in the tree, removeTab it first — this
+//     keeps applyDrop pure and dedup-free.
+//   - Edge drops insert a *new* split node containing the source as a fresh
+//     single-tab leaf and the original target as the other side.
 //
 // All transforms return a new tree; never mutate.
 
@@ -47,24 +47,30 @@ export function applyDrop(
   const idGen = options.idGenerator ?? defaultPaneIdGenerator;
 
   if (edge === 'center') {
-    const replaced: LeafPane = { kind: 'leaf', id: target.id, tabId: sourceTabId };
+    // Replace the target leaf's tab with the source. Multi-tab leaves are
+    // an internal capability of the type but the user-facing "group" concept
+    // is layered above the BSP via TabState.groupId — center drops therefore
+    // never form stacks. Caller is expected to removeTab the source first.
+    const replaced: LeafPane = {
+      kind: 'leaf',
+      id: target.id,
+      tabIds: [sourceTabId],
+      activeTabId: sourceTabId,
+    };
     return replaceNode(tree, targetPaneId, replaced);
   }
 
-  // Edge drops produce a split. Decide direction and which side the new tab
-  // goes on.
+  // Edge drops produce a split. The source becomes a fresh single-tab leaf;
+  // the target is unchanged on the other side.
   const direction = edge === 'left' || edge === 'right' ? 'h' : 'v';
   const sourceFirst = edge === 'left' || edge === 'top';
 
   const newLeaf: LeafPane = {
     kind: 'leaf',
     id: idGen(),
-    tabId: sourceTabId,
+    tabIds: [sourceTabId],
+    activeTabId: sourceTabId,
   };
-  // Re-id the original target leaf — splits carry their own id and the
-  // existing target id stays on the leaf, but we want stable identity, so we
-  // keep the existing leaf's id on the leaf side. The new split gets a fresh
-  // id.
   const split: SplitPane = {
     kind: 'split',
     id: idGen(),

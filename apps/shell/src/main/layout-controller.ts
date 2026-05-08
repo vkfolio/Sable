@@ -17,14 +17,18 @@
 
 import { BrowserWindow, WebContentsView } from 'electron';
 import {
+  activateTab,
   applyDrop,
   dividers as computeDividers,
+  findLeafByTab,
   findPaneById,
   layout,
   leaves,
+  popTab,
   removeTab,
   resize,
   type DropEdge,
+  type LeafPane,
   type Pane,
   type PaneId,
   type Rect,
@@ -46,7 +50,12 @@ const DIVIDER_THICKNESS = 4;
 
 export type SnapshotLeaf = {
   readonly paneId: PaneId;
-  readonly tabId: TabId;
+  /** All tabs stacked into this pane, in stack order. The chrome reads this
+   *  to render tab-group brackets in the strip. */
+  readonly tabIds: readonly TabId[];
+  /** Which tab in the stack is actually rendered into the rect (i.e. whose
+   *  WebContentsView main has mounted). */
+  readonly activeTabId: TabId;
   readonly rect: Rect;
 };
 
@@ -159,17 +168,16 @@ export class LayoutController {
    */
   applyDrop(sourceTabId: TabId, targetPaneId: PaneId, edge: DropEdge): void {
     if (!this.tree) {
-      // No layout yet; drop becomes a single leaf.
-      this.tree = { kind: 'leaf', id: `pane-${sourceTabId}`, tabId: sourceTabId };
+      // No layout yet; drop becomes a single-tab leaf.
+      this.tree = singleLeaf(sourceTabId);
       this.applyLayout();
       return;
     }
     // Remove the source from its current position (if present), then drop.
     const without = removeTab(this.tree, sourceTabId);
-    // If target was the source's pane and we're center-dropping, that's a no-op.
     if (without === null) {
-      // Removed the only leaf; result depends on the edge.
-      this.tree = { kind: 'leaf', id: `pane-${sourceTabId}`, tabId: sourceTabId };
+      // Removed the only leaf in the only pane; just plant the source again.
+      this.tree = singleLeaf(sourceTabId);
       this.applyLayout();
       return;
     }
@@ -182,6 +190,96 @@ export class LayoutController {
       return;
     }
     this.tree = applyDrop(without, sourceTabId, targetPaneId, edge);
+    this.applyLayout();
+  }
+
+  /**
+   * Single-tab placement: replace the tree with a single-leaf for `tabId`.
+   * Used for ungrouped tabs and "open new tab" path.
+   */
+  bringTabIntoView(tabId: TabId, _activeTabId: TabId | null): void {
+    this.tree = singleLeaf(tabId);
+    this.applyLayout();
+  }
+
+  /**
+   * Lay out a tab group as a horizontal split — every member becomes its
+   * own leaf, side-by-side in the order they appear in `memberIds` (which
+   * is TabManager insertion order, matching the strip). Used both when
+   * forming a group via drag and when switching back into one of its tabs
+   * later (the group's split persists across switches).
+   *
+   * `activeTabId`, if provided and a member, becomes the focused leaf —
+   * just affects which leaf's content is the "primary" focus from the
+   * window manager's perspective. The leaves themselves all render their
+   * own tab regardless.
+   */
+  openGroup(memberIds: readonly TabId[]): void {
+    if (memberIds.length === 0) {
+      this.tree = null;
+      this.applyLayout();
+      return;
+    }
+    if (memberIds.length === 1) {
+      this.tree = singleLeaf(memberIds[0]!);
+      this.applyLayout();
+      return;
+    }
+    this.tree = buildHorizontalSplit(memberIds);
+    this.applyLayout();
+  }
+
+  /**
+   * Remove a tab from the tree. Used when the tab is being closed. Collapses
+   * its leaf if it was the last tab in that stack; collapses parent splits
+   * if the leaf disappears entirely. Returns the next tab to focus (the new
+   * activeTabId of whatever leaf the closed tab was in, or any remaining
+   * leaf, or null if the tree empties).
+   */
+  removeTab(tabId: TabId): TabId | null {
+    if (!this.tree) return null;
+    const leaf = findLeafByTab(this.tree, tabId);
+    this.tree = removeTab(this.tree, tabId);
+    this.applyLayout();
+    if (!this.tree) return null;
+    // Prefer the same leaf's new active tab; otherwise any leaf's active.
+    if (leaf) {
+      const survivor = findPaneById(this.tree, leaf.id);
+      if (survivor && survivor.kind === 'leaf') return survivor.activeTabId;
+    }
+    const all = leaves(this.tree);
+    return all[0]?.activeTabId ?? null;
+  }
+
+  /**
+   * Activate a tab inside whatever leaf currently holds it. Pure no-op if
+   * the tab isn't in the tree. Reflows on success so its WebContentsView
+   * gets mounted in place of whichever sibling was active.
+   */
+  activateTab(tabId: TabId): void {
+    if (!this.tree) return;
+    const next = activateTab(this.tree, tabId);
+    if (next === this.tree) return;
+    this.tree = next;
+    this.applyLayout();
+  }
+
+  /** Returns the leaf containing this tab, or null. */
+  findLeafContaining(tabId: TabId): LeafPane | null {
+    if (!this.tree) return null;
+    return findLeafByTab(this.tree, tabId) ?? null;
+  }
+
+  /**
+   * "Ungroup" — pull `tabId` out of the leaf at `paneId` into a new sibling
+   * leaf to the right (creates a horizontal split). No-op if the leaf has
+   * only one tab. Reflows on success.
+   */
+  popTab(paneId: PaneId, tabId: TabId): void {
+    if (!this.tree) return;
+    const next = popTab(this.tree, paneId, tabId, 'right');
+    if (next === this.tree) return;
+    this.tree = next;
     this.applyLayout();
   }
 
@@ -212,31 +310,37 @@ export class LayoutController {
 
       for (const leaf of leaves(this.tree)) {
         const rect = rects.get(leaf.id);
-        const view = this.tabManager.getView(leaf.tabId);
-        if (!rect || !view) continue;
+        if (!rect) continue;
+        // Only the leaf's active tab gets mounted; the others sit in the
+        // strip waiting to be activated by the user. WCV creation already
+        // happened when each tab was created in TabManager.
+        const activeTabId = leaf.activeTabId;
+        const view = this.tabManager.getView(activeTabId);
 
         // For sable://newtab pseudo-tabs, leave the WebContentsView
         // unmounted so the chrome's NTP renders into this rect without
         // occlusion. Still record the leaf in the snapshot so the chrome
         // knows the geometry.
-        const tabState = this.tabManager.get(leaf.tabId);
+        const tabState = this.tabManager.get(activeTabId);
         const isNewTab = tabState?.url === 'sable://newtab';
 
-        if (isNewTab) {
-          if (this.mounted.has(leaf.tabId)) {
-            this.safeRemove(view);
-            this.mounted.delete(leaf.tabId);
-          }
-        } else {
-          if (!this.mounted.has(leaf.tabId)) {
+        if (view && !isNewTab) {
+          if (!this.mounted.has(activeTabId)) {
             this.window.contentView.addChildView(view);
-            this.mounted.add(leaf.tabId);
+            this.mounted.add(activeTabId);
           }
           view.setBounds(rect);
+          wanted.add(activeTabId);
         }
-        wanted.add(leaf.tabId);
+        // (If view is missing or it's a new-tab pseudo-tab, we just don't
+        // mount; the chrome will render NTP / a placeholder into the slot.)
 
-        snapshotLeaves.push({ paneId: leaf.id, tabId: leaf.tabId, rect });
+        snapshotLeaves.push({
+          paneId: leaf.id,
+          tabIds: leaf.tabIds,
+          activeTabId,
+          rect,
+        });
       }
 
       // Unmount tabs that left the tree (closed or moved out).
@@ -292,3 +396,36 @@ export class LayoutController {
     }
   }
 }
+
+function singleLeaf(tabId: TabId): LeafPane {
+  return {
+    kind: 'leaf',
+    id: `pane-${tabId}-${Math.random().toString(36).slice(2, 8)}`,
+    tabIds: [tabId],
+    activeTabId: tabId,
+  };
+}
+
+function makeSplitId(): PaneId {
+  return `split-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+/**
+ * Build a left-deep horizontal split tree from a list of tab ids. With
+ * N tabs each leaf gets 1/N of the viewport. Splits are recursively
+ * structured as `[first | rest]` so the strip's leftmost group member
+ * lands in the leftmost pane.
+ */
+function buildHorizontalSplit(memberIds: readonly TabId[]): Pane {
+  if (memberIds.length === 1) return singleLeaf(memberIds[0]!);
+  const [first, ...rest] = memberIds;
+  return {
+    kind: 'split',
+    id: makeSplitId(),
+    direction: 'h',
+    ratio: 1 / memberIds.length,
+    first: singleLeaf(first!),
+    second: buildHorizontalSplit(rest),
+  };
+}
+

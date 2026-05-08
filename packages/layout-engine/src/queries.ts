@@ -24,8 +24,9 @@ function collectLeaves(node: Pane, out: LeafPane[]): void {
   }
 }
 
+/** Find the leaf-pane that holds the given tab in its stack, or undefined. */
 export function findLeafByTab(tree: Pane, tabId: TabId): LeafPane | undefined {
-  if (tree.kind === 'leaf') return tree.tabId === tabId ? tree : undefined;
+  if (tree.kind === 'leaf') return tree.tabIds.includes(tabId) ? tree : undefined;
   return findLeafByTab(tree.first, tabId) ?? findLeafByTab(tree.second, tabId);
 }
 
@@ -35,8 +36,10 @@ export function findPaneById(tree: Pane, paneId: PaneId): Pane | undefined {
   return findPaneById(tree.first, paneId) ?? findPaneById(tree.second, paneId);
 }
 
+/** All tab ids in the tree, flattened across every leaf's stack. */
 export function tabIds(tree: Pane): TabId[] {
-  return leaves(tree).map((l) => l.tabId);
+  if (tree.kind === 'leaf') return [...tree.tabIds];
+  return [...tabIds(tree.first), ...tabIds(tree.second)];
 }
 
 export function paneIds(tree: Pane): PaneId[] {

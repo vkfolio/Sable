@@ -43,6 +43,10 @@ export type TabState = {
    *  setSpace() to "move" the tab between spaces. Sidebar filters its tab
    *  list by the active space, so tabs from inactive spaces are hidden. */
   readonly spaceId: string;
+  /** Tab group id (Chrome / Edge "tab group" idiom). Tabs sharing a groupId
+   *  render together in the strip with a coloured wrap, and feed the chat as
+   *  a unit when one of them is the active tab. Undefined = ungrouped. */
+  readonly groupId: string | undefined;
 };
 
 /** Result of running the in-page content extractor (Phase 4). */
@@ -87,6 +91,7 @@ export class TabManager {
       lastActiveAt: Date.now(),
       selectedForContext: false,
       spaceId,
+      groupId: undefined,
     };
     this.tabs.set(id, { view, state: initial });
     this.wireEvents(id, view);
@@ -154,6 +159,80 @@ export class TabManager {
   setSpace(id: TabId, spaceId: string): void {
     if (!this.tabs.has(id)) return;
     this.update(id, { spaceId });
+  }
+
+  /**
+   * Group two tabs together. If either tab is already in a group, the other
+   * joins that existing group; if both are in (different) groups, the source's
+   * group merges into the target's. Returns the resulting groupId.
+   */
+  joinGroup(sourceId: TabId, targetId: TabId): string | null {
+    const src = this.tabs.get(sourceId)?.state;
+    const tgt = this.tabs.get(targetId)?.state;
+    if (!src || !tgt || src.id === tgt.id) return null;
+    let groupId = tgt.groupId ?? src.groupId ?? null;
+    if (!groupId) groupId = `g-${randomUUID().slice(0, 8)}`;
+    // If source's old group differs from target's, fold it in by rewriting
+    // every member of source's old group to the target's id.
+    if (src.groupId && src.groupId !== groupId) {
+      const orphan = src.groupId;
+      for (const entry of this.tabs.values()) {
+        if (entry.state.groupId === orphan) this.update(entry.state.id, { groupId });
+      }
+    } else if (src.groupId !== groupId) {
+      this.update(sourceId, { groupId });
+    }
+    if (tgt.groupId !== groupId) this.update(targetId, { groupId });
+    return groupId;
+  }
+
+  /**
+   * Pull a tab out of its group. If the group is left with a single member,
+   * dissolve it (a group of one is just a regular tab) so the wrap visual
+   * does not linger.
+   */
+  leaveGroup(id: TabId): void {
+    const state = this.tabs.get(id)?.state;
+    if (!state || !state.groupId) return;
+    const groupId = state.groupId;
+    this.update(id, { groupId: undefined });
+    const remaining = Array.from(this.tabs.values()).filter(
+      (e) => e.state.groupId === groupId,
+    );
+    if (remaining.length <= 1) {
+      for (const e of remaining) this.update(e.state.id, { groupId: undefined });
+    }
+  }
+
+  /**
+   * Dissolve the whole group containing `id` — every member loses its
+   * groupId. Used by "Unsplit" to collapse a multi-pane group back to a
+   * single-tab layout in one shot.
+   */
+  dissolveGroup(id: TabId): void {
+    const state = this.tabs.get(id)?.state;
+    if (!state || !state.groupId) return;
+    const groupId = state.groupId;
+    for (const entry of this.tabs.values()) {
+      if (entry.state.groupId === groupId) {
+        this.update(entry.state.id, { groupId: undefined });
+      }
+    }
+  }
+
+  /**
+   * Returns every tab id currently sharing a group, in TabManager insertion
+   * order, including the queried tab. Empty list if the tab has no group.
+   */
+  groupMembers(id: TabId): TabId[] {
+    const state = this.tabs.get(id)?.state;
+    if (!state || !state.groupId) return [];
+    const groupId = state.groupId;
+    const out: TabId[] = [];
+    for (const entry of this.tabs.values()) {
+      if (entry.state.groupId === groupId) out.push(entry.state.id);
+    }
+    return out;
   }
 
   /**

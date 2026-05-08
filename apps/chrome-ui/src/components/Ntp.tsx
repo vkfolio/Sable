@@ -8,25 +8,25 @@
 // Hitting Enter in the cmd input or clicking a suggestion sends the query
 // to chat; clicking a pin navigates the active tab.
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useChatStore } from '../state/chat';
 import { useSpacesStore, selectActiveSpace } from '../state/spaces';
 import { useTabsStore, selectActiveTab } from '../state/tabs';
 import { normalizeUrl } from '../url';
 
 const SUGGESTIONS = [
-  "summarize today's news",
-  "what's on my calendar",
-  '/dailypicks',
-  'finish my email',
+  'summarize selected tabs',
+  'compare these sources',
+  'draft follow-up questions',
+  'turn this into a brief',
 ];
 
 const PINS: { label: string; letter: string; color: string; ink: string; url: string }[] = [
-  { label: 'arxiv',  letter: 'A', color: 'rgb(var(--p-coral))',    ink: '#4a1d0c', url: 'https://arxiv.org' },
-  { label: 'github', letter: 'G', color: 'rgb(var(--p-mint))',     ink: '#0e3920', url: 'https://github.com' },
-  { label: 'linear', letter: 'L', color: 'rgb(var(--p-sky))',      ink: '#142f4a', url: 'https://linear.app' },
-  { label: 'notion', letter: 'N', color: 'rgb(var(--p-butter))',   ink: '#4a3308', url: 'https://notion.so' },
-  { label: 'figma',  letter: 'F', color: 'rgb(var(--p-rose))',     ink: '#4d1530', url: 'https://figma.com' },
+  { label: 'arXiv',  letter: 'A', color: 'rgb(var(--p-coral))',    ink: '#4a1d0c', url: 'https://arxiv.org' },
+  { label: 'GitHub', letter: 'G', color: 'rgb(var(--p-mint))',     ink: '#0e3920', url: 'https://github.com' },
+  { label: 'Linear', letter: 'L', color: 'rgb(var(--p-sky))',      ink: '#142f4a', url: 'https://linear.app' },
+  { label: 'Notion', letter: 'N', color: 'rgb(var(--p-butter))',   ink: '#4a3308', url: 'https://notion.so' },
+  { label: 'Figma',  letter: 'F', color: 'rgb(var(--p-rose))',     ink: '#4d1530', url: 'https://figma.com' },
 ];
 
 export function Ntp() {
@@ -84,9 +84,11 @@ export function Ntp() {
       <div className="relative w-full max-w-[560px] px-6 text-center">
         <h2 className="text-[36px] font-medium tracking-[-0.025em] leading-[1.1] m-0 text-ink-0">
           {greeting()}
-          {/* No name personalization yet — V0 keeps it generic */}
         </h2>
-        <div className="font-mono text-[11px] text-ink-2 mt-2 tracking-[0.04em] uppercase">
+        <p className="mt-3 mb-0 text-sm leading-6 text-ink-2">
+          Open a page, ask across selected tabs, or turn the current space into something usable.
+        </p>
+        <div className="font-mono text-[11px] text-ink-2 mt-3 tracking-[0.04em] uppercase">
           {now}
         </div>
         <div
@@ -101,11 +103,11 @@ export function Ntp() {
             onKeyDown={(e) => {
               if (e.key === 'Enter') void submit(query);
             }}
-            placeholder="explain mixture of experts in a paragraph"
+            placeholder="Ask Sable, or enter a URL"
             spellCheck={false}
             className="flex-1 min-w-0 bg-transparent border-0 outline-none text-base text-ink-0 placeholder:text-ink-3"
           />
-          <kbd className="font-mono text-[10px] text-ink-2 bg-surface-3 px-1.5 py-0.5 rounded-md border border-line">⏎</kbd>
+          <kbd className="font-mono text-[10px] text-ink-2 bg-surface-3 px-1.5 py-0.5 rounded-md border border-line">Enter</kbd>
         </div>
         <div className="mt-4 flex flex-wrap justify-center gap-1.5">
           {SUGGESTIONS.map((s) => (
@@ -154,12 +156,12 @@ function AiGlyph() {
   );
 }
 
-function greeting(): React.ReactNode {
+function greeting(): ReactNode {
   const h = new Date().getHours();
   const word = h < 5 ? 'Good night' : h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
   return (
     <>
-      {word}, <span className="text-acc-ink">friend</span>
+      {word}. <span className="text-acc-ink">Where should we start?</span>
     </>
   );
 }
@@ -169,7 +171,7 @@ function formatTime(d: Date): string {
   const mons = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const hr = d.getHours().toString().padStart(2, '0');
   const mn = d.getMinutes().toString().padStart(2, '0');
-  return `${days[d.getDay()]} · ${mons[d.getMonth()]} ${d.getDate()} · ${hr}:${mn}`;
+  return `${days[d.getDay()]} / ${mons[d.getMonth()]} ${d.getDate()} / ${hr}:${mn}`;
 }
 
 function looksLikeUrl(s: string): boolean {

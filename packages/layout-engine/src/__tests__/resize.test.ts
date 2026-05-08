@@ -9,8 +9,8 @@ const tree: Pane = {
   id: 'root',
   direction: 'h',
   ratio: 0.5,
-  first: { kind: 'leaf', id: 'p1', tabId: 't1' },
-  second: { kind: 'leaf', id: 'p2', tabId: 't2' },
+  first: { kind: 'leaf', id: 'p1', tabIds: ['t1'], activeTabId: 't1' },
+  second: { kind: 'leaf', id: 'p2', tabIds: ['t2'], activeTabId: 't2' },
 };
 
 describe('resize', () => {
@@ -48,10 +48,10 @@ describe('resize', () => {
         id: 's-inner',
         direction: 'v',
         ratio: 0.5,
-        first: { kind: 'leaf', id: 'a', tabId: 'ta' },
-        second: { kind: 'leaf', id: 'b', tabId: 'tb' },
+        first: { kind: 'leaf', id: 'a', tabIds: ['ta'], activeTabId: 'ta' },
+        second: { kind: 'leaf', id: 'b', tabIds: ['tb'], activeTabId: 'tb' },
       },
-      second: { kind: 'leaf', id: 'c', tabId: 'tc' },
+      second: { kind: 'leaf', id: 'c', tabIds: ['tc'], activeTabId: 'tc' },
     };
     const next = resize(nested, 's-inner', 0.7);
     const inner = findPaneById(next, 's-inner');

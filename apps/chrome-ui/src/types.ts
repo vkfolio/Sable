@@ -129,6 +129,7 @@ export type TabState = {
   readonly lastActiveAt: number;
   readonly selectedForContext: boolean;
   readonly spaceId: string;
+  readonly groupId: string | undefined;
 };
 
 export type ExtractedTabContent = {
@@ -142,7 +143,8 @@ export type ExtractedTabContent = {
 
 export type SnapshotLeaf = {
   readonly paneId: PaneId;
-  readonly tabId: TabId;
+  readonly tabIds: readonly TabId[];
+  readonly activeTabId: TabId;
   readonly rect: Rect;
 };
 
@@ -174,11 +176,15 @@ export type SableApi = {
     setSelectedForContext(id: TabId, selected: boolean): Promise<void>;
     setSpace(id: TabId, spaceId: SpaceId): Promise<void>;
     extractContent(id: TabId): Promise<ExtractedTabContent | null>;
+    joinGroup(sourceId: TabId, targetId: TabId): Promise<string | null>;
+    leaveGroup(id: TabId): Promise<void>;
+    dissolveGroup(id: TabId): Promise<void>;
   };
   readonly layout: {
     dragStart(): Promise<void>;
     dragEnd(): Promise<void>;
     drop(sourceTabId: TabId, targetPaneId: PaneId, edge: DropEdge): Promise<void>;
+    popTab(paneId: PaneId, tabId: TabId): Promise<void>;
     resize(splitId: PaneId, newRatio: number): Promise<void>;
   };
   readonly chrome: {

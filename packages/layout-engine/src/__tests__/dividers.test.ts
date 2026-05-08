@@ -7,7 +7,7 @@ const VIEWPORT: Rect = { x: 0, y: 0, width: 1000, height: 800 };
 
 describe('dividers', () => {
   test('single leaf has no dividers', () => {
-    const tree: Pane = { kind: 'leaf', id: 'p1', tabId: 't1' };
+    const tree: Pane = { kind: 'leaf', id: 'p1', tabIds: ['t1'], activeTabId: 't1' };
     expect(dividers(tree, VIEWPORT)).toEqual([]);
   });
 
@@ -17,8 +17,8 @@ describe('dividers', () => {
       id: 's',
       direction: 'h',
       ratio: 0.4,
-      first: { kind: 'leaf', id: 'p1', tabId: 't1' },
-      second: { kind: 'leaf', id: 'p2', tabId: 't2' },
+      first: { kind: 'leaf', id: 'p1', tabIds: ['t1'], activeTabId: 't1' },
+      second: { kind: 'leaf', id: 'p2', tabIds: ['t2'], activeTabId: 't2' },
     };
     const divs = dividers(tree, VIEWPORT, 4);
     expect(divs).toHaveLength(1);
@@ -36,8 +36,8 @@ describe('dividers', () => {
       id: 's',
       direction: 'v',
       ratio: 0.5,
-      first: { kind: 'leaf', id: 'p1', tabId: 't1' },
-      second: { kind: 'leaf', id: 'p2', tabId: 't2' },
+      first: { kind: 'leaf', id: 'p1', tabIds: ['t1'], activeTabId: 't1' },
+      second: { kind: 'leaf', id: 'p2', tabIds: ['t2'], activeTabId: 't2' },
     };
     const divs = dividers(tree, VIEWPORT, 4);
     expect(divs).toHaveLength(1);
@@ -60,10 +60,10 @@ describe('dividers', () => {
         id: 's-left',
         direction: 'v',
         ratio: 0.5,
-        first: { kind: 'leaf', id: 'a', tabId: 'ta' },
-        second: { kind: 'leaf', id: 'b', tabId: 'tb' },
+        first: { kind: 'leaf', id: 'a', tabIds: ['ta'], activeTabId: 'ta' },
+        second: { kind: 'leaf', id: 'b', tabIds: ['tb'], activeTabId: 'tb' },
       },
-      second: { kind: 'leaf', id: 'c', tabId: 'tc' },
+      second: { kind: 'leaf', id: 'c', tabIds: ['tc'], activeTabId: 'tc' },
     };
     const divs = dividers(tree, VIEWPORT, 4);
     expect(divs.map((d) => d.splitId).sort()).toEqual(['s-left', 's-root']);
@@ -75,8 +75,8 @@ describe('dividers', () => {
       id: 's',
       direction: 'h',
       ratio: 0.5,
-      first: { kind: 'leaf', id: 'p1', tabId: 't1' },
-      second: { kind: 'leaf', id: 'p2', tabId: 't2' },
+      first: { kind: 'leaf', id: 'p1', tabIds: ['t1'], activeTabId: 't1' },
+      second: { kind: 'leaf', id: 'p2', tabIds: ['t2'], activeTabId: 't2' },
     };
     const leaves = layout(tree, VIEWPORT, 4);
     const divs = dividers(tree, VIEWPORT, 4);
@@ -101,8 +101,8 @@ describe('layout with gap', () => {
       id: 's',
       direction: 'h',
       ratio: 0.5,
-      first: { kind: 'leaf', id: 'p1', tabId: 't1' },
-      second: { kind: 'leaf', id: 'p2', tabId: 't2' },
+      first: { kind: 'leaf', id: 'p1', tabIds: ['t1'], activeTabId: 't1' },
+      second: { kind: 'leaf', id: 'p2', tabIds: ['t2'], activeTabId: 't2' },
     };
     const r = layout(tree, VIEWPORT, 0);
     expect(r.get('p1')).toEqual({ x: 0, y: 0, width: 500, height: 800 });
@@ -115,8 +115,8 @@ describe('layout with gap', () => {
       id: 's',
       direction: 'h',
       ratio: 0.5,
-      first: { kind: 'leaf', id: 'p1', tabId: 't1' },
-      second: { kind: 'leaf', id: 'p2', tabId: 't2' },
+      first: { kind: 'leaf', id: 'p1', tabIds: ['t1'], activeTabId: 't1' },
+      second: { kind: 'leaf', id: 'p2', tabIds: ['t2'], activeTabId: 't2' },
     };
     const r = layout(tree, VIEWPORT, 4);
     expect(r.get('p1')).toEqual({ x: 0, y: 0, width: 498, height: 800 });

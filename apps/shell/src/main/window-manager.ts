@@ -188,16 +188,36 @@ export class WindowManager {
   private openTab(url: string): TabId {
     const spaceId = this.spacesLoaded ? this.spaces.activeId() : '';
     const id = this.tabs!.create(url, spaceId);
-    this.layout!.setTree({ kind: 'leaf', id: `pane-${id}`, tabId: id });
+    // Ctrl+T never auto-joins a group — new tabs always open as a single-
+    // tab leaf (replacing whatever the previous solo layout was).
+    this.layout!.bringTabIntoView(id, this.activeTabId);
     this.activeTabId = id;
     this.tabs!.markActive(id);
     this.broadcastActiveChanged();
     return id;
   }
 
+  /**
+   * Switch to a tab. Handles three cases:
+   *   1. Tab is in the current tree → just activate (no relayout — keeps
+   *      any persistent split that was built for a group).
+   *   2. Tab has a groupId → relay out as the group's split so every group
+   *      member is visible at once.
+   *   3. Plain background tab → single-tab leaf swap.
+   */
   private switchTab(id: TabId): void {
     if (!this.tabs!.get(id)) return;
-    this.layout!.setTree({ kind: 'leaf', id: `pane-${id}`, tabId: id });
+    const leaf = this.layout!.findLeafContaining(id);
+    if (leaf) {
+      this.layout!.activateTab(id);
+    } else {
+      const members = this.tabs!.groupMembers(id);
+      if (members.length > 1) {
+        this.layout!.openGroup(members);
+      } else {
+        this.layout!.bringTabIntoView(id, this.activeTabId);
+      }
+    }
     this.activeTabId = id;
     this.tabs!.markActive(id);
     this.broadcastActiveChanged();
@@ -206,18 +226,15 @@ export class WindowManager {
   private closeTab(id: TabId): void {
     const wasActive = this.activeTabId === id;
     this.tabs!.close(id);
+    const nextActive = this.layout!.removeTab(id);
     if (wasActive) {
-      const remaining = this.tabs!.list();
-      const next = remaining[remaining.length - 1];
-      if (next) {
-        this.switchTab(next.id);
+      if (nextActive) {
+        this.switchTab(nextActive);
       } else {
-        this.layout!.setTree(null);
+        // Tree fully empty: nothing to focus.
         this.activeTabId = null;
         this.broadcastActiveChanged();
       }
-    } else {
-      this.layout!.reflow();
     }
   }
 
@@ -247,6 +264,48 @@ export class WindowManager {
     ipcMain.handle(IpcChannels.TabsSetSpace, (_e, id: TabId, spaceId: SpaceId) => {
       this.tabs?.setSpace(id, spaceId);
     });
+    ipcMain.handle(IpcChannels.TabsJoinGroup, (_e, sourceId: TabId, targetId: TabId) => {
+      const gid = this.tabs?.joinGroup(sourceId, targetId) ?? null;
+      // Auto-split: lay the whole group out as a horizontal split so each
+      // tab is visible side-by-side. The dragged tab becomes the focused
+      // leaf so the user sees its content.
+      if (gid && this.tabs) {
+        const members = this.tabs.groupMembers(sourceId);
+        if (members.length > 1) {
+          this.layout?.openGroup(members);
+          this.activeTabId = sourceId;
+          this.tabs.markActive(sourceId);
+          this.broadcastActiveChanged();
+        }
+      }
+      return gid;
+    });
+    ipcMain.handle(IpcChannels.TabsLeaveGroup, (_e, id: TabId) => {
+      if (!this.tabs) return;
+      this.tabs.leaveGroup(id);
+      // After leaving, the just-ungrouped tab should fall out of the split
+      // into a single-leaf layout. Remaining group members (if any) stay
+      // grouped — re-place them as a smaller split.
+      const remaining = this.tabs.groupMembers(this.activeTabId ?? id);
+      if (remaining.length > 1) {
+        this.layout?.openGroup(remaining);
+      } else {
+        this.layout?.bringTabIntoView(id, this.activeTabId);
+        this.activeTabId = id;
+        this.tabs.markActive(id);
+        this.broadcastActiveChanged();
+      }
+    });
+    ipcMain.handle(IpcChannels.TabsDissolveGroup, (_e, id: TabId) => {
+      if (!this.tabs) return;
+      this.tabs.dissolveGroup(id);
+      // Group is gone → collapse layout to single-pane on the active tab.
+      const focus = this.activeTabId ?? id;
+      this.layout?.bringTabIntoView(focus, this.activeTabId);
+      this.activeTabId = focus;
+      this.tabs.markActive(focus);
+      this.broadcastActiveChanged();
+    });
 
     ipcMain.handle(IpcChannels.LayoutDragStart, () => this.layout?.setDragMode(true));
     ipcMain.handle(IpcChannels.LayoutDragEnd, () => this.layout?.setDragMode(false));
@@ -260,6 +319,14 @@ export class WindowManager {
         this.broadcastActiveChanged();
       },
     );
+    ipcMain.handle(IpcChannels.LayoutPopTab, (_e, paneId: PaneId, tabId: TabId) => {
+      this.layout?.popTab(paneId, tabId);
+      // After popping, focus the popped tab so it's the active in its new
+      // single-tab leaf and the user sees it immediately.
+      this.activeTabId = tabId;
+      this.tabs?.markActive(tabId);
+      this.broadcastActiveChanged();
+    });
     ipcMain.handle(IpcChannels.LayoutResize, (_e, splitId: PaneId, newRatio: number) => {
       this.layout?.applyResize(splitId, newRatio);
     });

@@ -8,7 +8,7 @@
 //  - The user-facing bubble shows a compact "Used N tabs as context" header
 //    rather than dumping the extracted text in the UI.
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useChatStore } from '../../state/chat';
 import { useSettingsStore } from '../../state/settings';
@@ -54,11 +54,40 @@ export function Chat({ onOpenSettings }: { onOpenSettings: () => void }) {
       ? localStatuses.some((s) => s.id === selectedModel && s.state === 'ready')
       : !!providerKeyStatus[activeProvider];
 
-  // Selected-for-context tabs from the tabs store. Recomputes only when
-  // selection state actually changes.
-  const selectedTabs = useTabsStore(
+  // Manually-selected tabs (Ctrl+click in the strip) plus the active tab's
+  // group (every tab sharing the active tab's groupId). Both feed the chat
+  // as context.
+  const tabsById = useTabsStore((s) => s.tabsById);
+  const activeTabId = useTabsStore((s) => s.activeTabId);
+  const manualSelectedTabs = useTabsStore(
     useShallow((s) => Array.from(s.tabsById.values()).filter((t) => t.selectedForContext)),
   );
+
+  // When the active tab is part of a group, every other tab sharing that
+  // groupId is automatically promoted into the chat context. Switching to a
+  // tab outside the group narrows context back to just that tab. The "*[Used
+  // N tabs as context]*" indicator on the assistant bubble already reports
+  // the resulting count.
+  const selectedTabs = useMemo(() => {
+    const activeTab = activeTabId ? tabsById.get(activeTabId) : null;
+    const activeGroupId = activeTab?.groupId ?? null;
+    const seen = new Set<string>();
+    const out: TabState[] = [];
+    if (activeGroupId) {
+      for (const t of tabsById.values()) {
+        if (t.groupId === activeGroupId && !seen.has(t.id)) {
+          seen.add(t.id);
+          out.push(t);
+        }
+      }
+    }
+    for (const t of manualSelectedTabs) {
+      if (seen.has(t.id)) continue;
+      seen.add(t.id);
+      out.push(t);
+    }
+    return out;
+  }, [activeTabId, manualSelectedTabs, tabsById]);
 
   const [composerText, setComposerText] = useState('');
   const [citations, setCitations] = useState<Citation[]>([]);
