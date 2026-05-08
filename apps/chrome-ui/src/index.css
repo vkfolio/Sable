@@ -113,6 +113,26 @@
 [data-space="coral"]    { --acc: var(--p-coral); }
 [data-space="peach"]    { --acc: var(--p-peach); }
 
+/* Per-Space subtle shell tint — 5% pastel mix into --bg + --surface-1 (light)
+   and 6% mix (dark). Surfaces 2/3/4 stay theme-driven so cards and popovers
+   keep a consistent identity across spaces. Numbers are pre-computed linear
+   blends: out = base * 0.95 + pastel * 0.05  (or 0.94 / 0.06 for dark). */
+[data-space="lavender"] { --bg: 242 239 236; --surface-1: 249 247 244; }
+[data-space="rose"]     { --bg: 244 238 235; --surface-1: 250 247 245; }
+[data-space="mint"]     { --bg: 241 242 234; --surface-1: 247 249 245; }
+[data-space="sky"]      { --bg: 241 240 236; --surface-1: 247 249 247; }
+[data-space="butter"]   { --bg: 244 241 232; --surface-1: 251 250 244; }
+[data-space="coral"]    { --bg: 245 238 232; --surface-1: 251 247 243; }
+[data-space="peach"]    { --bg: 244 240 232; --surface-1: 251 248 243; }
+
+[data-theme="dark"][data-space="lavender"] { --bg: 28 26 28; --surface-1: 36 33 35; }
+[data-theme="dark"][data-space="rose"]     { --bg: 30 26 27; --surface-1: 38 33 33; }
+[data-theme="dark"][data-space="mint"]     { --bg: 26 28 26; --surface-1: 34 36 33; }
+[data-theme="dark"][data-space="sky"]      { --bg: 26 27 28; --surface-1: 34 35 36; }
+[data-theme="dark"][data-space="butter"]   { --bg: 33 30 24; --surface-1: 41 37 30; }
+[data-theme="dark"][data-space="coral"]    { --bg: 33 28 24; --surface-1: 41 35 30; }
+[data-theme="dark"][data-space="peach"]    { --bg: 33 29 24; --surface-1: 41 36 30; }
+
 /* ───────────────────────────────────────────────
    Base
    ─────────────────────────────────────────────── */
@@ -158,6 +178,20 @@ body {
   33%      { transform: translate(-3%, 2%) scale(1.05); }
   66%      { transform: translate(2%, -1%) scale(0.97); }
 }
+
+/* Drag-to-split overlay animations */
+@keyframes drop-zone-fade-in { from { opacity: 0 } to { opacity: 1 } }
+@keyframes drop-preview-pulse {
+  0%   { opacity: 1; transform: scale(1); }
+  50%  { opacity: 0.7; transform: scale(1.02); }
+  100% { opacity: 0; transform: scale(1); }
+}
+@keyframes drop-zone-spring {
+  0%   { transform: scale(0.97); }
+  60%  { transform: scale(1.015); }
+  100% { transform: scale(1); }
+}
+.ease-out-quint { transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1); }
 
 /* Scrollbar polish — narrow, tonal */
 *::-webkit-scrollbar { width: 8px; height: 8px; }

@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@ag-ui/core": "0.0.53",
+    "@heroicons/react": "^2.2.0",
     "@sable/layout-engine": "workspace:*",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

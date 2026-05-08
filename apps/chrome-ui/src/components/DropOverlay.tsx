@@ -39,6 +39,7 @@ export function DropOverlay({ paneId }: { paneId: PaneId }) {
     <div
       className="absolute inset-0 pointer-events-none"
       onPointerLeave={onLeavePane}
+      style={{ animation: 'drop-zone-fade-in 200ms cubic-bezier(0.16, 1, 0.3, 1) both' }}
     >
       {/* Highlight preview rendered first, behind interactive zones */}
       <DropPreview edge={activeEdge} />
@@ -122,14 +123,21 @@ function DropPreview({ edge }: { edge: DropEdge | null }) {
   if (!edge) return null;
   const previewStyle: React.CSSProperties = previewRect(edge);
   return (
+    // key={edge} forces a remount when the hovered edge changes, so the
+    // spring-in animation fires for the new rect instead of bare CSS-easing
+    // between two completely different geometries (which looked liquid-y).
     <div
-      className="absolute pointer-events-none rounded-lg border-2 border-accent bg-accent/10 transition-all"
-      style={previewStyle}
+      key={edge}
+      className="absolute pointer-events-none rounded-xl border-2 border-acc bg-acc/10 transition-[inset,width,height,opacity] duration-300 ease-out-quint shadow-[0_0_0_6px_rgb(var(--acc-glow))]"
+      style={{
+        ...previewStyle,
+        animation: 'drop-zone-spring 220ms cubic-bezier(0.16, 1, 0.3, 1)',
+      }}
     />
   );
 }
 
-function previewRect(edge: DropEdge): React.CSSProperties {
+export function previewRect(edge: DropEdge): React.CSSProperties {
   const half = '50%';
   switch (edge) {
     case 'left':   return { left: 8,    top: 8, width: half, bottom: 8, right: undefined as unknown as number };

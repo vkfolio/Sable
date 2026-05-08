@@ -6,6 +6,7 @@
 // visibility to main so tab WebContentsViews shrink/expand to match.
 
 import { useState } from 'react';
+import { Cog6ToothIcon } from '@heroicons/react/24/outline';
 import { Chat } from './Chat/Chat';
 import { SettingsDialog } from './Settings/SettingsDialog';
 import { useSettingsStore } from '../state/settings';
@@ -62,10 +63,7 @@ function Header({
         title="Settings"
         className="w-7 h-7 inline-flex items-center justify-center rounded-md text-ink-2 hover:bg-surface-3 hover:text-ink-0"
       >
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
-          <circle cx="12" cy="12" r="3" />
-          <path d="M19 12c0 4-3 7-7 7s-7-3-7-7 3-7 7-7 7 3 7 7z" />
-        </svg>
+        <Cog6ToothIcon className="w-[14px] h-[14px]" />
       </button>
     </div>
   );

@@ -19,6 +19,12 @@ import type { DropEdge, PaneId, TabId } from '../types';
 type DragStore = {
   dragging: { tabId: TabId } | null;
   hovered: { paneId: PaneId; edge: DropEdge } | null;
+  /**
+   * Transient post-drop state. Set briefly after a successful commit so the
+   * chrome can play a "drop landed" pulse animation in the matching pane,
+   * even though `dragging` has already cleared. Auto-clears after 200ms.
+   */
+  dropping: { paneId: PaneId; edge: DropEdge } | null;
 
   start: (tabId: TabId) => void;
   setHovered: (h: { paneId: PaneId; edge: DropEdge } | null) => void;
@@ -29,9 +35,12 @@ type DragStore = {
   end: (commit: boolean) => void;
 };
 
+const DROP_PULSE_MS = 200;
+
 export const useDragStore = create<DragStore>((set, get) => ({
   dragging: null,
   hovered: null,
+  dropping: null,
 
   start: (tabId) => {
     if (get().dragging) return;
@@ -49,9 +58,14 @@ export const useDragStore = create<DragStore>((set, get) => ({
       // dragEnd is implicit — applyDrop -> applyLayout re-mounts views.
       // But we still tell main to leave drag mode in case applyDrop early-outs.
       void window.sable.layout.dragEnd();
+      const landed = hovered;
+      set({ dragging: null, hovered: null, dropping: landed });
+      setTimeout(() => {
+        if (get().dropping === landed) set({ dropping: null });
+      }, DROP_PULSE_MS);
     } else {
       void window.sable.layout.dragEnd();
+      set({ dragging: null, hovered: null });
     }
-    set({ dragging: null, hovered: null });
   },
 }));

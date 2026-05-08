@@ -30,6 +30,20 @@ export function SpacesPopover({
     setPos({ left: rect.left, top: rect.bottom + 6 });
   }, [open, anchor]);
 
+  // Tab WebContentsViews always layer above the chrome's React DOM, so a
+  // portal'd popover that overlaps the pane area gets occluded as soon as a
+  // real site is loaded. setOverlay(true) unmounts every tab view for the
+  // popover's lifetime; setOverlay(false) on close re-mounts them. Mirrors
+  // SettingsDialog's pattern.
+  // (Any future portal'd dropdown that overlaps pane area should follow this.)
+  useEffect(() => {
+    if (!open) return;
+    void window.sable.chrome.setOverlay(true);
+    return () => {
+      void window.sable.chrome.setOverlay(false);
+    };
+  }, [open]);
+
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {

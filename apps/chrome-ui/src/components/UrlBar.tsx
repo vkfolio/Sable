@@ -5,6 +5,14 @@
 // Right-side actions: tab counter pill, chat toggle, menu.
 
 import { useEffect, useRef, useState } from 'react';
+import {
+  ArrowPathIcon,
+  ChatBubbleLeftIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  LockClosedIcon,
+  Square2StackIcon,
+} from '@heroicons/react/24/outline';
 import { useTabsStore, selectActiveTab } from '../state/tabs';
 import { useChromeStore } from '../state/chrome';
 import { useSpacesStore } from '../state/spaces';
@@ -79,10 +87,7 @@ export function UrlBar() {
         }}
       >
         {isHttps && !editing && (
-          <svg className="w-3.5 h-3.5 text-ok shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
-            <rect x="5" y="11" width="14" height="9" rx="1.5" />
-            <path d="M8 11V8a4 4 0 1 1 8 0v3" />
-          </svg>
+          <LockClosedIcon className="w-3.5 h-3.5 text-ok shrink-0" />
         )}
         {editing ? (
           <input
@@ -117,10 +122,7 @@ export function UrlBar() {
           title="Tab counter"
           className="inline-flex items-center gap-1.5 px-2.5 h-7 text-xs font-medium bg-acc-soft text-acc-ink rounded-lg"
         >
-          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-            <path d="M3 12a9 9 0 1 0 9-9" />
-            <path d="M12 7v5l3 2" />
-          </svg>
+          <Square2StackIcon className="w-[13px] h-[13px]" />
           <span>{tabsCount}</span>
         </button>
         <button
@@ -130,9 +132,7 @@ export function UrlBar() {
             chatVisible ? 'bg-acc-soft text-acc-ink' : 'text-ink-2 hover:bg-surface-3 hover:text-ink-0'
           }`}
         >
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
-            <path d="M4 4h16v12H8l-4 4z" />
-          </svg>
+          <ChatBubbleLeftIcon className="w-4 h-4" />
         </button>
       </div>
     </div>
@@ -145,15 +145,9 @@ function NavButtons({ active }: { active: ReturnType<typeof selectActiveTab> }) 
   const reload = () => active && void window.sable.tabs.reload(active.id);
   return (
     <div className="shrink-0 flex items-center gap-0.5">
-      <NavBtn title="Back" disabled={!active?.canGoBack} onClick={back}>
-        <path d="M15 18l-6-6 6-6" />
-      </NavBtn>
-      <NavBtn title="Forward" disabled={!active?.canGoForward} onClick={fwd}>
-        <path d="M9 6l6 6-6 6" />
-      </NavBtn>
-      <NavBtn title="Reload" onClick={reload}>
-        <path d="M3 5v4h4M21 19v-4h-4M19 8a8 8 0 0 0-14 0M5 16a8 8 0 0 0 14 0" />
-      </NavBtn>
+      <NavBtn title="Back" disabled={!active?.canGoBack} onClick={back} Icon={ChevronLeftIcon} />
+      <NavBtn title="Forward" disabled={!active?.canGoForward} onClick={fwd} Icon={ChevronRightIcon} />
+      <NavBtn title="Reload" onClick={reload} Icon={ArrowPathIcon} />
     </div>
   );
 }
@@ -162,12 +156,12 @@ function NavBtn({
   title,
   disabled,
   onClick,
-  children,
+  Icon,
 }: {
   title: string;
   disabled?: boolean;
   onClick: () => void;
-  children: React.ReactNode;
+  Icon: React.ComponentType<{ className?: string }>;
 }) {
   return (
     <button
@@ -176,9 +170,7 @@ function NavBtn({
       onClick={onClick}
       className="w-[30px] h-[30px] inline-flex items-center justify-center rounded-lg text-ink-2 hover:bg-surface-3 hover:text-ink-0 disabled:opacity-30 disabled:cursor-default disabled:hover:bg-transparent disabled:hover:text-ink-2"
     >
-      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
-        {children}
-      </svg>
+      <Icon className="w-4 h-4" />
     </button>
   );
 }

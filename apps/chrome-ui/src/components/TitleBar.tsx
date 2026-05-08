@@ -1,4 +1,6 @@
 import { useRef, useState } from 'react';
+import { MoonIcon, PlusIcon, SunIcon } from '@heroicons/react/24/outline';
+import { ChevronDownIcon } from '@heroicons/react/20/solid';
 import { selectActiveSpace, useSpacesStore } from '../state/spaces';
 import { useChromeStore, type Theme } from '../state/chrome';
 import { TabRow } from './TabRow';
@@ -107,9 +109,7 @@ function Tools() {
         onClick={() => void window.sable.tabs.create('sable://newtab')}
         className="w-[26px] h-[26px] inline-flex items-center justify-center rounded-md text-ink-2 hover:bg-surface-3 hover:text-ink-0"
       >
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
-          <path d="M12 5v14M5 12h14" />
-        </svg>
+        <PlusIcon className="w-[14px] h-[14px]" />
       </button>
       <ThemeToggle theme={theme} onChange={setTheme} />
     </div>
@@ -123,15 +123,10 @@ function ThemeToggle({ theme, onChange }: { theme: Theme; onChange: (t: Theme) =
   return (
     <div className="inline-flex items-center p-[2px] rounded-full bg-surface-2 border border-line shadow-1">
       <ThemeBtn label="Light" active={theme === 'light'} onClick={() => onChange('light')}>
-        <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-          <circle cx="12" cy="12" r="4" />
-          <path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4l1.4-1.4M17 7l1.4-1.4" />
-        </svg>
+        <SunIcon className="w-[11px] h-[11px]" />
       </ThemeBtn>
       <ThemeBtn label="Dark" active={theme === 'dark'} onClick={() => onChange('dark')}>
-        <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-          <path d="M20 14.5A8 8 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z" />
-        </svg>
+        <MoonIcon className="w-[11px] h-[11px]" />
       </ThemeBtn>
     </div>
   );
@@ -163,11 +158,7 @@ function ThemeBtn({
 }
 
 function Chevron() {
-  return (
-    <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
-      <path d="M6 9l6 6 6-6" />
-    </svg>
-  );
+  return <ChevronDownIcon className="w-2.5 h-2.5" />;
 }
 
 function spaceAccentSwatch(s: SpaceSummary): string {

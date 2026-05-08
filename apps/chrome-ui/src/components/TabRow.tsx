@@ -4,14 +4,25 @@
 
 import { useEffect, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
+import { XMarkIcon } from '@heroicons/react/24/outline';
 import { useTabsStore } from '../state/tabs';
 import { useDragStore } from '../state/drag';
 import { useSpacesStore } from '../state/spaces';
-import type { TabState } from '../types';
+import { useLayoutStore } from '../state/layout';
+import type { PaneId, TabId, TabState } from '../types';
 
 const DRAG_THRESHOLD_PX = 4;
 
+const FAVICON_PALETTE = ['#FFB89E', '#FFD49B', '#FFE69A', '#B3E5C9', '#B5D4F2', '#C9BEEE', '#F2BCD0'];
+const PALETTE_VAR = ['--p-coral', '--p-peach', '--p-butter', '--p-mint', '--p-sky', '--p-lavender', '--p-rose'];
+
 type ContextMenuState = { x: number; y: number; tab: TabState } | null;
+
+type TabGroupSpec = {
+  paneId: PaneId | null; // null = "ungrouped" trailing background tabs
+  tabs: TabState[];
+  leadTab: TabState | undefined;
+};
 
 export function TabRow() {
   const activeSpaceId = useSpacesStore((s) => s.activeSpaceId);
@@ -23,6 +34,7 @@ export function TabRow() {
     ),
   );
   const activeTabId = useTabsStore((s) => s.activeTabId);
+  const leaves = useLayoutStore(useShallow((s) => s.leaves));
   const [menu, setMenu] = useState<ContextMenuState>(null);
 
   useEffect(() => {
@@ -39,23 +51,147 @@ export function TabRow() {
     };
   }, [menu]);
 
+  const groups = computeGroups(tabs, leaves);
+  const activePaneId = activeTabId ? findPaneIdForTab(activeTabId, leaves) : null;
+
   return (
     <div
       // Default to drag so empty space (between/after tabs) moves the window.
       // Individual tabs override with no-drag so they stay clickable / draggable
       // for split-to-pane.
-      className="flex-1 flex items-end gap-[2px] h-full overflow-x-auto pt-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      onDoubleClick={(e) => {
+        // Empty strip space only — bail if the dblclick landed on a tab pill.
+        // stopPropagation prevents TitleBar's dblclick→maximize from firing too.
+        if (e.target !== e.currentTarget) return;
+        e.stopPropagation();
+        void window.sable.tabs.create('sable://newtab');
+      }}
+      className="flex-1 flex items-end gap-2 h-full overflow-x-auto pt-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
     >
-      {tabs.map((tab) => (
-        <Tab
-          key={tab.id}
-          tab={tab}
-          active={tab.id === activeTabId}
-          onContextMenu={(x, y) => setMenu({ x, y, tab })}
+      {groups.map((group, idx) => (
+        <TabGroup
+          key={group.paneId ?? `ungrouped-${idx}`}
+          group={group}
+          activeTabId={activeTabId}
+          isActivePane={group.paneId !== null && group.paneId === activePaneId}
+          onContextMenu={(x, y, tab) => setMenu({ x, y, tab })}
         />
       ))}
       {menu && <TabContextMenu state={menu} onClose={() => setMenu(null)} />}
+    </div>
+  );
+}
+
+/**
+ * Group active-space tabs by their pane membership. Tabs sharing a pane sit
+ * adjacent in the strip, in the order their pane appears in the BSP in-order
+ * traversal (which is what `leaves` already is). Tabs not in any leaf
+ * (background — pulled out of layout but still in the space) trail at the
+ * end as a single "ungrouped" group with no bracket.
+ */
+function computeGroups(tabs: readonly TabState[], leaves: readonly { paneId: PaneId; tabId: TabId }[]): TabGroupSpec[] {
+  const tabsById = new Map(tabs.map((t) => [t.id, t]));
+  const groups: TabGroupSpec[] = [];
+  const claimed = new Set<TabId>();
+
+  for (const leaf of leaves) {
+    const tab = tabsById.get(leaf.tabId);
+    if (!tab) continue;
+    claimed.add(tab.id);
+    const last = groups[groups.length - 1];
+    if (last && last.paneId === leaf.paneId) {
+      last.tabs.push(tab);
+    } else {
+      groups.push({ paneId: leaf.paneId, tabs: [tab], leadTab: tab });
+    }
+  }
+
+  const trailing = tabs.filter((t) => !claimed.has(t.id));
+  if (trailing.length > 0) {
+    groups.push({ paneId: null, tabs: trailing, leadTab: trailing[0] });
+  }
+  return groups;
+}
+
+function findPaneIdForTab(tabId: TabId, leaves: readonly { paneId: PaneId; tabId: TabId }[]): PaneId | null {
+  for (const l of leaves) if (l.tabId === tabId) return l.paneId;
+  return null;
+}
+
+/**
+ * Map a tab's faviconUrl host (or first letter fallback) to one of the seven
+ * pastel CSS variables. Mirrors the Favicon swatch palette so the bracket
+ * color matches the lead tab visually.
+ */
+function pastelVarForTab(tab: TabState | undefined): string {
+  const letter = (tab?.title || tab?.url || '?').charAt(0).toUpperCase();
+  const idx = letter.charCodeAt(0) % FAVICON_PALETTE.length;
+  return PALETTE_VAR[idx]!;
+}
+
+function TabGroup({
+  group,
+  activeTabId,
+  isActivePane,
+  onContextMenu,
+}: {
+  group: TabGroupSpec;
+  activeTabId: TabId | null;
+  isActivePane: boolean;
+  onContextMenu: (x: number, y: number, tab: TabState) => void;
+}) {
+  const showBracket = group.paneId !== null;
+  const colorVar = pastelVarForTab(group.leadTab);
+  return (
+    <div className="flex flex-col items-stretch">
+      {showBracket ? (
+        <TabGroupBracket colorVar={colorVar} active={isActivePane} />
+      ) : (
+        // Ungrouped tabs still need to align to the bottom; reserve the
+        // same 4 px slot the bracket would have occupied so the row baseline
+        // stays consistent across grouped/ungrouped neighbours.
+        <div className="h-[4px] shrink-0" aria-hidden />
+      )}
+      <div
+        className="flex items-end gap-[2px]"
+        style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
+      >
+        {group.tabs.map((tab) => (
+          <Tab
+            key={tab.id}
+            tab={tab}
+            active={tab.id === activeTabId}
+            onContextMenu={(x, y) => onContextMenu(x, y, tab)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function TabGroupBracket({ colorVar, active }: { colorVar: string; active: boolean }) {
+  // Thin SVG cap drawn just above the group's tab pills. Active pane gets a
+  // bolder line + full opacity. Width is 100% via SVG preserveAspectRatio.
+  return (
+    <div className="h-[3px] shrink-0 px-[3px]" aria-hidden>
+      <svg
+        viewBox="0 0 100 3"
+        preserveAspectRatio="none"
+        className="w-full h-full"
+        style={{ color: `rgb(var(${colorVar}))`, opacity: active ? 1 : 0.55 }}
+      >
+        <line
+          x1="2"
+          y1="1.5"
+          x2="98"
+          y2="1.5"
+          stroke="currentColor"
+          strokeWidth={active ? 2 : 1.5}
+          strokeLinecap="round"
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
     </div>
   );
 }
@@ -123,8 +259,8 @@ function Tab({
         onContextMenu(e.clientX, e.clientY);
       }}
       style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
-      className={`group h-[30px] inline-flex items-center gap-2 pl-3 pr-2.5 rounded-t-[8px] cursor-default select-none flex-shrink-0 max-w-[200px] min-w-[90px] text-xs transition-colors ${tone} ${
-        isBeingDragged ? 'opacity-40' : ''
+      className={`group h-[30px] inline-flex items-center gap-2 pl-3 pr-2.5 rounded-t-[8px] cursor-default select-none flex-shrink-0 max-w-[200px] min-w-[90px] text-xs transition-[colors,transform,opacity] ease-out-quint duration-200 ${tone} ${
+        isBeingDragged ? 'opacity-40 rotate-[2deg] cursor-grabbing' : ''
       }`}
     >
       {isCtx && <span className="font-mono text-[10px] font-semibold text-acc-ink -mr-0.5">@</span>}
@@ -138,9 +274,7 @@ function Tab({
         title="Close"
         className="opacity-0 group-hover:opacity-100 w-4 h-4 inline-flex items-center justify-center rounded text-ink-3 hover:bg-surface-3 hover:text-ink-0"
       >
-        <svg viewBox="0 0 24 24" width="9" height="9" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-          <path d="M5 5l14 14M5 19L19 5" />
-        </svg>
+        <XMarkIcon className="w-[9px] h-[9px]" strokeWidth={2.5} />
       </button>
     </div>
   );

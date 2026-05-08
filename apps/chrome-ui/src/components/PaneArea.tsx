@@ -11,11 +11,11 @@
 import { useShallow } from 'zustand/react/shallow';
 import { useLayoutStore } from '../state/layout';
 import { useDragStore } from '../state/drag';
-import { useTabsStore, selectActiveTab } from '../state/tabs';
-import { DropOverlay } from './DropOverlay';
+import { useTabsStore } from '../state/tabs';
+import { DropOverlay, previewRect } from './DropOverlay';
 import { Divider } from './Divider';
 import { Ntp } from './Ntp';
-import type { Rect, SnapshotLeaf } from '../types';
+import type { DropEdge, Rect, SnapshotLeaf } from '../types';
 
 export const NEW_TAB_URL = 'sable://newtab';
 
@@ -24,7 +24,7 @@ export function PaneArea() {
   const dividers = useLayoutStore(useShallow((s) => s.dividers));
   const paneOrigin = useLayoutStore((s) => s.paneOrigin);
   const dragging = useDragStore((s) => s.dragging);
-  const activeTab = useTabsStore(selectActiveTab);
+  const dropping = useDragStore((s) => s.dropping);
   const tabsById = useTabsStore((s) => s.tabsById);
 
   // The whole pane is empty (no tabs in this space): show NTP full-bleed.
@@ -41,6 +41,7 @@ export function PaneArea() {
       {leaves.map((leaf) => {
         const tab = tabsById.get(leaf.tabId);
         const isNewTab = tab?.url === NEW_TAB_URL;
+        const dropPulse = dropping && dropping.paneId === leaf.paneId ? dropping.edge : null;
         return (
           <PaneSlot
             key={leaf.paneId}
@@ -48,6 +49,7 @@ export function PaneArea() {
             origin={paneOrigin}
             dragActive={!!dragging}
             isNewTab={isNewTab}
+            dropPulse={dropPulse}
           />
         );
       })}
@@ -63,11 +65,13 @@ function PaneSlot({
   origin,
   dragActive,
   isNewTab,
+  dropPulse,
 }: {
   leaf: SnapshotLeaf;
   origin: { x: number; y: number };
   dragActive: boolean;
   isNewTab: boolean;
+  dropPulse: DropEdge | null;
 }) {
   const localStyle: React.CSSProperties = {
     position: 'absolute',
@@ -88,7 +92,23 @@ function PaneSlot({
           the chrome's NTP fully owns this rect. */}
       {isNewTab && !dragActive && <Ntp />}
       {dragActive && <DropOverlay paneId={leaf.paneId} />}
+      {/* Post-drop pulse — fires after a successful commit. The new layout
+          has already taken effect; this ghost rect lasts ~180ms to make the
+          drop feel grounded. */}
+      {dropPulse && <DropPulse edge={dropPulse} />}
     </div>
+  );
+}
+
+function DropPulse({ edge }: { edge: DropEdge }) {
+  return (
+    <div
+      className="absolute pointer-events-none rounded-xl border-2 border-acc bg-acc/10 shadow-[0_0_0_6px_rgb(var(--acc-glow))]"
+      style={{
+        ...previewRect(edge),
+        animation: 'drop-preview-pulse 180ms ease-out forwards',
+      }}
+    />
   );
 }
 
