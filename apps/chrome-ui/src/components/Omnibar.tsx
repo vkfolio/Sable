@@ -1,5 +1,5 @@
 // Dia-style omnibar — single command bar that handles URL navigation +
-// search + (later) chat + skills. Lives in the sidebar; replaces the
+// search + (later) chat. Lives in the sidebar; replaces the
 // previous "URL bar in pane area + cmd input in sidebar" duplication.
 //
 // Behavior:

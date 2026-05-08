@@ -1,9 +1,7 @@
-import { forwardRef, useEffect, useRef, useState } from 'react';
-import { PaperAirplaneIcon, SparklesIcon, StopIcon as HiStopIcon } from '@heroicons/react/24/solid';
+import { useEffect, useRef, useState } from 'react';
+import { PaperAirplaneIcon, StopIcon as HiStopIcon } from '@heroicons/react/24/solid';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import type { Citation, ImageCitation, TextCitation } from '../../types';
-import type { Skill } from '../../state/skills';
-import { SkillsPicker } from './SkillsPicker';
 
 const SABLE_QUOTE_MIME_PREFIX = 'application/x-sable-quote+json';
 const SABLE_IMAGE_MIME_PREFIX = 'application/x-sable-image+json';
@@ -32,27 +30,8 @@ export function Composer({
   onRemoveCitation: (id: string) => void;
 }) {
   const ref = useRef<HTMLTextAreaElement>(null);
-  const skillsButtonRef = useRef<HTMLButtonElement>(null);
   const [dragOver, setDragOver] = useState(false);
   const [resolveError, setResolveError] = useState<string | null>(null);
-  const [skillsOpen, setSkillsOpen] = useState(false);
-
-  const handlePickSkill = (skill: Skill) => {
-    setSkillsOpen(false);
-    // Replace empty composer with the template; otherwise append (cursor
-    // ends at the position the user can type into).
-    onChange(value.trim() ? `${value}\n\n${skill.template}` : skill.template);
-    // Re-focus the textarea after a tick so the picker click doesn't
-    // immediately steal focus back.
-    setTimeout(() => {
-      const el = ref.current;
-      if (!el) return;
-      el.focus();
-      const len = el.value.length;
-      el.setSelectionRange(len, len);
-    }, 0);
-  };
-
   // Auto-grow up to 6 rows.
   useEffect(() => {
     const el = ref.current;
@@ -198,21 +177,6 @@ export function Composer({
           className="w-full resize-none border-0 bg-transparent text-base text-ink-0 outline-none placeholder:text-ink-3 leading-snug min-h-[40px] disabled:opacity-50"
         />
         <div className="flex items-center gap-1.5">
-          <FootBtn
-            ref={skillsButtonRef}
-            label="Skill"
-            onClick={() => setSkillsOpen((v) => !v)}
-            active={skillsOpen}
-            disabled={disabled}
-          >
-            <SparkIcon />
-          </FootBtn>
-          <SkillsPicker
-            open={skillsOpen}
-            anchorEl={skillsButtonRef.current}
-            onPick={handlePickSkill}
-            onClose={() => setSkillsOpen(false)}
-          />
           <button
             type="button"
             onClick={inflight ? onStop : onSubmit}
@@ -225,38 +189,6 @@ export function Composer({
         </div>
       </div>
     </div>
-  );
-}
-
-const FootBtn = forwardRef<
-  HTMLButtonElement,
-  {
-    label: string;
-    onClick: () => void;
-    active?: boolean;
-    disabled?: boolean;
-    children: React.ReactNode;
-  }
->(function FootBtn({ label, onClick, active, disabled, children }, ref) {
-  return (
-    <button
-      ref={ref}
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className={`h-[26px] px-2 rounded-[7px] inline-flex items-center gap-1.5 text-xs font-medium ${
-        active ? 'bg-surface-3 text-ink-0' : 'text-ink-2 hover:bg-surface-3 hover:text-ink-0'
-      } disabled:opacity-40 disabled:cursor-default`}
-    >
-      {children}
-      <span>{label}</span>
-    </button>
-  );
-});
-
-function SparkIcon() {
-  return (
-    <SparklesIcon className="w-[13px] h-[13px]" />
   );
 }
 
@@ -365,8 +297,4 @@ function SendIcon() {
 
 function StopIcon() {
   return <HiStopIcon className="w-3 h-3" />;
-}
-
-function SkillsIcon() {
-  return <SparklesIcon className="w-[14px] h-[14px]" />;
 }

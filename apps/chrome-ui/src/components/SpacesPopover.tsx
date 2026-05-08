@@ -5,6 +5,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useShallow } from 'zustand/react/shallow';
+import { XMarkIcon } from '@heroicons/react/24/outline';
 import { useSpacesStore } from '../state/spaces';
 import type { SpaceSummary } from '../types';
 
@@ -110,7 +111,9 @@ export function SpacesPopover({
             key={s.id}
             space={s}
             active={s.id === activeSpaceId}
+            canDelete={spaces.length > 1}
             onClick={() => handleSwitch(s.id)}
+            onDelete={() => void window.sable.spaces.remove(s.id)}
           />
         ))}
       </div>
@@ -215,21 +218,28 @@ export function SpacesPopover({
 function SpaceRow({
   space,
   active,
+  canDelete,
   onClick,
+  onDelete,
 }: {
   space: SpaceSummary;
   active: boolean;
+  canDelete: boolean;
   onClick: () => void;
+  onDelete: () => void;
 }) {
+  // Row is a div (not a button) so the delete-X can be its own button
+  // without nesting interactive controls. Click anywhere except the X
+  // switches to that space.
   return (
-    <button
+    <div
       onClick={onClick}
-      className={`w-full flex items-center gap-2.5 px-2.5 h-[38px] rounded-[9px] text-left ${
+      className={`group w-full flex items-center gap-2.5 px-2.5 h-[38px] rounded-[9px] text-left cursor-default ${
         active ? 'bg-acc-soft' : 'hover:bg-surface-3'
       }`}
     >
       <span
-        className="w-[22px] h-[22px] rounded-[7px] inline-flex items-center justify-center text-[11px] font-semibold"
+        className="w-[22px] h-[22px] rounded-[7px] inline-flex items-center justify-center text-[11px] font-semibold shrink-0"
         style={{ background: space.accent, color: contrastInk(space.accent) }}
       >
         {space.name[0]?.toUpperCase()}
@@ -238,7 +248,20 @@ function SpaceRow({
       {active && (
         <span className="text-[10px] font-mono text-ink-2">active</span>
       )}
-    </button>
+      {canDelete && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          title={`Delete "${space.name}"`}
+          className="opacity-0 group-hover:opacity-100 w-5 h-5 inline-flex items-center justify-center rounded text-ink-3 hover:bg-bad/15 hover:text-bad shrink-0"
+        >
+          <XMarkIcon className="w-3 h-3" strokeWidth={2.2} />
+        </button>
+      )}
+    </div>
   );
 }
 

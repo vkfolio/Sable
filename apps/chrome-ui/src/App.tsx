@@ -10,7 +10,6 @@ import { useChatStore } from './state/chat';
 import { useSettingsStore } from './state/settings';
 import { useLocalModelStore } from './state/local-model';
 import { useSpacesStore, selectActiveSpace } from './state/spaces';
-import { useSkillsStore } from './state/skills';
 import { useChromeStore } from './state/chrome';
 
 export function App() {
@@ -56,15 +55,11 @@ export function App() {
     const offSpaces = window.sable.on.spacesChanged((snap) => {
       useSpacesStore.getState().apply(snap);
     });
-    const offSkills = window.sable.on.skillsChanged((skills) => {
-      useSkillsStore.getState().apply(skills);
-    });
 
     useTabsStore.getState().setBootstrapped();
     void useSettingsStore.getState().refresh();
     void useLocalModelStore.getState().refresh();
     void useSpacesStore.getState().refresh();
-    void useSkillsStore.getState().refresh();
 
     return () => {
       offUpdate();
@@ -75,7 +70,6 @@ export function App() {
       offAgent();
       offLocalModel();
       offSpaces();
-      offSkills();
     };
   }, []);
 

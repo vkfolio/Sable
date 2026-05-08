@@ -20,8 +20,6 @@ import {
   type ResolvedImage,
   type SableApi,
   type SettingsSnapshot,
-  type Skill,
-  type SkillId,
   type SpaceId,
   type SpaceSummary,
   type SpacesSnapshot,
@@ -131,12 +129,6 @@ const api: SableApi = {
     remove: (id: SpaceId) =>
       ipcRenderer.invoke(IpcChannels.SpacesRemove, id) as Promise<void>,
   },
-  skills: {
-    list: () => ipcRenderer.invoke(IpcChannels.SkillsList) as Promise<Skill[]>,
-    save: (skill: Skill) => ipcRenderer.invoke(IpcChannels.SkillsSave, skill) as Promise<Skill>,
-    remove: (id: SkillId) => ipcRenderer.invoke(IpcChannels.SkillsRemove, id) as Promise<void>,
-    resetDefaults: () => ipcRenderer.invoke(IpcChannels.SkillsResetDefaults) as Promise<void>,
-  },
   env: {
     platform: process.platform,
   },
@@ -156,7 +148,6 @@ const api: SableApi = {
     agentEvent: (cb) => on<AgentEvent>(IpcChannels.ChatAgentEvent, cb),
     localModelEvent: (cb) => on<LocalModelEvent>(IpcChannels.LocalModelEvent, cb),
     spacesChanged: (cb) => on<SpacesSnapshot>(IpcChannels.SpacesChanged, cb),
-    skillsChanged: (cb) => on<Skill[]>(IpcChannels.SkillsChanged, cb),
   },
 };
 

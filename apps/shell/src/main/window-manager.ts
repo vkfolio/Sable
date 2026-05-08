@@ -17,7 +17,6 @@ import { ChatOrchestrator, resolveImage } from './chat-orchestrator';
 import { SettingsStore, type ProviderId } from './settings-store';
 import { LocalModelManager, type LocalModelVariantId } from './local-model-manager';
 import { SpaceManager, type SpaceId } from './space-manager';
-import { SkillsManager, type Skill, type SkillId } from './skills-manager';
 import {
   IpcChannels,
   type ChatSendContent,
@@ -37,8 +36,6 @@ export class WindowManager {
   private readonly localModels = new LocalModelManager();
   private readonly spaces = new SpaceManager();
   private spacesLoaded = false;
-  private readonly skillsManager = new SkillsManager();
-  private skillsLoaded = false;
   private activeTabId: TabId | null = null;
   private ipcRegistered = false;
   /** Single-flight controller for the NTP intent resolver — cancelled when
@@ -51,10 +48,6 @@ export class WindowManager {
     if (!this.spacesLoaded) {
       await this.spaces.load();
       this.spacesLoaded = true;
-    }
-    if (!this.skillsLoaded) {
-      await this.skillsManager.load();
-      this.skillsLoaded = true;
     }
   }
 
@@ -489,11 +482,6 @@ export class WindowManager {
       this.spaces.remove(id);
     });
 
-    // ---- skills ----
-    ipcMain.handle(IpcChannels.SkillsList, () => this.skillsManager.list());
-    ipcMain.handle(IpcChannels.SkillsSave, (_e, skill: Skill) => this.skillsManager.save(skill));
-    ipcMain.handle(IpcChannels.SkillsRemove, (_e, id: SkillId) => this.skillsManager.remove(id));
-    ipcMain.handle(IpcChannels.SkillsResetDefaults, () => this.skillsManager.resetToDefaults());
   }
 
   private buildSpacesSnapshot(): SpacesSnapshot {
@@ -542,9 +530,6 @@ export class WindowManager {
     });
     this.spaces.onChange(() => {
       this.broadcastSpacesSnapshot();
-    });
-    this.skillsManager.onChange(() => {
-      this.chrome?.webContents.send(IpcChannels.SkillsChanged, this.skillsManager.list());
     });
   }
 

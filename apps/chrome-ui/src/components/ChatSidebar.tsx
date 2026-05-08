@@ -1,5 +1,5 @@
 // ChatSidebar — right-side panel (340px). Contains the chat header,
-// sub-tabs (Chat / History / Skills — only Chat is wired in V0), and
+// just the chat composer + message list, and
 // the existing Chat composer + message list.
 //
 // Toggleable via UrlBar's chat button or Ctrl+.. The chrome reports
