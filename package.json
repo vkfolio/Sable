@@ -2,7 +2,17 @@
   "name": "sable",
   "version": "0.0.0",
   "private": true,
-  "description": "Sable AI-first browser",
+  "description": "Sable — A browser where chat and pages are one workspace.",
+  "license": "MIT",
+  "author": "vkdev and Sable contributors",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/your-org/sable.git"
+  },
+  "homepage": "https://github.com/your-org/sable#readme",
+  "bugs": {
+    "url": "https://github.com/your-org/sable/issues"
+  },
   "packageManager": "pnpm@9.15.0",
   "engines": {
     "node": ">=22.14.0"
