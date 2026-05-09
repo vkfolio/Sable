@@ -2,66 +2,82 @@
 // url is `sable://newtab`. The matching tab's WebContentsView is left
 // unmounted by LayoutController, so this component owns that whole rect.
 //
-// Pulls patterns from "Hero · 02 — new tab" in v3 design system:
-//   greeting · live timestamp · omnibox · suggestion chips · pinned shortcuts
+// Layout (top → bottom):
+//   greeting · live timestamp · omnibox · suggestion chips · pinned bookmarks
 //
-// Hitting Enter in the omnibox always navigates the active tab — typed
-// URLs go directly, plain text becomes a Google search. Suggestion chips
-// remain the explicit AI-prompt path (they go to chat).
+// Empty omnibox: the suggestion area shows the user's RECENTLY VISITED
+// sites (history). Once they start typing, history matches prepend above
+// the static rule + LLM resolver chips.
+//
+// Pinned bookmarks at the bottom are user-customizable (add / edit / remove).
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { useChatStore } from '../state/chat';
-import { useSpacesStore, selectActiveSpace } from '../state/spaces';
+import { useShallow } from 'zustand/react/shallow';
+import { PlusIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { useTabsStore, selectActiveTab } from '../state/tabs';
-import { useChromeStore } from '../state/chrome';
+import { useChromeStore, type Bookmark } from '../state/chrome';
 import { resolveSuggestions, type Suggestion } from '../ntp-resolver';
+import type { HistoryEntry } from '../types';
 
-const SUGGESTIONS = [
-  'summarize selected tabs',
-  'compare these sources',
-  'draft follow-up questions',
-  'turn this into a brief',
-];
-
-const PINS: { label: string; letter: string; color: string; ink: string; url: string }[] = [
-  { label: 'arXiv',  letter: 'A', color: 'rgb(var(--p-coral))',    ink: '#4a1d0c', url: 'https://arxiv.org' },
-  { label: 'GitHub', letter: 'G', color: 'rgb(var(--p-mint))',     ink: '#0e3920', url: 'https://github.com' },
-  { label: 'Linear', letter: 'L', color: 'rgb(var(--p-sky))',      ink: '#142f4a', url: 'https://linear.app' },
-  { label: 'Notion', letter: 'N', color: 'rgb(var(--p-butter))',   ink: '#4a3308', url: 'https://notion.so' },
-  { label: 'Figma',  letter: 'F', color: 'rgb(var(--p-rose))',     ink: '#4d1530', url: 'https://figma.com' },
+const BOOKMARK_COLORS: { hex: string; label: string }[] = [
+  { hex: '#FFB89E', label: 'Coral' },
+  { hex: '#FFD49B', label: 'Peach' },
+  { hex: '#FFE69A', label: 'Butter' },
+  { hex: '#B3E5C9', label: 'Mint' },
+  { hex: '#B5D4F2', label: 'Sky' },
+  { hex: '#C9BEEE', label: 'Lavender' },
+  { hex: '#F2BCD0', label: 'Rose' },
 ];
 
 export function Ntp() {
-  const activeSpace = useSpacesStore(selectActiveSpace);
   const activeTab = useTabsStore(selectActiveTab);
-  const conversationId = activeSpace?.conversationId ?? 'default';
-  const pushUserMessage = useChatStore((s) => s.pushUserMessage);
-  const setActiveRun = useChatStore((s) => s.setActiveRun);
   const userName = useChromeStore((s) => s.userName);
+  const bookmarks = useChromeStore(useShallow((s) => s.bookmarks));
 
   const [query, setQuery] = useState('');
   const [now, setNow] = useState(() => formatTime(new Date()));
+  const [recent, setRecent] = useState<readonly HistoryEntry[]>([]);
+  const [historyMatches, setHistoryMatches] = useState<readonly HistoryEntry[]>([]);
 
   useEffect(() => {
     const id = setInterval(() => setNow(formatTime(new Date())), 30_000);
     return () => clearInterval(id);
   }, []);
 
-  /**
-   * Static resolver results — instant, synchronous, rule-based. Always the
-   * first chip(s) the user sees. The LLM-resolved list (below) merges in
-   * after a brief debounce when the active model is configured.
-   */
+  // Pull recent history once on mount. (We re-pull whenever the tab's URL
+  // changes from sable://newtab — the user might have just visited a site
+  // and come back. Cheap; fires on remount.)
+  useEffect(() => {
+    let cancelled = false;
+    void window.sable.history.recent(5).then((entries) => {
+      if (!cancelled) setRecent(entries);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Debounced history autocomplete while typing.
+  useEffect(() => {
+    const t = query.trim();
+    if (!t) {
+      setHistoryMatches([]);
+      return;
+    }
+    const id = setTimeout(async () => {
+      const matches = await window.sable.history.search(t).catch(() => []);
+      setHistoryMatches(matches);
+    }, 120);
+    return () => clearTimeout(id);
+  }, [query]);
+
+  // Static (rule-based) resolver — instant. LLM-resolved chips append later
+  // when the static layer didn't already match a clear intent.
   const staticSuggestions = useMemo(() => resolveSuggestions(query), [query]);
   const [llmSuggestions, setLlmSuggestions] = useState<Suggestion[]>([]);
   const [resolving, setResolving] = useState(false);
   const llmTokenRef = useRef(0);
 
-  // Hybrid resolver: kick off an LLM call ~350 ms after the user stops
-  // typing. We only call when the static layer doesn't already have a
-  // strong answer (a site shortcut hit, a URL, or any intent-rule match
-  // beyond the bare Google fallback). On any failure we silently keep the
-  // static list — `intent.resolve` returns [] on errors.
   useEffect(() => {
     const t = query.trim();
     if (!t || t.length < 4) {
@@ -69,8 +85,6 @@ export function Ntp() {
       setResolving(false);
       return;
     }
-    // If the static layer already produced multiple chips (intent matched),
-    // skip the LLM — rules cover this case instantly.
     if (staticSuggestions.length > 1) {
       setLlmSuggestions([]);
       setResolving(false);
@@ -80,61 +94,50 @@ export function Ntp() {
     setResolving(true);
     const id = setTimeout(async () => {
       const chips = await window.sable.intent.resolve(t).catch(() => []);
-      if (token !== llmTokenRef.current) return; // stale
+      if (token !== llmTokenRef.current) return;
       setLlmSuggestions(chips.map((c) => ({ ...c })));
       setResolving(false);
     }, 350);
     return () => clearTimeout(id);
   }, [query, staticSuggestions.length]);
 
-  // The full ordered list shown to the user. Static chips come first,
-  // LLM chips append after, deduped by URL.
+  // Combined ranked list for the chip strip when typing:
+  //   1. Top 3 history matches (deduped against static)
+  //   2. Static-rule resolver chips
+  //   3. LLM chips
   const suggestions = useMemo(() => {
     const seen = new Set<string>();
     const merged: Suggestion[] = [];
+    for (const h of historyMatches.slice(0, 3)) {
+      if (seen.has(h.url)) continue;
+      seen.add(h.url);
+      merged.push({
+        label: h.title || hostname(h.url) || 'Visit',
+        description: h.url,
+        url: h.url,
+        color: '#C9BEEE',
+      });
+    }
     for (const s of [...staticSuggestions, ...llmSuggestions]) {
       if (seen.has(s.url)) continue;
       seen.add(s.url);
       merged.push(s);
     }
     return merged;
-  }, [staticSuggestions, llmSuggestions]);
+  }, [historyMatches, staticSuggestions, llmSuggestions]);
 
   const navigateTo = async (url: string) => {
     setQuery('');
     if (activeTab) await window.sable.tabs.navigate(activeTab.id, url);
   };
 
-  /**
-   * Enter on the omnibox commits to the top suggestion if one exists,
-   * else does nothing (empty query).
-   */
   const navigateActive = async () => {
     const top = suggestions[0];
     if (top) await navigateTo(top.url);
   };
 
-  /**
-   * Suggestion chips are explicit AI prompts — they bypass navigation and
-   * push the user's message into the chat conversation. Used by the chips
-   * row below the omnibox.
-   */
-  const askChat = async (text: string) => {
-    const t = text.trim();
-    if (!t) return;
-    pushUserMessage(t);
-    try {
-      const runId = await window.sable.chat.send(conversationId, { text: t });
-      setActiveRun(runId);
-    } catch (err) {
-      // surfaced via RUN_ERROR; nothing to do here
-      void err;
-    }
-  };
-
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center overflow-hidden bg-surface-1">
-      {/* Soft pastel ambient blur */}
       <div
         className="absolute inset-0 pointer-events-none animate-[shimmer_16s_ease-in-out_infinite]"
         style={{
@@ -144,7 +147,7 @@ export function Ntp() {
           filter: 'blur(20px)',
         }}
       />
-      {/* Greeting + cmd + suggestions (centered) */}
+
       <div className="relative w-full max-w-[560px] px-6 text-center">
         <h2 className="text-[36px] font-medium tracking-[-0.025em] leading-[1.1] m-0 text-ink-0">
           {greeting(userName)}
@@ -155,6 +158,7 @@ export function Ntp() {
         <div className="font-mono text-[11px] text-ink-2 mt-3 tracking-[0.04em] uppercase">
           {now}
         </div>
+
         <div
           className="mt-8 h-[54px] flex items-center gap-3 px-[18px] rounded-[14px] bg-surface-2 border-[1.5px] border-acc text-base text-ink-0 text-left"
           style={{ boxShadow: '0 0 0 6px rgb(var(--acc-glow)), var(--shadow-2)' }}
@@ -180,40 +184,29 @@ export function Ntp() {
           )}
           <kbd className="font-mono text-[10px] text-ink-2 bg-surface-3 px-1.5 py-0.5 rounded-md border border-line">Enter</kbd>
         </div>
-        <div className="mt-4 flex flex-wrap justify-center gap-1.5">
-          {query.trim()
-            ? suggestions.map((s, i) => (
-                <SuggestionChip key={s.url} suggestion={s} primary={i === 0} onPick={navigateTo} />
-              ))
-            : SUGGESTIONS.map((s) => (
-                <button
-                  key={s}
-                  onClick={() => void askChat(s)}
-                  title="Send to Sable chat"
-                  className="inline-flex items-center gap-1.5 px-3 py-[5px] text-xs text-ink-1 bg-surface-2 border border-line rounded-full hover:bg-surface-3"
-                >
-                  {s}
-                </button>
-              ))}
-        </div>
+
+        {query.trim() ? (
+          <div className="mt-4 flex flex-wrap justify-center gap-1.5">
+            {suggestions.map((s, i) => (
+              <SuggestionChip
+                key={s.url}
+                suggestion={s}
+                primary={i === 0}
+                onPick={navigateTo}
+              />
+            ))}
+          </div>
+        ) : recent.length > 0 ? (
+          <RecentList entries={recent} onPick={navigateTo} />
+        ) : null}
       </div>
-      {/* Pinned shortcuts — bottom row */}
-      <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-2.5">
-        {PINS.map((p) => (
-          <button
-            key={p.label}
-            onClick={() => navigateTo(p.url)}
-            className="flex flex-col items-center gap-1.5 w-16 group"
-          >
-            <span
-              className="w-11 h-11 rounded-[13px] inline-flex items-center justify-center font-semibold text-md shadow-1 group-hover:scale-105 transition-transform"
-              style={{ background: p.color, color: p.ink }}
-            >
-              {p.letter}
-            </span>
-            <span className="text-[10px] text-ink-2 truncate max-w-full">{p.label}</span>
-          </button>
+
+      {/* Pinned bookmarks — user-editable */}
+      <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-2.5 px-6">
+        {bookmarks.map((b) => (
+          <BookmarkPill key={b.id} bookmark={b} onPick={navigateTo} />
         ))}
+        <AddBookmarkButton />
       </div>
     </div>
   );
@@ -239,13 +232,187 @@ function SuggestionChip({
       }`}
     >
       {suggestion.color && (
-        <span
-          className="w-2 h-2 rounded-full"
-          style={{ background: suggestion.color }}
-        />
+        <span className="w-2 h-2 rounded-full" style={{ background: suggestion.color }} />
       )}
       <span className="font-medium">{suggestion.label}</span>
     </button>
+  );
+}
+
+function RecentList({
+  entries,
+  onPick,
+}: {
+  entries: readonly HistoryEntry[];
+  onPick: (url: string) => void;
+}) {
+  return (
+    <div className="mt-5 flex flex-col gap-1">
+      <div className="text-[10px] font-mono text-ink-3 uppercase tracking-[0.16em] mb-1">
+        Recently visited
+      </div>
+      {entries.map((e) => (
+        <button
+          key={e.url}
+          onClick={() => onPick(e.url)}
+          className="group flex items-center gap-3 px-3 py-2 rounded-[10px] bg-surface-2/70 hover:bg-surface-3 border border-line text-left transition-colors"
+        >
+          <Favicon url={e.url} />
+          <span className="flex-1 min-w-0 truncate text-sm text-ink-0">{e.title || e.url}</span>
+          <span className="shrink-0 text-[11px] text-ink-3 font-mono truncate max-w-[180px]">
+            {hostname(e.url)}
+          </span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function Favicon({ url }: { url: string }) {
+  const host = hostname(url);
+  // Use Google's public favicon proxy — no extension config required and
+  // resilient when sites block hotlinks.
+  const src = `https://www.google.com/s2/favicons?sz=32&domain=${encodeURIComponent(host)}`;
+  return (
+    <img
+      src={src}
+      alt=""
+      width={16}
+      height={16}
+      className="w-4 h-4 rounded-sm shrink-0"
+      onError={(e) => {
+        (e.currentTarget as HTMLImageElement).style.visibility = 'hidden';
+      }}
+    />
+  );
+}
+
+function BookmarkPill({
+  bookmark,
+  onPick,
+}: {
+  bookmark: Bookmark;
+  onPick: (url: string) => void;
+}) {
+  const removeBookmark = useChromeStore((s) => s.removeBookmark);
+  return (
+    <div className="relative group flex flex-col items-center gap-1.5 w-16">
+      <button
+        onClick={() => onPick(bookmark.url)}
+        className="w-11 h-11 rounded-[13px] inline-flex items-center justify-center font-semibold text-md shadow-1 group-hover:scale-105 transition-transform"
+        style={{ background: bookmark.color, color: contrastInk(bookmark.color) }}
+      >
+        {firstLetter(bookmark.label)}
+      </button>
+      <span className="text-[10px] text-ink-2 truncate max-w-full">{bookmark.label}</span>
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          removeBookmark(bookmark.id);
+        }}
+        title="Remove bookmark"
+        className="opacity-0 group-hover:opacity-100 absolute -top-1 -right-1 w-5 h-5 rounded-full bg-bad text-white inline-flex items-center justify-center shadow-1 hover:scale-110"
+      >
+        <XMarkIcon className="w-3 h-3" strokeWidth={2.5} />
+      </button>
+    </div>
+  );
+}
+
+function AddBookmarkButton() {
+  const addBookmark = useChromeStore((s) => s.addBookmark);
+  const [open, setOpen] = useState(false);
+  const [label, setLabel] = useState('');
+  const [url, setUrl] = useState('');
+  const [color, setColor] = useState(BOOKMARK_COLORS[0]!.hex);
+
+  const submit = () => {
+    const u = url.trim();
+    if (!u) return;
+    const finalUrl = /^https?:\/\//i.test(u) ? u : `https://${u}`;
+    const finalLabel = label.trim() || hostname(finalUrl) || 'Site';
+    addBookmark({ label: finalLabel, url: finalUrl, color });
+    setLabel('');
+    setUrl('');
+    setColor(BOOKMARK_COLORS[0]!.hex);
+    setOpen(false);
+  };
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        title="Add bookmark"
+        className="flex flex-col items-center gap-1.5 w-16 group"
+      >
+        <span className="w-11 h-11 rounded-[13px] inline-flex items-center justify-center bg-surface-3 text-ink-2 border border-dashed border-line-strong group-hover:bg-surface-4 group-hover:text-ink-0 transition-colors">
+          <PlusIcon className="w-5 h-5" />
+        </span>
+        <span className="text-[10px] text-ink-3 truncate max-w-full">Add</span>
+      </button>
+    );
+  }
+
+  return (
+    <div className="absolute bottom-[100%] mb-3 left-1/2 -translate-x-1/2 w-[300px] rounded-[14px] bg-surface-2 border border-line shadow-3 p-3 flex flex-col gap-2.5 z-30">
+      <div className="text-[10px] font-mono text-ink-3 uppercase tracking-[0.14em]">
+        New bookmark
+      </div>
+      <input
+        autoFocus
+        value={url}
+        onChange={(e) => setUrl(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') submit();
+          if (e.key === 'Escape') setOpen(false);
+        }}
+        placeholder="https://…"
+        spellCheck={false}
+        className="h-9 px-3 rounded-[9px] bg-surface-3 border border-line text-sm text-ink-0 outline-none focus:border-acc placeholder:text-ink-3"
+      />
+      <input
+        value={label}
+        onChange={(e) => setLabel(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') submit();
+          if (e.key === 'Escape') setOpen(false);
+        }}
+        placeholder="Label (optional)"
+        spellCheck={false}
+        className="h-9 px-3 rounded-[9px] bg-surface-3 border border-line text-sm text-ink-0 outline-none focus:border-acc placeholder:text-ink-3"
+      />
+      <div className="flex items-center justify-between gap-1">
+        {BOOKMARK_COLORS.map((c) => (
+          <button
+            key={c.hex}
+            type="button"
+            title={c.label}
+            onClick={() => setColor(c.hex)}
+            className={`w-6 h-6 rounded-md transition-shadow ${
+              c.hex.toLowerCase() === color.toLowerCase()
+                ? 'shadow-[0_0_0_2px_rgb(var(--ink-0))]'
+                : 'hover:scale-110'
+            }`}
+            style={{ background: c.hex }}
+          />
+        ))}
+      </div>
+      <div className="flex items-center justify-end gap-1.5">
+        <button
+          onClick={() => setOpen(false)}
+          className="h-7 px-2.5 rounded-md text-xs text-ink-2 hover:text-ink-0"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={submit}
+          disabled={!url.trim()}
+          className="h-7 px-2.5 rounded-md bg-ink-0 text-ink-inv text-xs font-medium disabled:opacity-30"
+        >
+          Add
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -282,3 +449,23 @@ function formatTime(d: Date): string {
   return `${days[d.getDay()]} / ${mons[d.getMonth()]} ${d.getDate()} / ${hr}:${mn}`;
 }
 
+function hostname(url: string): string {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return url;
+  }
+}
+
+function firstLetter(label: string): string {
+  return (label.trim()[0] ?? '?').toUpperCase();
+}
+
+function contrastInk(hex: string): string {
+  if (!hex || !hex.startsWith('#') || hex.length < 7) return '#15120D';
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const luma = 0.299 * r + 0.587 * g + 0.114 * b;
+  return luma > 150 ? '#15120D' : '#FBFAF7';
+}

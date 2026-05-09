@@ -14,6 +14,7 @@ import { BrowserWindow, WebContentsView } from 'electron';
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import type { TabId } from '@sable/layout-engine';
+import type { HistoryManager } from './history-manager';
 
 /**
  * Path to the compiled tab preload. Resolved relative to dist/main where
@@ -69,7 +70,10 @@ export class TabManager {
   private readonly removeListeners = new Set<RemoveListener>();
   private readonly reorderListeners = new Set<ReorderListener>();
 
-  constructor(private readonly window: BrowserWindow) {}
+  constructor(
+    private readonly window: BrowserWindow,
+    private readonly history?: HistoryManager,
+  ) {}
 
   create(initialUrl: string, spaceId: string): TabId {
     const id = randomUUID();
@@ -338,12 +342,28 @@ export class TabManager {
     const wc = view.webContents;
     wc.on('did-start-loading', () => this.update(id, { loading: true }));
     wc.on('did-stop-loading', () => this.update(id, { loading: false, ...this.navState(id) }));
-    wc.on('did-navigate', (_e, url) => this.update(id, { url, ...this.navState(id) }));
-    wc.on('did-navigate-in-page', (_e, url) => this.update(id, { url, ...this.navState(id) }));
-    wc.on('page-title-updated', (_e, title) => this.update(id, { title }));
+    wc.on('did-navigate', (_e, url) => {
+      this.update(id, { url, ...this.navState(id) });
+      this.recordHistory(id);
+    });
+    wc.on('did-navigate-in-page', (_e, url) => {
+      this.update(id, { url, ...this.navState(id) });
+      this.recordHistory(id);
+    });
+    wc.on('page-title-updated', (_e, title) => {
+      this.update(id, { title });
+      this.recordHistory(id);
+    });
     wc.on('page-favicon-updated', (_e, favicons) => {
       this.update(id, { faviconUrl: favicons[0] });
     });
+  }
+
+  private recordHistory(id: TabId): void {
+    if (!this.history) return;
+    const state = this.tabs.get(id)?.state;
+    if (!state) return;
+    this.history.record({ url: state.url, title: state.title });
   }
 
   private navState(id: TabId): { canGoBack: boolean; canGoForward: boolean } {

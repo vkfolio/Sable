@@ -14,6 +14,7 @@ import { getWindowControls } from './platform/window-controls';
 import { TabManager } from './tab-manager';
 import { LayoutController } from './layout-controller';
 import { ChatOrchestrator, resolveImage } from './chat-orchestrator';
+import { HistoryManager } from './history-manager';
 import { SettingsStore, type ProviderId } from './settings-store';
 import { LocalModelManager, type LocalModelVariantId } from './local-model-manager';
 import { SpaceManager, type SpaceId } from './space-manager';
@@ -34,6 +35,7 @@ export class WindowManager {
   private chat: ChatOrchestrator | undefined;
   private readonly settings = new SettingsStore();
   private readonly localModels = new LocalModelManager();
+  private readonly history = new HistoryManager();
   private readonly spaces = new SpaceManager();
   private spacesLoaded = false;
   private activeTabId: TabId | null = null;
@@ -87,7 +89,7 @@ export class WindowManager {
 
     win.contentView.addChildView(chrome);
 
-    const tabs = new TabManager(win);
+    const tabs = new TabManager(win, this.history);
     const layout = new LayoutController(win, tabs, chrome, controls.titleBarHeight);
     const chat = new ChatOrchestrator(
       this.settings,
@@ -387,6 +389,16 @@ export class WindowManager {
     ipcMain.handle(IpcChannels.ChatResolveImage, async (_e, srcUrl: string) => {
       return resolveImage(srcUrl);
     });
+    ipcMain.handle(IpcChannels.HistoryRecent, (_e, limit?: number) => {
+      return this.history.recent(typeof limit === 'number' ? limit : 5);
+    });
+    ipcMain.handle(IpcChannels.HistorySearch, (_e, query: string) => {
+      return this.history.search(query ?? '', 8);
+    });
+    ipcMain.handle(IpcChannels.HistoryClear, () => {
+      this.history.clear();
+    });
+
     ipcMain.handle(IpcChannels.IntentResolve, async (_e, query: string) => {
       if (!this.chat) return [];
       // Single-flight: cancel any in-flight intent resolve before starting

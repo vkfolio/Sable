@@ -86,7 +86,10 @@ export function App() {
       const ctrlOrMeta = e.ctrlKey || e.metaKey;
       if (!ctrlOrMeta) return;
       const k = e.key.toLowerCase();
-      if (k === 't') {
+      if (k === 't' || k === 'n') {
+        // Ctrl+T (Chrome) and Ctrl+N (some users' muscle memory) both open
+        // a new tab. Ctrl+N traditionally means "new window" in Chrome but
+        // we have no separate-window concept yet; keep them aliases.
         e.preventDefault();
         void window.sable.tabs.create('sable://newtab');
       } else if (k === 'w' && activeTabId) {

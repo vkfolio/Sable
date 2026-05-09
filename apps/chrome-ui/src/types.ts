@@ -107,6 +107,13 @@ export type SpacesSnapshot = {
 
 export type AgentEvent = BaseEvent;
 
+export type HistoryEntry = {
+  readonly url: string;
+  readonly title: string;
+  readonly lastVisitedAt: number;
+  readonly visitCount: number;
+};
+
 export type TabState = {
   readonly id: TabId;
   readonly url: string;
@@ -190,6 +197,11 @@ export type SableApi = {
   };
   readonly intent: {
     resolve(query: string): Promise<readonly { label: string; description: string; url: string; color?: string }[]>;
+  };
+  readonly history: {
+    recent(limit?: number): Promise<readonly HistoryEntry[]>;
+    search(query: string): Promise<readonly HistoryEntry[]>;
+    clear(): Promise<void>;
   };
   readonly settings: {
     get(): Promise<SettingsSnapshot>;

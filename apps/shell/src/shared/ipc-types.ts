@@ -80,6 +80,14 @@ export type SpacesSnapshot = {
 /** AG-UI events flow over IPC as plain JSON; ag-ui/core types describe shape. */
 export type AgentEvent = BaseEvent;
 
+/** Per-URL history record — same-URL visits collapse via record(). */
+export type HistoryEntry = {
+  readonly url: string;
+  readonly title: string;
+  readonly lastVisitedAt: number;
+  readonly visitCount: number;
+};
+
 /** A single leaf pane with its tab and current screen rect. */
 export type SnapshotLeaf = {
   readonly paneId: PaneId;
@@ -203,6 +211,14 @@ export type SableApi = {
      *  callers can silently fall back to the static rules. */
     resolve(query: string): Promise<readonly { label: string; description: string; url: string; color?: string }[]>;
   };
+  readonly history: {
+    /** Most-recently-visited entries, newest first. */
+    recent(limit?: number): Promise<readonly HistoryEntry[]>;
+    /** Substring match on title/url, recency × frequency ranked. */
+    search(query: string): Promise<readonly HistoryEntry[]>;
+    /** Wipe all history. */
+    clear(): Promise<void>;
+  };
   readonly settings: {
     get(): Promise<SettingsSnapshot>;
     setActiveProvider(provider: ProviderId): Promise<void>;
@@ -296,6 +312,10 @@ export const IpcChannels = {
   ChatResolveImage: 'chat:resolveImage',
   ChatAgentEvent: 'chat:agentEvent',
   IntentResolve: 'intent:resolve',
+  // history
+  HistoryRecent: 'history:recent',
+  HistorySearch: 'history:search',
+  HistoryClear: 'history:clear',
   SettingsGet: 'settings:get',
   SettingsSetActiveProvider: 'settings:setActiveProvider',
   SettingsSetSelectedModel: 'settings:setSelectedModel',

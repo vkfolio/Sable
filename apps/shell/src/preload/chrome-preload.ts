@@ -11,6 +11,7 @@ import {
   type ChatSendContent,
   type DropEdge,
   type ExtractedTabContent,
+  type HistoryEntry,
   type LayoutSnapshot,
   type LocalModelEvent,
   type LocalModelStatus,
@@ -93,6 +94,13 @@ const api: SableApi = {
       ipcRenderer.invoke(IpcChannels.IntentResolve, query) as Promise<
         readonly { label: string; description: string; url: string; color?: string }[]
       >,
+  },
+  history: {
+    recent: (limit?: number) =>
+      ipcRenderer.invoke(IpcChannels.HistoryRecent, limit) as Promise<readonly HistoryEntry[]>,
+    search: (query: string) =>
+      ipcRenderer.invoke(IpcChannels.HistorySearch, query) as Promise<readonly HistoryEntry[]>,
+    clear: () => ipcRenderer.invoke(IpcChannels.HistoryClear) as Promise<void>,
   },
   settings: {
     get: () => ipcRenderer.invoke(IpcChannels.SettingsGet) as Promise<SettingsSnapshot>,

@@ -11,22 +11,78 @@ import { Chat } from './Chat/Chat';
 import { SettingsDialog } from './Settings/SettingsDialog';
 import { useSettingsStore } from '../state/settings';
 import { useChromeStore } from '../state/chrome';
+import { useCitationsStore } from '../state/citations';
+import { hasSableMime, parseDrop, resolveImageCitation } from '../citation-drop';
 
 export function ChatSidebar() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const activeProvider = useSettingsStore((s) => s.activeProvider);
   const selectedModel = useSettingsStore((s) => s.selectedModel);
   const chatWidth = useChromeStore((s) => s.chatWidth);
+  const addCitation = useCitationsStore((s) => s.add);
+  const [dragOver, setDragOver] = useState(false);
+  const [resolveError, setResolveError] = useState<string | null>(null);
+
+  const handleDragOver = (e: React.DragEvent) => {
+    if (!hasSableMime(e.dataTransfer)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+    if (!dragOver) setDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    // Only clear when actually leaving the sidebar root, not when crossing
+    // child boundaries (which fire dragleave→dragenter on the same frame).
+    if (e.currentTarget === e.target) setDragOver(false);
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    if (!hasSableMime(e.dataTransfer)) return;
+    e.preventDefault();
+    setDragOver(false);
+    setResolveError(null);
+    const parsed = parseDrop(e.dataTransfer);
+    if (!parsed) return;
+    if (parsed.kind === 'text') {
+      addCitation(parsed.citation);
+      return;
+    }
+    try {
+      const c = await resolveImageCitation(parsed.payload);
+      addCitation(c);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setResolveError(`Couldn't attach image: ${msg}`);
+      setTimeout(() => setResolveError(null), 4000);
+    }
+  };
 
   return (
     <>
       <aside
-        className="relative shrink-0 flex flex-col bg-surface-1 border-l border-line min-h-0"
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        className={`relative shrink-0 flex flex-col bg-surface-1 border-l border-line min-h-0 ${
+          dragOver ? 'outline outline-2 outline-dashed outline-acc -outline-offset-4' : ''
+        }`}
         style={{ width: chatWidth }}
       >
         <ResizeHandle />
         <Header onOpenSettings={() => setSettingsOpen(true)} provider={activeProvider} model={selectedModel} />
         <Chat onOpenSettings={() => setSettingsOpen(true)} />
+        {dragOver && (
+          <div className="pointer-events-none absolute inset-3 z-30 flex items-center justify-center rounded-2xl bg-acc/15 backdrop-blur-sm">
+            <span className="px-4 py-2 rounded-full bg-ink-0 text-ink-inv text-sm font-medium shadow-3">
+              Drop to add as chat context
+            </span>
+          </div>
+        )}
+        {resolveError && (
+          <div className="absolute bottom-3 left-3 right-3 z-30 px-3 py-2 bg-bad/15 border border-bad/40 rounded-md text-xs text-bad shadow-1">
+            {resolveError}
+          </div>
+        )}
       </aside>
       {settingsOpen && <SettingsDialog onClose={() => setSettingsOpen(false)} />}
     </>

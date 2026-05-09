@@ -11,6 +11,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useChatStore } from '../../state/chat';
+import { useCitationsStore } from '../../state/citations';
 import { useSettingsStore } from '../../state/settings';
 import { useTabsStore } from '../../state/tabs';
 import { useLocalModelStore } from '../../state/local-model';
@@ -90,7 +91,9 @@ export function Chat({ onOpenSettings }: { onOpenSettings: () => void }) {
   }, [activeTabId, manualSelectedTabs, tabsById]);
 
   const [composerText, setComposerText] = useState('');
-  const [citations, setCitations] = useState<Citation[]>([]);
+  const citations = useCitationsStore((s) => s.citations);
+  const removeCitation = useCitationsStore((s) => s.remove);
+  const clearCitations = useCitationsStore((s) => s.clear);
   const [extracting, setExtracting] = useState(false);
   const [excludedTabsNote, setExcludedTabsNote] = useState<string | null>(null);
 
@@ -148,7 +151,7 @@ export function Chat({ onOpenSettings }: { onOpenSettings: () => void }) {
     pushUserMessage(uiText);
 
     setComposerText('');
-    setCitations([]);
+    clearCitations();
 
     try {
       const runId = await window.sable.chat.send(conversationId, { text: llmText, images });
@@ -162,8 +165,7 @@ export function Chat({ onOpenSettings }: { onOpenSettings: () => void }) {
     if (activeRunId) void window.sable.chat.stop(activeRunId);
   };
 
-  const handleAddCitation = (c: Citation) => setCitations((prev) => [...prev, c]);
-  const handleRemoveCitation = (id: string) => setCitations((prev) => prev.filter((c) => c.id !== id));
+  const handleRemoveCitation = removeCitation;
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
@@ -205,7 +207,6 @@ export function Chat({ onOpenSettings }: { onOpenSettings: () => void }) {
             : 'Ask anything · Ctrl+click tabs to add as context'
         }
         citations={citations}
-        onAddCitation={handleAddCitation}
         onRemoveCitation={handleRemoveCitation}
       />
     </div>

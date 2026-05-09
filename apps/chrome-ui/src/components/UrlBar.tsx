@@ -19,6 +19,7 @@ import { useChromeStore } from '../state/chrome';
 import { useSpacesStore } from '../state/spaces';
 import { useLayoutStore } from '../state/layout';
 import { normalizeUrl } from '../url';
+import type { HistoryEntry } from '../types';
 
 /**
  * Outer wrapper: in multi-pane layouts, each pane carries its own MiniUrlBar
@@ -46,10 +47,53 @@ function UrlBarBody() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState('');
   const [editing, setEditing] = useState(false);
+  const [matches, setMatches] = useState<readonly HistoryEntry[]>([]);
+  const [highlight, setHighlight] = useState(-1);
 
   useEffect(() => {
     if (!editing) setDraft(active?.url ?? '');
   }, [active?.url, editing]);
+
+  // While the dropdown is visible we need to retract the active tab's
+  // WebContentsView — Electron always layers tab views above the chrome's
+  // React DOM, so without this the dropdown is invisible on a loaded page.
+  // setOverlay(true) calls layout.setDragMode(true) which unmountAll()s the
+  // tab views; cleanup remounts. Same trick SettingsDialog / SpacesPopover
+  // use.
+  useEffect(() => {
+    if (!editing) return;
+    void window.sable.chrome.setOverlay(true);
+    return () => {
+      void window.sable.chrome.setOverlay(false);
+    };
+  }, [editing]);
+
+  // Debounced history search while editing — drives the autocomplete
+  // dropdown beneath the URL field.
+  useEffect(() => {
+    if (!editing) {
+      setMatches([]);
+      setHighlight(-1);
+      return;
+    }
+    const t = draft.trim();
+    if (!t) {
+      // empty draft → show recent
+      let cancelled = false;
+      void window.sable.history.recent(5).then((r) => {
+        if (!cancelled) setMatches(r);
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
+    const id = setTimeout(async () => {
+      const r = await window.sable.history.search(t).catch(() => []);
+      setMatches(r.slice(0, 5));
+      setHighlight(-1);
+    }, 120);
+    return () => clearTimeout(id);
+  }, [draft, editing]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -63,15 +107,20 @@ function UrlBarBody() {
     return () => document.removeEventListener('keydown', handler);
   }, []);
 
-  const submit = () => {
-    if (!active) {
-      const url = normalizeUrl(draft);
-      if (url) void window.sable.tabs.create(url);
-    } else {
-      const url = normalizeUrl(draft);
-      if (url) void window.sable.tabs.navigate(active.id, url);
-    }
+  const navigate = (url: string) => {
+    if (!active) void window.sable.tabs.create(url);
+    else void window.sable.tabs.navigate(active.id, url);
     inputRef.current?.blur();
+  };
+
+  const submit = () => {
+    // If a history row is highlighted, commit to it.
+    if (highlight >= 0 && highlight < matches.length) {
+      navigate(matches[highlight]!.url);
+      return;
+    }
+    const url = normalizeUrl(draft);
+    if (url) navigate(url);
   };
 
   const ttl = active?.title || active?.url || '';
@@ -85,50 +134,71 @@ function UrlBarBody() {
     >
       <NavButtons active={active} />
 
-      <div
-        className={`flex-1 h-9 flex items-center gap-2.5 pl-3.5 pr-2.5 rounded-[11px] cursor-text bg-surface-2 border ${
-          editing ? 'border-acc shadow-[0_0_0_4px_rgb(var(--acc-glow)),var(--shadow-1)]' : 'border-line shadow-1 hover:border-line-strong'
-        } transition-colors`}
-        onClick={() => {
-          if (!editing) {
-            setEditing(true);
-            // give the click time to land before we focus
-            setTimeout(() => {
-              inputRef.current?.focus();
-              inputRef.current?.select();
-            }, 0);
-          }
-        }}
-      >
-        {isHttps && !editing && (
-          <LockClosedIcon className="w-3.5 h-3.5 text-ok shrink-0" />
-        )}
-        {editing ? (
-          <input
-            ref={inputRef}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onBlur={() => setEditing(false)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') submit();
-              else if (e.key === 'Escape') {
-                setDraft(active?.url ?? '');
-                inputRef.current?.blur();
-              }
+      <div className="relative flex-1">
+        <div
+          className={`h-9 flex items-center gap-2.5 pl-3.5 pr-2.5 rounded-[11px] cursor-text bg-surface-2 border ${
+            editing ? 'border-acc shadow-[0_0_0_4px_rgb(var(--acc-glow)),var(--shadow-1)]' : 'border-line shadow-1 hover:border-line-strong'
+          } transition-colors`}
+          onClick={() => {
+            if (!editing) {
+              setEditing(true);
+              setTimeout(() => {
+                inputRef.current?.focus();
+                inputRef.current?.select();
+              }, 0);
+            }
+          }}
+        >
+          {isHttps && !editing && (
+            <LockClosedIcon className="w-3.5 h-3.5 text-ok shrink-0" />
+          )}
+          {editing ? (
+            <input
+              ref={inputRef}
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onBlur={() => {
+                // Tiny delay so a click on a dropdown row can land before the
+                // dropdown unmounts.
+                setTimeout(() => setEditing(false), 100);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') submit();
+                else if (e.key === 'Escape') {
+                  setDraft(active?.url ?? '');
+                  inputRef.current?.blur();
+                } else if (e.key === 'ArrowDown') {
+                  e.preventDefault();
+                  setHighlight((i) => Math.min(matches.length - 1, i + 1));
+                } else if (e.key === 'ArrowUp') {
+                  e.preventDefault();
+                  setHighlight((i) => Math.max(-1, i - 1));
+                }
+              }}
+              placeholder="Search, ask, or paste a link…"
+              spellCheck={false}
+              className="flex-1 min-w-0 border-0 bg-transparent outline-none text-base text-ink-0 font-medium placeholder:text-ink-3 placeholder:font-normal"
+            />
+          ) : active ? (
+            <>
+              <span className="flex-1 min-w-0 truncate text-base font-medium text-ink-0">{ttl}</span>
+              <em className="shrink-0 not-italic text-sm text-ink-3 font-normal">{sub}</em>
+            </>
+          ) : (
+            <span className="flex-1 min-w-0 truncate text-base text-ink-3">Search, ask, or paste a link…</span>
+          )}
+          <kbd className="font-mono text-[10px] text-ink-2 bg-surface-3 px-1.5 py-0.5 rounded border border-line shrink-0">⌘L</kbd>
+        </div>
+        {editing && matches.length > 0 && (
+          <HistoryDropdown
+            matches={matches}
+            highlight={highlight}
+            onPick={(url) => {
+              navigate(url);
             }}
-            placeholder="Search, ask, or paste a link…"
-            spellCheck={false}
-            className="flex-1 min-w-0 border-0 bg-transparent outline-none text-base text-ink-0 font-medium placeholder:text-ink-3 placeholder:font-normal"
+            onHover={setHighlight}
           />
-        ) : active ? (
-          <>
-            <span className="flex-1 min-w-0 truncate text-base font-medium text-ink-0">{ttl}</span>
-            <em className="shrink-0 not-italic text-sm text-ink-3 font-normal">{sub}</em>
-          </>
-        ) : (
-          <span className="flex-1 min-w-0 truncate text-base text-ink-3">Search, ask, or paste a link…</span>
         )}
-        <kbd className="font-mono text-[10px] text-ink-2 bg-surface-3 px-1.5 py-0.5 rounded border border-line shrink-0">⌘L</kbd>
       </div>
 
       <div className="shrink-0 flex items-center gap-0.5">
@@ -150,6 +220,60 @@ function UrlBarBody() {
         </button>
       </div>
     </div>
+  );
+}
+
+function HistoryDropdown({
+  matches,
+  highlight,
+  onPick,
+  onHover,
+}: {
+  matches: readonly HistoryEntry[];
+  highlight: number;
+  onPick: (url: string) => void;
+  onHover: (i: number) => void;
+}) {
+  return (
+    <div className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-surface-2 border border-line rounded-[11px] shadow-3 overflow-hidden">
+      {matches.map((m, i) => (
+        <button
+          key={m.url}
+          onMouseDown={(e) => {
+            // Prevent input blur from firing before the click commits.
+            e.preventDefault();
+            onPick(m.url);
+          }}
+          onMouseEnter={() => onHover(i)}
+          className={`w-full flex items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors ${
+            i === highlight ? 'bg-acc-soft text-ink-0' : 'hover:bg-surface-3'
+          }`}
+        >
+          <Favicon url={m.url} />
+          <span className="flex-1 min-w-0 truncate text-ink-0">{m.title || m.url}</span>
+          <span className="shrink-0 text-[11px] text-ink-3 font-mono truncate max-w-[200px]">
+            {safeHost(m.url)}
+          </span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function Favicon({ url }: { url: string }) {
+  const host = safeHost(url);
+  const src = `https://www.google.com/s2/favicons?sz=32&domain=${encodeURIComponent(host)}`;
+  return (
+    <img
+      src={src}
+      alt=""
+      width={16}
+      height={16}
+      className="w-4 h-4 rounded-sm shrink-0"
+      onError={(e) => {
+        (e.currentTarget as HTMLImageElement).style.visibility = 'hidden';
+      }}
+    />
   );
 }
 
