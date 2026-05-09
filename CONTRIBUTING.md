@@ -29,7 +29,7 @@ sable/
 ## Local setup
 
 ```bash
-git clone https://github.com/your-org/sable.git
+git clone https://github.com/vkfolio/Sable.git
 cd sable
 pnpm install
 pnpm shell                 # builds chrome-ui then launches Electron

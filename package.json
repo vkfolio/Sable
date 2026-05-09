@@ -7,11 +7,11 @@
   "author": "vkdev and Sable contributors",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/your-org/sable.git"
+    "url": "git+https://github.com/vkfolio/Sable.git"
   },
-  "homepage": "https://github.com/your-org/sable#readme",
+  "homepage": "https://github.com/vkfolio/Sable#readme",
   "bugs": {
-    "url": "https://github.com/your-org/sable/issues"
+    "url": "https://github.com/vkfolio/Sable/issues"
   },
   "packageManager": "pnpm@9.15.0",
   "engines": {

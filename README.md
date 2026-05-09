@@ -244,7 +244,7 @@ Each theme has a light and a dark sub-mode. The pastel mixes through every surfa
 ## Quickstart
 
 ```bash
-git clone https://github.com/your-org/sable.git
+git clone https://github.com/vkfolio/Sable.git
 cd sable
 pnpm install
 pnpm shell
