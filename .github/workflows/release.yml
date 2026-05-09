@@ -63,6 +63,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # layout-engine compiles to dist/ which downstream packages (shell,
+      # chrome-ui) consume via its package.json `main`/`types` fields. Must
+      # come before typecheck or imports of @sable/layout-engine fail.
+      - name: Build layout-engine
+        run: pnpm --filter @sable/layout-engine build
+
       - name: Build chrome-ui (renderer)
         run: pnpm chrome-ui:build
 
