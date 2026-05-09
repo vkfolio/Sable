@@ -8,7 +8,7 @@
 
 <p>
   <img alt="status" src="https://img.shields.io/badge/status-V1.0_alpha-7adabf?style=flat-square" />
-  <img alt="platforms" src="https://img.shields.io/badge/platforms-Windows%20·%20macOS%20·%20Linux-6b7cff?style=flat-square" />
+  <img alt="platforms" src="https://img.shields.io/badge/platforms-Windows%20·%20macOS-6b7cff?style=flat-square" />
   <img alt="license" src="https://img.shields.io/badge/license-MIT-a78bfa?style=flat-square" />
   <img alt="electron" src="https://img.shields.io/badge/electron-33-9feaf9?style=flat-square" />
   <img alt="typescript" src="https://img.shields.io/badge/typescript-5.7-3178c6?style=flat-square" />
@@ -28,7 +28,7 @@ Drop a paragraph from any page into the chat sidebar — Sable cites it back aut
 
 It's not a Chrome wrapper with a chat button. It's a real browser, designed from scratch around the way you actually work with AI — and built to grow into **recordable workflow "skills", a memory of your browsing, and a personal knowledge graph** that makes everything you've ever read searchable.
 
-Available on **Windows, macOS, Linux**.
+Available on **Windows and macOS**.
 
 <div align="center">
   <br />

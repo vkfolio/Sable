@@ -4,7 +4,7 @@ name: Release
 # Also runnable manually from the Actions tab via workflow_dispatch — use that for dry runs.
 #
 # What it does:
-#   - matrix builds on ubuntu-latest, macos-14 (arm64 + x64), and windows-latest
+#   - matrix builds on macos-14 (arm64 + x64) and windows-latest
 #   - rebuilds native deps (keytar, node-llama-cpp) for Electron's ABI on each runner
 #   - bundles chrome-ui dist + native modules into the installer
 #   - uploads the artifacts as a draft GitHub Release named after the tag
@@ -39,13 +39,8 @@ jobs:
         include:
           - os: windows-latest
             platform: win
-            artifact_glob: 'apps/shell/out/*.exe'
           - os: macos-14
             platform: mac
-            artifact_glob: 'apps/shell/out/*.dmg apps/shell/out/*.zip'
-          - os: ubuntu-latest
-            platform: linux
-            artifact_glob: 'apps/shell/out/*.AppImage apps/shell/out/*.deb'
 
     steps:
       - name: Checkout
@@ -64,13 +59,6 @@ jobs:
         with:
           node-version: 22.14.0
           cache: pnpm
-
-      # Linux runners need extra packages for AppImage / deb builders.
-      - name: Install Linux build deps
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libarchive-tools rpm fakeroot dpkg
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -101,8 +89,6 @@ jobs:
             apps/shell/out/*.exe
             apps/shell/out/*.dmg
             apps/shell/out/*.zip
-            apps/shell/out/*.AppImage
-            apps/shell/out/*.deb
             apps/shell/out/*.blockmap
             apps/shell/out/latest*.yml
           if-no-files-found: warn
