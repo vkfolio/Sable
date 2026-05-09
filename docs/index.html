@@ -1,1402 +1,2717 @@
 <!doctype html>
 <html lang="en">
+
 <head>
-<meta charset="utf-8" />
-<title>Sable — A browser where chat and pages are one workspace</title>
-<meta name="description" content="An AI-first desktop browser. Free out of the box — a fast AI model is built in. Drop a paragraph into chat for an instant citation. Drag tabs together to group, or to an edge to split. Open source, MIT." />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<meta name="color-scheme" content="light dark" />
-<meta property="og:title" content="Sable — A browser where chat and pages are one workspace" />
-<meta property="og:description" content="An AI-first desktop browser. Free out of the box — built-in AI runs on your machine. Optional Anthropic / OpenAI BYOK. Open source, MIT." />
-<meta property="og:type" content="website" />
-<link rel="icon" type="image/svg+xml" href="icon.svg" />
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-<style>
-/* =========================================================
+  <meta charset="utf-8" />
+  <title>Sable — A browser where chat and pages are one workspace</title>
+  <meta name="description"
+    content="An AI-first desktop browser. Free out of the box — a fast AI model is built in. Drop a paragraph into chat for an instant citation. Drag tabs together to group, or to an edge to split. Open source, MIT." />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <meta property="og:title" content="Sable — A browser where chat and pages are one workspace" />
+  <meta property="og:description"
+    content="An AI-first desktop browser. Free out of the box — built-in AI runs on your machine. Optional Anthropic / OpenAI BYOK. Open source, MIT." />
+  <meta property="og:type" content="website" />
+  <link rel="icon" type="image/svg+xml" href="icon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet" />
+  <style>
+    /* =========================================================
    SABLE LAUNCH SITE — design tokens cribbed from v3 design system
    Light = warm cream (default), dark = warm-nocturnal toggle
    ========================================================= */
 
-:root,
-[data-theme="light"] {
-  --bg:           #F4F1EC;
-  --surface-1:    #FBFAF7;
-  --surface-2:    #FFFFFF;
-  --surface-3:    #F0EDE7;
-  --surface-4:    #E6E2DA;
+    :root,
+    [data-theme="light"] {
+      --bg: #F4F1EC;
+      --surface-1: #FBFAF7;
+      --surface-2: #FFFFFF;
+      --surface-3: #F0EDE7;
+      --surface-4: #E6E2DA;
 
-  --line:         rgba(20, 16, 8, .07);
-  --line-strong:  rgba(20, 16, 8, .12);
+      --line: rgba(20, 16, 8, .07);
+      --line-strong: rgba(20, 16, 8, .12);
 
-  --ink-0:        #15120D;
-  --ink-1:        #3F3A30;
-  --ink-2:        #6E6759;
-  --ink-3:        #9C9381;
-  --ink-4:        #BAB1A0;
+      --ink-0: #15120D;
+      --ink-1: #3F3A30;
+      --ink-2: #6E6759;
+      --ink-3: #9C9381;
+      --ink-4: #BAB1A0;
 
-  --p-coral:      #FFB89E;
-  --p-peach:      #FFD49B;
-  --p-butter:     #FFE69A;
-  --p-mint:       #B3E5C9;
-  --p-sky:        #B5D4F2;
-  --p-lavender:   #C9BEEE;
-  --p-rose:       #F2BCD0;
+      --p-coral: #FFB89E;
+      --p-peach: #FFD49B;
+      --p-butter: #FFE69A;
+      --p-mint: #B3E5C9;
+      --p-sky: #B5D4F2;
+      --p-lavender: #C9BEEE;
+      --p-rose: #F2BCD0;
 
-  --acc:          var(--p-lavender);
-  --acc-ink:      #4938A8;
-  --acc-soft:     #EAE3FB;
-  --acc-glow:     rgba(155,128,240,.28);
+      --acc: var(--p-lavender);
+      --acc-ink: #4938A8;
+      --acc-soft: #EAE3FB;
+      --acc-glow: rgba(155, 128, 240, .28);
 
-  --ok:           #2E8856;
-  --warn:         #B8780E;
-  --bad:          #C1442D;
+      --ok: #2E8856;
+      --warn: #B8780E;
+      --bad: #C1442D;
 
-  --shadow-1: 0 1px 2px rgba(20,16,8,.04), 0 1px 1px rgba(20,16,8,.03);
-  --shadow-2: 0 8px 24px rgba(20,16,8,.06), 0 2px 6px rgba(20,16,8,.04);
-  --shadow-3: 0 24px 60px rgba(20,16,8,.12), 0 4px 14px rgba(20,16,8,.08);
+      --shadow-1: 0 1px 2px rgba(20, 16, 8, .04), 0 1px 1px rgba(20, 16, 8, .03);
+      --shadow-2: 0 8px 24px rgba(20, 16, 8, .06), 0 2px 6px rgba(20, 16, 8, .04);
+      --shadow-3: 0 24px 60px rgba(20, 16, 8, .12), 0 4px 14px rgba(20, 16, 8, .08);
 
-  --page-tint: var(--surface-1);
-  --grain-opacity: .35;
-}
+      --page-tint: var(--surface-1);
+      --grain-opacity: .35;
+    }
 
-[data-theme="dark"] {
-  --bg:           #131110;
-  --surface-1:    #1B1917;
-  --surface-2:    #232120;
-  --surface-3:    #2A2826;
-  --surface-4:    #34312E;
+    [data-theme="dark"] {
+      --bg: #131110;
+      --surface-1: #1B1917;
+      --surface-2: #232120;
+      --surface-3: #2A2826;
+      --surface-4: #34312E;
 
-  --line:         rgba(255,245,225,.07);
-  --line-strong:  rgba(255,245,225,.13);
+      --line: rgba(255, 245, 225, .07);
+      --line-strong: rgba(255, 245, 225, .13);
 
-  --ink-0:        #F2EEE6;
-  --ink-1:        #C9C3B6;
-  --ink-2:        #948D7E;
-  --ink-3:        #6B6557;
-  --ink-4:        #4A4538;
+      --ink-0: #F2EEE6;
+      --ink-1: #C9C3B6;
+      --ink-2: #948D7E;
+      --ink-3: #6B6557;
+      --ink-4: #4A4538;
 
-  --p-coral:      #E9967D;
-  --p-peach:      #E5BB7C;
-  --p-butter:     #E9CD7B;
-  --p-mint:       #8BC9A8;
-  --p-sky:        #8FB7DA;
-  --p-lavender:   #B0A4DC;
-  --p-rose:       #D8A0B7;
+      --p-coral: #E9967D;
+      --p-peach: #E5BB7C;
+      --p-butter: #E9CD7B;
+      --p-mint: #8BC9A8;
+      --p-sky: #8FB7DA;
+      --p-lavender: #B0A4DC;
+      --p-rose: #D8A0B7;
 
-  --acc:          var(--p-lavender);
-  --acc-ink:      #DDD2FF;
-  --acc-soft:     rgba(176,164,220,.16);
-  --acc-glow:     rgba(176,164,220,.32);
+      --acc: var(--p-lavender);
+      --acc-ink: #DDD2FF;
+      --acc-soft: rgba(176, 164, 220, .16);
+      --acc-glow: rgba(176, 164, 220, .32);
 
-  --ok:           #6FCB9B;
-  --warn:         #E2B670;
-  --bad:          #E8856C;
+      --ok: #6FCB9B;
+      --warn: #E2B670;
+      --bad: #E8856C;
 
-  --shadow-1: 0 1px 2px rgba(0,0,0,.4);
-  --shadow-2: 0 12px 32px rgba(0,0,0,.45), 0 2px 6px rgba(0,0,0,.35);
-  --shadow-3: 0 30px 70px rgba(0,0,0,.6), 0 6px 18px rgba(0,0,0,.45);
+      --shadow-1: 0 1px 2px rgba(0, 0, 0, .4);
+      --shadow-2: 0 12px 32px rgba(0, 0, 0, .45), 0 2px 6px rgba(0, 0, 0, .35);
+      --shadow-3: 0 30px 70px rgba(0, 0, 0, .6), 0 6px 18px rgba(0, 0, 0, .45);
 
-  --page-tint: var(--surface-1);
-  --grain-opacity: .55;
-}
+      --page-tint: var(--surface-1);
+      --grain-opacity: .55;
+    }
 
-* { box-sizing: border-box; }
-html, body { margin: 0; }
-html { scroll-behavior: smooth; }
-body {
-  background: var(--bg);
-  color: var(--ink-0);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-  font-feature-settings: 'cv11', 'ss01', 'ss03';
-  -webkit-font-smoothing: antialiased;
-  font-weight: 400;
-  letter-spacing: -0.005em;
-  min-height: 100vh;
-  transition: background-color .25s ease, color .25s ease;
-}
-body::before {
-  content: '';
-  position: fixed; inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  opacity: var(--grain-opacity);
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2'/><feColorMatrix values='0 0 0 0 .12  0 0 0 0 .10  0 0 0 0 .06  0 0 0 .04 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
-  mix-blend-mode: multiply;
-}
-[data-theme="dark"] body::before {
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2'/><feColorMatrix values='0 0 0 0 .9  0 0 0 0 .85  0 0 0 0 .75  0 0 0 .035 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
-  mix-blend-mode: screen;
-}
+    * {
+      box-sizing: border-box;
+    }
 
-a { color: inherit; text-decoration: none; }
-.mono { font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace; font-feature-settings: 'liga' 0; }
+    html,
+    body {
+      margin: 0;
+    }
 
-/* ── NAV ────────────────────────────────────────────── */
-.nav {
-  position: sticky; top: 0;
-  z-index: 50;
-  backdrop-filter: blur(20px) saturate(1.1);
-  -webkit-backdrop-filter: blur(20px) saturate(1.1);
-  background: color-mix(in oklch, var(--bg) 80%, transparent);
-  border-bottom: 1px solid transparent;
-  transition: border-color .2s, background-color .2s;
-}
-.nav.scrolled { border-bottom-color: var(--line); }
-.nav-inner {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 14px 28px;
-  display: flex; align-items: center; gap: 24px;
-}
-.brand {
-  display: inline-flex; align-items: center; gap: 10px;
-  font-weight: 500; letter-spacing: -.02em;
-  font-size: 16px;
-}
-.brand img {
-  width: 28px; height: 28px;
-  border-radius: 7px;
-  display: block;
-}
-[data-theme="dark"] .brand img { filter: invert(1); }
-.brand .muted { color: var(--ink-3); }
-.nav-links {
-  display: flex; gap: 4px;
-  margin-left: 16px;
-}
-.nav-links a {
-  font-size: 13px;
-  color: var(--ink-1);
-  padding: 6px 12px;
-  border-radius: 8px;
-  transition: background-color .15s, color .15s;
-}
-.nav-links a:hover { background: var(--surface-3); color: var(--ink-0); }
-.nav-spacer { flex: 1; }
-.theme-switch {
-  display: inline-flex; align-items: center;
-  padding: 3px;
-  border-radius: 999px;
-  background: var(--surface-2);
-  border: 1px solid var(--line);
-  box-shadow: var(--shadow-1);
-}
-.theme-switch button {
-  font: inherit; border: 0; background: transparent;
-  color: var(--ink-2);
-  padding: 6px 12px;
-  border-radius: 999px;
-  cursor: pointer;
-  font-size: 12px; font-weight: 500;
-  display: inline-flex; align-items: center; gap: 6px;
-  transition: all .15s;
-}
-.theme-switch button.on { background: var(--ink-0); color: var(--surface-1); }
-.theme-switch svg { width: 13px; height: 13px; }
-.nav-cta {
-  display: inline-flex; align-items: center; gap: 7px;
-  padding: 7px 14px;
-  border-radius: 999px;
-  background: var(--ink-0); color: var(--surface-1);
-  font-size: 13px; font-weight: 500;
-  transition: filter .15s;
-}
-.nav-cta:hover { filter: brightness(1.1); }
-.nav-cta svg { width: 14px; height: 14px; }
+    html {
+      scroll-behavior: smooth;
+    }
 
-/* ── LAYOUT ─────────────────────────────────────────── */
-.shell { position: relative; z-index: 1; max-width: 1280px; margin: 0 auto; padding: 0 28px; }
-.section { padding: 96px 0; position: relative; z-index: 1; }
-.section-tight { padding: 64px 0; }
-.eyebrow {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  color: var(--ink-2);
-  text-transform: uppercase;
-  letter-spacing: .16em;
-  font-weight: 500;
-}
-h1, h2, h3 { font-weight: 500; letter-spacing: -.025em; margin: 0; color: var(--ink-0); }
-h2 { font-size: clamp(28px, 3.4vw, 40px); line-height: 1.1; letter-spacing: -.03em; }
-h3 { font-size: 20px; }
-.section-head { display: flex; flex-direction: column; gap: 8px; margin-bottom: 36px; max-width: 56ch; }
-.section-head .lead { color: var(--ink-1); font-size: 16px; line-height: 1.55; max-width: 60ch; margin-top: 6px; }
+    body {
+      background: var(--bg);
+      color: var(--ink-0);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      font-feature-settings: 'cv11', 'ss01', 'ss03';
+      -webkit-font-smoothing: antialiased;
+      font-weight: 400;
+      letter-spacing: -0.005em;
+      min-height: 100vh;
+      transition: background-color .25s ease, color .25s ease;
+    }
 
-/* ── HERO ───────────────────────────────────────────── */
-.hero {
-  padding: 96px 0 56px;
-  position: relative;
-}
-.hero-bg {
-  position: absolute; inset: 0; pointer-events: none; z-index: 0;
-  overflow: hidden;
-}
-.hero-bg::before, .hero-bg::after {
-  content: ''; position: absolute;
-  border-radius: 50%; filter: blur(80px); opacity: .35;
-}
-.hero-bg::before {
-  top: -120px; right: -80px; width: 480px; height: 480px;
-  background: radial-gradient(circle at 30% 30%, var(--p-coral), transparent 70%);
-}
-.hero-bg::after {
-  bottom: -160px; left: -100px; width: 520px; height: 520px;
-  background: radial-gradient(circle at 70% 70%, var(--p-lavender), transparent 70%);
-}
-[data-theme="dark"] .hero-bg::before, [data-theme="dark"] .hero-bg::after { opacity: .22; }
-.hero-inner { position: relative; z-index: 1; max-width: 920px; }
-.hero h1 {
-  margin-top: 18px;
-  font-size: clamp(40px, 6vw, 76px);
-  line-height: .98;
-  letter-spacing: -.04em;
-  font-weight: 500;
-  max-width: 16ch;
-}
-.hero h1 em {
-  font-style: normal;
-  color: var(--acc-ink);
-  font-weight: 500;
-}
-.hero p.lead {
-  margin-top: 22px;
-  color: var(--ink-1);
-  font-size: 18px;
-  line-height: 1.5;
-  max-width: 56ch;
-}
-.hero p.lead b { color: var(--ink-0); font-weight: 600; }
-.hero-actions {
-  margin-top: 32px;
-  display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
-}
-.btn {
-  display: inline-flex; align-items: center; gap: 8px;
-  height: 44px;
-  padding: 0 20px;
-  border-radius: 11px;
-  font-size: 14px; font-weight: 500;
-  cursor: pointer;
-  border: 1px solid transparent;
-  background: var(--surface-3); color: var(--ink-0);
-  transition: filter .15s, background-color .15s, border-color .15s;
-  font-family: inherit;
-}
-.btn svg { width: 15px; height: 15px; }
-.btn:hover { background: var(--surface-4); }
-.btn.primary {
-  background: var(--ink-0); color: var(--surface-1);
-  border-color: var(--ink-0);
-}
-.btn.primary:hover { filter: brightness(1.1); }
-.btn.ghost {
-  background: transparent;
-  border-color: var(--line-strong);
-  color: var(--ink-0);
-}
-.btn.ghost:hover { background: var(--surface-3); }
-.hero-chips {
-  margin-top: 28px;
-  display: flex; flex-wrap: wrap; gap: 6px;
-}
-.chip {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 5px 11px;
-  border-radius: 999px;
-  background: var(--surface-2); border: 1px solid var(--line);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  color: var(--ink-1);
-}
-.chip svg { width: 11px; height: 11px; opacity: .7; }
-.chip.acc { background: var(--acc-soft); color: var(--acc-ink); border-color: transparent; }
-.chip.ok { background: color-mix(in oklch, var(--ok) 12%, transparent); color: var(--ok); border-color: transparent; }
-.chip.ok::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 3px color-mix(in oklch, var(--ok) 18%, transparent); }
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      opacity: var(--grain-opacity);
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2'/><feColorMatrix values='0 0 0 0 .12  0 0 0 0 .10  0 0 0 0 .06  0 0 0 .04 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+      mix-blend-mode: multiply;
+    }
 
-/* ── BROWSER MOCKUP ─────────────────────────────────── */
-.showcase { padding: 0 0 96px; position: relative; z-index: 1; }
-.browser {
-  background: var(--bg);
-  border-radius: 14px;
-  border: 1px solid var(--line-strong);
-  box-shadow: var(--shadow-3);
-  overflow: hidden;
-  display: flex; flex-direction: column;
-  position: relative;
-}
-.browser .titlebar {
-  height: 38px;
-  display: flex; align-items: center;
-  padding-left: 78px; padding-right: 14px;
-  background: var(--bg);
-  position: relative; gap: 8px;
-  flex-shrink: 0;
-}
-.traffic { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); display: flex; gap: 8px; }
-.traffic i { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
-.traffic i:nth-child(1) { background: #FF5F57; }
-.traffic i:nth-child(2) { background: #FEBC2E; }
-.traffic i:nth-child(3) { background: #28C840; }
-.tabrow { flex: 1; display: flex; align-items: flex-end; gap: 2px; height: 100%; overflow: hidden; padding-top: 4px; }
-.tab {
-  height: 30px;
-  display: inline-flex; align-items: center; gap: 8px;
-  padding: 0 14px 0 12px;
-  font-size: 12px; color: var(--ink-1);
-  border-radius: 8px 8px 0 0;
-  background: transparent;
-  position: relative;
-  max-width: 200px; min-width: 90px;
-  cursor: default;
-}
-.tab .fav { flex-shrink: 0; width: 14px; height: 14px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; }
-.tab .fav.s-d { background: var(--p-mint); color: #0e3920; }
-.tab .fav.s-w { background: var(--p-sky); color: #142f4a; }
-.tab .fav.s-a { background: var(--p-coral); color: #4a1d0c; }
-.tab .fav.s-h { background: var(--p-butter); color: #4a3308; }
-.tab .fav.s-p { background: var(--p-rose); color: #4d1530; }
-.tab .fav.s-g { background: var(--ink-0); color: var(--surface-1); }
-.tab .ttl { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tab.active {
-  background: var(--page-tint);
-  color: var(--ink-0);
-  font-weight: 500;
-  box-shadow: 0 0 0 1px var(--line-strong);
-  z-index: 2;
-}
-.tab.active::after {
-  content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: var(--page-tint);
-}
-.tab.context { background: var(--acc-soft); color: var(--acc-ink); }
-.tab.context::before { content: '@'; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600; color: var(--acc-ink); margin-right: -2px; }
+    [data-theme="dark"] body::before {
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2'/><feColorMatrix values='0 0 0 0 .9  0 0 0 0 .85  0 0 0 0 .75  0 0 0 .035 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+      mix-blend-mode: screen;
+    }
 
-.page-area { flex: 1; display: flex; flex-direction: column; background: var(--page-tint); position: relative; overflow: hidden; }
-.urlbar-wrap { padding: 10px 12px 6px; display: flex; align-items: center; gap: 10px; background: var(--page-tint); }
-.navbtns { display: flex; gap: 2px; }
-.navbtns button {
-  width: 30px; height: 30px;
-  border-radius: 8px;
-  border: 0; background: transparent; color: var(--ink-2);
-  display: inline-flex; align-items: center; justify-content: center;
-}
-.navbtns svg { width: 16px; height: 16px; }
-.urlbar {
-  flex: 1; height: 36px;
-  display: flex; align-items: center; gap: 10px;
-  padding: 0 10px 0 14px;
-  border-radius: 11px;
-  background: var(--surface-2);
-  border: 1px solid var(--line);
-  box-shadow: var(--shadow-1);
-  font-size: 13px; color: var(--ink-0);
-}
-.urlbar.focused {
-  border-color: var(--acc);
-  box-shadow: 0 0 0 4px var(--acc-glow), var(--shadow-1);
-}
-.urlbar .lock { color: var(--ok); width: 13px; height: 13px; flex-shrink: 0; }
-.urlbar .ttl { flex: 1; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.urlbar .ttl em { font-style: normal; color: var(--ink-3); font-weight: 400; margin-left: 6px; font-size: 12px; }
-.urlbar kbd { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--ink-2); background: var(--surface-3); padding: 2px 5px; border-radius: 4px; border: 1px solid var(--line); }
-.right-controls { display: flex; gap: 2px; }
-.right-controls button {
-  width: 30px; height: 30px;
-  border-radius: 8px; border: 0;
-  background: transparent; color: var(--ink-2);
-  display: inline-flex; align-items: center; justify-content: center;
-}
-.right-controls .pill {
-  width: auto; padding: 0 9px; height: 28px;
-  font-size: 11px; font-weight: 500; gap: 6px;
-  background: var(--acc-soft); color: var(--acc-ink); border-radius: 8px;
-}
-.right-controls svg { width: 15px; height: 15px; }
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
 
-.page-body { flex: 1; display: flex; min-height: 0; overflow: hidden; }
-.page-content { flex: 1; padding: 36px 44px; overflow: hidden; display: flex; flex-direction: column; gap: 14px; }
-.crumb { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--ink-2); display: flex; align-items: center; gap: 6px; }
-.crumb svg { width: 11px; height: 11px; color: var(--ok); }
-.page-h { font-size: 36px; font-weight: 500; letter-spacing: -.025em; line-height: 1.05; color: var(--ink-0); margin: 6px 0 2px; }
-.byline { color: var(--ink-2); font-size: 12.5px; }
-.page-text { color: var(--ink-1); font-size: 13.5px; line-height: 1.7; max-width: 62ch; margin-top: 8px; }
-.page-text p { margin: 0 0 10px; }
-.page-text b { color: var(--ink-0); font-weight: 500; }
+    .mono {
+      font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+      font-feature-settings: 'liga' 0;
+    }
 
-.sidebar {
-  width: 320px; flex-shrink: 0;
-  border-left: 1px solid var(--line);
-  background: var(--surface-1);
-  display: flex; flex-direction: column;
-  min-height: 0;
-}
-.sb-head { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
-.sb-head .gl {
-  width: 22px; height: 22px; border-radius: 7px;
-  background:
-    radial-gradient(circle at 30% 30%, var(--p-coral), transparent 60%),
-    radial-gradient(circle at 70% 70%, var(--p-lavender), transparent 60%),
-    var(--p-sky);
-}
-.sb-head h4 { flex: 1; font-size: 13px; font-weight: 500; color: var(--ink-0); margin: 0; }
-.sb-head .meta { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--ink-2); }
-.msgs { flex: 1; padding: 14px; display: flex; flex-direction: column; gap: 14px; overflow: hidden; min-height: 0; }
-.msg { font-size: 13px; line-height: 1.5; }
-.msg.user { align-self: flex-end; max-width: 88%; padding: 8px 12px; background: var(--surface-3); color: var(--ink-0); border-radius: 14px 14px 3px 14px; }
-.msg.ai { display: flex; flex-direction: column; gap: 6px; color: var(--ink-0); }
-.msg.ai .meta-line { display: flex; align-items: center; gap: 6px; font-size: 10px; color: var(--ink-2); font-family: 'JetBrains Mono', monospace; }
-.msg.ai .meta-line::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 3px color-mix(in oklch, var(--ok) 18%, transparent); }
-.msg.ai .body b { font-weight: 500; color: var(--ink-0); }
-.msg.ai .stream { display: inline-block; width: 7px; height: 13px; background: var(--ink-0); vertical-align: -2px; margin-left: 2px; animation: blink 1s steps(2) infinite; }
-@keyframes blink { 50% { opacity: 0; } }
-.cite-row { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
-.cite { display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 9px 0 4px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); font-size: 11px; color: var(--ink-1); max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.cite .num { width: 14px; height: 14px; border-radius: 50%; background: var(--acc-soft); color: var(--acc-ink); font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 600; display: flex; align-items: center; justify-content: center; }
-.composer {
-  margin: 8px 12px 12px;
-  border-radius: 12px;
-  background: var(--surface-2);
-  border: 1.5px solid var(--acc);
-  box-shadow: 0 0 0 4px var(--acc-glow);
-  padding: 10px 12px 8px;
-  display: flex; flex-direction: column; gap: 7px;
-}
-.composer .field { font-size: 13px; color: var(--ink-0); min-height: 38px; line-height: 1.5; }
-.composer .field .caret { display: inline-block; width: 1.5px; height: 14px; background: var(--ink-0); margin-left: 1px; vertical-align: middle; animation: blink 1s steps(2) infinite; }
-.composer-foot { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--ink-2); }
-.composer-foot .send { margin-left: auto; width: 28px; height: 26px; border-radius: 7px; background: var(--ink-0); color: var(--surface-1); border: 0; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
-.composer-foot .send svg { width: 12px; height: 12px; }
-.tab-stack { display: flex; align-items: center; height: 24px; }
-.tab-stack .pill { display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 9px 0 5px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); font-size: 11px; color: var(--ink-1); margin-left: -8px; box-shadow: var(--shadow-1); font-weight: 500; }
-.tab-stack .pill:first-child { margin-left: 0; }
-.tab-stack .pill .at { font-family: 'JetBrains Mono', monospace; color: var(--acc-ink); font-weight: 600; font-size: 10.5px; }
-.tab-stack .pill .fav { width: 12px; height: 12px; border-radius: 3px; display: inline-flex; align-items: center; justify-content: center; font-size: 7.5px; font-weight: 600; }
+    /* ── NAV ────────────────────────────────────────────── */
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      backdrop-filter: blur(20px) saturate(1.1);
+      -webkit-backdrop-filter: blur(20px) saturate(1.1);
+      background: color-mix(in oklch, var(--bg) 80%, transparent);
+      border-bottom: 1px solid transparent;
+      transition: border-color .2s, background-color .2s;
+    }
 
-/* ── PRICING ────────────────────────────────────────── */
-.pricing-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  margin-top: 12px;
-}
-.price-card {
-  position: relative;
-  padding: 28px 24px;
-  border-radius: 16px;
-  background: var(--surface-2);
-  border: 1px solid var(--line);
-  box-shadow: var(--shadow-1);
-  display: flex; flex-direction: column;
-  min-height: 280px;
-}
-.price-card.featured {
-  border-color: var(--acc);
-  box-shadow: 0 0 0 3px var(--acc-glow), var(--shadow-2);
-}
-.price-card .badge {
-  position: absolute; top: 14px; right: 14px;
-  font-size: 9.5px; font-weight: 500;
-  letter-spacing: .08em; padding: 3px 8px;
-  border-radius: 5px;
-  background: var(--ink-0); color: var(--surface-1);
-  text-transform: uppercase;
-}
-.price-card .icn {
-  width: 44px; height: 44px;
-  border-radius: 11px;
-  display: flex; align-items: center; justify-content: center;
-  font-weight: 600; font-size: 18px;
-  margin-bottom: 16px;
-}
-.price-card.featured .icn {
-  background: var(--acc-soft); color: var(--acc-ink);
-}
-.price-card.byok-anth .icn { background: #D97757; color: #fff; }
-.price-card.byok-oai .icn { background: var(--ink-0); color: var(--surface-1); }
-.price-card .name { font-size: 18px; font-weight: 500; color: var(--ink-0); }
-.price-card .price {
-  font-size: 32px; font-weight: 500; letter-spacing: -.02em;
-  color: var(--ink-0);
-  margin-top: 8px;
-  display: flex; align-items: baseline; gap: 6px;
-}
-.price-card .price small { font-size: 13px; font-weight: 400; color: var(--ink-2); }
-.price-card .desc {
-  margin-top: 12px;
-  font-size: 13px; color: var(--ink-1); line-height: 1.55;
-  flex: 1;
-}
-.price-card ul {
-  margin: 16px 0 0; padding: 0;
-  list-style: none;
-  display: flex; flex-direction: column; gap: 6px;
-  font-size: 13px; color: var(--ink-1);
-}
-.price-card li { display: flex; align-items: flex-start; gap: 8px; }
-.price-card li svg { width: 14px; height: 14px; color: var(--ok); flex-shrink: 0; margin-top: 3px; }
-.pricing-foot {
-  margin-top: 20px;
-  text-align: center;
-  font-size: 13px;
-  color: var(--ink-2);
-}
+    .nav.scrolled {
+      border-bottom-color: var(--line);
+    }
 
-/* ── FEATURE GRID ───────────────────────────────────── */
-.features-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-}
-.feature {
-  padding: 26px 24px;
-  border-radius: 16px;
-  background: var(--surface-2);
-  border: 1px solid var(--line);
-  box-shadow: var(--shadow-1);
-  display: flex; flex-direction: column;
-  position: relative;
-  overflow: hidden;
-}
-.feature .icn {
-  width: 36px; height: 36px;
-  border-radius: 9px;
-  background: var(--acc-soft); color: var(--acc-ink);
-  display: flex; align-items: center; justify-content: center;
-  margin-bottom: 18px;
-}
-.feature .icn svg { width: 18px; height: 18px; }
-.feature h3 { font-size: 16px; font-weight: 500; color: var(--ink-0); }
-.feature p { margin: 8px 0 0; color: var(--ink-1); font-size: 13.5px; line-height: 1.55; }
+    .nav-inner {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 14px 28px;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
 
-/* ── USE CASES ──────────────────────────────────────── */
-.usecase {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 56px;
-  align-items: center;
-  padding: 56px 0;
-  border-top: 1px solid var(--line);
-}
-.usecase:first-of-type { border-top: 0; padding-top: 8px; }
-.usecase.flip > .uc-text { order: 2; }
-.uc-text .num {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  color: var(--acc-ink);
-  letter-spacing: .12em;
-  text-transform: uppercase;
-  font-weight: 500;
-  margin-bottom: 8px;
-}
-.uc-text h3 { font-size: 28px; line-height: 1.1; letter-spacing: -.025em; }
-.uc-text .quote {
-  margin-top: 16px;
-  padding: 12px 14px;
-  border-radius: 0 11px 11px 0;
-  border-left: 2px solid var(--acc-ink);
-  background: var(--acc-soft);
-  color: var(--ink-0);
-  font-size: 14.5px;
-  line-height: 1.5;
-}
-.uc-text ol {
-  margin: 18px 0 0; padding: 0 0 0 18px;
-  display: flex; flex-direction: column; gap: 8px;
-  color: var(--ink-1);
-  font-size: 14px; line-height: 1.55;
-}
-.uc-text ol li::marker { color: var(--ink-3); font-family: 'JetBrains Mono', monospace; font-size: 11px; }
-.uc-visual {
-  border-radius: 14px;
-  background: var(--page-tint);
-  border: 1px solid var(--line-strong);
-  box-shadow: var(--shadow-2);
-  overflow: hidden;
-  min-height: 320px;
-  display: flex; flex-direction: column;
-}
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 500;
+      letter-spacing: -.02em;
+      font-size: 16px;
+    }
 
-/* mini browser shell used in use-case visuals */
-.mini-shell { display: flex; flex-direction: column; height: 100%; min-height: 320px; }
-.mini-titlebar {
-  height: 30px;
-  display: flex; align-items: center;
-  padding-left: 56px; padding-right: 10px;
-  background: var(--bg);
-  position: relative;
-  gap: 4px;
-}
-.mini-titlebar .traffic { left: 10px; gap: 5px; }
-.mini-titlebar .traffic i { width: 9px; height: 9px; }
-.mini-tab { height: 22px; padding: 0 9px; border-radius: 6px 6px 0 0; font-size: 10.5px; color: var(--ink-2); display: inline-flex; align-items: center; gap: 5px; }
-.mini-tab .fav { width: 11px; height: 11px; border-radius: 3px; display: inline-flex; align-items: center; justify-content: center; font-size: 7px; font-weight: 600; }
-.mini-tab.active { background: var(--page-tint); color: var(--ink-0); box-shadow: 0 0 0 1px var(--line-strong); position: relative; z-index: 2; }
-.mini-tab.active::after { content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: var(--page-tint); }
-.mini-tab.context { background: var(--acc-soft); color: var(--acc-ink); }
-.mini-tab.context::before { content: '@'; font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 600; margin-right: -1px; }
+    .brand img {
+      width: 28px;
+      height: 28px;
+      border-radius: 7px;
+      display: block;
+    }
 
-.mini-body { flex: 1; padding: 14px 18px; display: flex; gap: 14px; min-height: 0; }
-.mini-pane { flex: 1; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--line); padding: 14px; font-size: 11px; color: var(--ink-1); line-height: 1.5; overflow: hidden; }
-.mini-pane h5 { margin: 0 0 6px; font-size: 12px; font-weight: 500; color: var(--ink-0); letter-spacing: -.005em; }
-.mini-pane .pane-mono { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--ink-2); }
-.mini-pane.code { background: var(--surface-1); border-color: var(--line); }
-.mini-pane.code .ln { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; line-height: 1.65; color: var(--ink-1); }
-.mini-pane.code .ln .add { color: var(--ok); }
-.mini-pane.code .ln .del { color: var(--bad); }
-.mini-pane.code .ln .meta { color: var(--ink-3); }
+    [data-theme="dark"] .brand img {
+      filter: invert(1);
+    }
 
-.uc-chat-stack {
-  padding: 14px;
-  background: var(--surface-1);
-  display: flex; flex-direction: column; gap: 10px;
-  height: 100%;
-}
-.uc-msg-user { align-self: flex-end; max-width: 80%; padding: 8px 11px; background: var(--surface-3); color: var(--ink-0); border-radius: 12px 12px 3px 12px; font-size: 12.5px; line-height: 1.45; }
-.uc-msg-ai { color: var(--ink-0); font-size: 12.5px; line-height: 1.5; }
-.uc-msg-ai .meta { font-size: 9.5px; color: var(--ink-2); font-family: 'JetBrains Mono', monospace; margin-bottom: 4px; display: flex; align-items: center; gap: 5px; }
-.uc-msg-ai .meta::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--ok); }
-.uc-msg-ai blockquote {
-  margin: 0 0 6px;
-  padding: 6px 10px;
-  border-left: 2px solid var(--acc-ink);
-  background: var(--acc-soft);
-  color: var(--ink-1);
-  border-radius: 0 8px 8px 0;
-  font-size: 11.5px;
-  line-height: 1.45;
-  font-style: italic;
-}
-.uc-msg-ai blockquote .src { display: block; margin-top: 4px; font-size: 9.5px; color: var(--ink-2); font-family: 'JetBrains Mono', monospace; font-style: normal; }
+    .brand .muted {
+      color: var(--ink-3);
+    }
 
-/* ── THEMES GRID ────────────────────────────────────── */
-.themes-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 12px;
-}
-.theme-card {
-  aspect-ratio: 1;
-  border-radius: 14px;
-  position: relative;
-  overflow: hidden;
-  border: 1px solid var(--line);
-  padding: 14px;
-  display: flex; flex-direction: column; justify-content: space-between;
-  background: var(--surface-2);
-}
-.theme-card .swatch {
-  position: absolute; inset: 0; opacity: .55;
-}
-[data-theme="dark"] .theme-card .swatch { opacity: .35; }
-.theme-card .name { position: relative; font-size: 12px; font-weight: 500; color: var(--ink-0); }
-.theme-card .glyph {
-  position: relative;
-  width: 28px; height: 28px;
-  border-radius: 9px;
-  background: rgba(255,255,255,.55);
-  border: 1px solid rgba(255,255,255,.6);
-  box-shadow: var(--shadow-1);
-}
-[data-theme="dark"] .theme-card .glyph {
-  background: rgba(255,255,255,.10);
-  border-color: rgba(255,255,255,.18);
-}
+    .nav-links {
+      display: flex;
+      gap: 4px;
+      margin-left: 16px;
+    }
 
-/* ── ROADMAP ────────────────────────────────────────── */
-.roadmap-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-}
-.tier {
-  padding: 28px 24px;
-  border-radius: 16px;
-  background: var(--surface-2);
-  border: 1px solid var(--line);
-  box-shadow: var(--shadow-1);
-  display: flex; flex-direction: column;
-}
-.tier h3 {
-  font-size: 18px; font-weight: 500;
-  display: flex; align-items: center; gap: 9px;
-}
-.tier .tier-num {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px; font-weight: 500;
-  letter-spacing: .12em;
-  background: var(--surface-3); color: var(--ink-2);
-  padding: 3px 7px; border-radius: 5px;
-}
-.tier.live .tier-num { background: color-mix(in oklch, var(--ok) 18%, transparent); color: var(--ok); }
-.tier.next .tier-num { background: var(--acc-soft); color: var(--acc-ink); }
-.tier.exp .tier-num { background: color-mix(in oklch, var(--p-peach) 30%, transparent); color: #93570c; }
-[data-theme="dark"] .tier.exp .tier-num { color: var(--p-peach); }
-.tier .lead { color: var(--ink-2); font-size: 13px; margin-top: 8px; line-height: 1.5; }
-.tier ul { margin: 16px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; }
-.tier li { display: flex; gap: 10px; font-size: 13px; line-height: 1.5; color: var(--ink-1); }
-.tier li::before {
-  content: '';
-  width: 4px; height: 4px; border-radius: 50%;
-  background: var(--ink-3);
-  margin-top: 8px;
-  flex-shrink: 0;
-}
-.tier li b { color: var(--ink-0); font-weight: 500; }
+    .nav-links a {
+      font-size: 13px;
+      color: var(--ink-1);
+      padding: 6px 12px;
+      border-radius: 8px;
+      transition: background-color .15s, color .15s;
+    }
 
-/* ── CTA BAND ───────────────────────────────────────── */
-.cta-band {
-  margin-top: 64px;
-  padding: 64px 48px;
-  border-radius: 22px;
-  background:
-    radial-gradient(circle at 20% 30%, var(--p-coral), transparent 60%),
-    radial-gradient(circle at 80% 70%, var(--p-lavender), transparent 60%),
-    var(--surface-2);
-  border: 1px solid var(--line);
-  box-shadow: var(--shadow-2);
-  text-align: center;
-  position: relative;
-  overflow: hidden;
-}
-[data-theme="dark"] .cta-band {
-  background:
-    radial-gradient(circle at 20% 30%, color-mix(in oklch, var(--p-coral) 28%, transparent), transparent 60%),
-    radial-gradient(circle at 80% 70%, color-mix(in oklch, var(--p-lavender) 28%, transparent), transparent 60%),
-    var(--surface-2);
-}
-.cta-band h2 { font-size: clamp(28px, 4vw, 44px); line-height: 1.05; max-width: 22ch; margin: 0 auto; }
-.cta-band p { color: var(--ink-1); font-size: 16px; line-height: 1.5; max-width: 56ch; margin: 18px auto 0; }
-.cta-band .actions { margin-top: 28px; display: inline-flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+    .nav-links a:hover {
+      background: var(--surface-3);
+      color: var(--ink-0);
+    }
 
-/* ── FOOTER ─────────────────────────────────────────── */
-footer {
-  margin-top: 96px;
-  padding: 40px 0 56px;
-  border-top: 1px solid var(--line);
-  display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr;
-  gap: 32px;
-  font-size: 13px;
-  color: var(--ink-2);
-}
-footer .col h6 {
-  margin: 0 0 12px;
-  font-size: 10px;
-  font-family: 'JetBrains Mono', monospace;
-  text-transform: uppercase;
-  letter-spacing: .14em;
-  color: var(--ink-3);
-  font-weight: 500;
-}
-footer .col a {
-  display: block;
-  padding: 4px 0;
-  color: var(--ink-1);
-  transition: color .15s;
-}
-footer .col a:hover { color: var(--ink-0); }
-footer .copy { color: var(--ink-3); font-size: 12px; line-height: 1.55; max-width: 36ch; margin-top: 14px; }
-footer .made-with { color: var(--ink-3); font-family: 'JetBrains Mono', monospace; font-size: 11px; margin-top: 18px; }
+    .nav-spacer {
+      flex: 1;
+    }
 
-/* ── RESPONSIVE ─────────────────────────────────────── */
-@media (max-width: 980px) {
-  .nav-links { display: none; }
-  .features-grid, .pricing-grid, .roadmap-grid { grid-template-columns: 1fr; }
-  .themes-grid { grid-template-columns: repeat(4, 1fr); }
-  .usecase { grid-template-columns: 1fr; gap: 28px; padding: 40px 0; }
-  .usecase.flip > .uc-text { order: 0; }
-  footer { grid-template-columns: 1fr 1fr; }
-  .browser .sidebar { display: none; }
-  .section { padding: 64px 0; }
-  .hero { padding: 64px 0 40px; }
-}
-@media (max-width: 600px) {
-  .shell { padding: 0 18px; }
-  .nav-inner { padding: 12px 18px; }
-  .themes-grid { grid-template-columns: repeat(3, 1fr); }
-  footer { grid-template-columns: 1fr; }
-  .cta-band { padding: 40px 24px; }
-  .browser .page-content { padding: 20px 22px; }
-}
-</style>
+    .theme-switch {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px;
+      border-radius: 999px;
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow-1);
+    }
+
+    .theme-switch button {
+      font: inherit;
+      border: 0;
+      background: transparent;
+      color: var(--ink-2);
+      padding: 6px 12px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all .15s;
+    }
+
+    .theme-switch button.on {
+      background: var(--ink-0);
+      color: var(--surface-1);
+    }
+
+    .theme-switch svg {
+      width: 13px;
+      height: 13px;
+    }
+
+    .nav-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 7px 14px;
+      border-radius: 999px;
+      background: var(--ink-0);
+      color: var(--surface-1);
+      font-size: 13px;
+      font-weight: 500;
+      transition: filter .15s;
+    }
+
+    .nav-cta:hover {
+      filter: brightness(1.1);
+    }
+
+    .nav-cta svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    /* ── LAYOUT ─────────────────────────────────────────── */
+    .shell {
+      position: relative;
+      z-index: 1;
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 28px;
+    }
+
+    .section {
+      padding: 96px 0;
+      position: relative;
+      z-index: 1;
+    }
+
+    .section-tight {
+      padding: 64px 0;
+    }
+
+    .eyebrow {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--ink-2);
+      text-transform: uppercase;
+      letter-spacing: .16em;
+      font-weight: 500;
+    }
+
+    h1,
+    h2,
+    h3 {
+      font-weight: 500;
+      letter-spacing: -.025em;
+      margin: 0;
+      color: var(--ink-0);
+    }
+
+    h2 {
+      font-size: clamp(28px, 3.4vw, 40px);
+      line-height: 1.1;
+      letter-spacing: -.03em;
+    }
+
+    h3 {
+      font-size: 20px;
+    }
+
+    .section-head {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 36px;
+      max-width: 56ch;
+    }
+
+    .section-head .lead {
+      color: var(--ink-1);
+      font-size: 16px;
+      line-height: 1.55;
+      max-width: 60ch;
+      margin-top: 6px;
+    }
+
+    /* ── HERO ───────────────────────────────────────────── */
+    .hero {
+      padding: 96px 0 56px;
+      position: relative;
+    }
+
+    .hero-bg {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+
+    .hero-bg::before,
+    .hero-bg::after {
+      content: '';
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: .35;
+    }
+
+    .hero-bg::before {
+      top: -120px;
+      right: -80px;
+      width: 480px;
+      height: 480px;
+      background: radial-gradient(circle at 30% 30%, var(--p-coral), transparent 70%);
+    }
+
+    .hero-bg::after {
+      bottom: -160px;
+      left: -100px;
+      width: 520px;
+      height: 520px;
+      background: radial-gradient(circle at 70% 70%, var(--p-lavender), transparent 70%);
+    }
+
+    [data-theme="dark"] .hero-bg::before,
+    [data-theme="dark"] .hero-bg::after {
+      opacity: .22;
+    }
+
+    .hero-inner {
+      position: relative;
+      z-index: 1;
+      max-width: 920px;
+    }
+
+    .hero h1 {
+      margin-top: 18px;
+      font-size: clamp(40px, 6vw, 76px);
+      line-height: .98;
+      letter-spacing: -.04em;
+      font-weight: 500;
+      max-width: 16ch;
+    }
+
+    .hero h1 em {
+      font-style: normal;
+      color: var(--acc-ink);
+      font-weight: 500;
+    }
+
+    .hero p.lead {
+      margin-top: 22px;
+      color: var(--ink-1);
+      font-size: 18px;
+      line-height: 1.5;
+      max-width: 56ch;
+    }
+
+    .hero p.lead b {
+      color: var(--ink-0);
+      font-weight: 600;
+    }
+
+    .hero-actions {
+      margin-top: 32px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      height: 44px;
+      padding: 0 20px;
+      border-radius: 11px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid transparent;
+      background: var(--surface-3);
+      color: var(--ink-0);
+      transition: filter .15s, background-color .15s, border-color .15s;
+      font-family: inherit;
+    }
+
+    .btn svg {
+      width: 15px;
+      height: 15px;
+    }
+
+    .btn:hover {
+      background: var(--surface-4);
+    }
+
+    .btn.primary {
+      background: var(--ink-0);
+      color: var(--surface-1);
+      border-color: var(--ink-0);
+    }
+
+    .btn.primary:hover {
+      filter: brightness(1.1);
+    }
+
+    .btn.ghost {
+      background: transparent;
+      border-color: var(--line-strong);
+      color: var(--ink-0);
+    }
+
+    .btn.ghost:hover {
+      background: var(--surface-3);
+    }
+
+    .hero-chips {
+      margin-top: 28px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 11px;
+      border-radius: 999px;
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--ink-1);
+    }
+
+    .chip svg {
+      width: 11px;
+      height: 11px;
+      opacity: .7;
+    }
+
+    .chip.acc {
+      background: var(--acc-soft);
+      color: var(--acc-ink);
+      border-color: transparent;
+    }
+
+    .chip.ok {
+      background: color-mix(in oklch, var(--ok) 12%, transparent);
+      color: var(--ok);
+      border-color: transparent;
+    }
+
+    .chip.ok::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--ok);
+      box-shadow: 0 0 0 3px color-mix(in oklch, var(--ok) 18%, transparent);
+    }
+
+    /* ── BROWSER MOCKUP ─────────────────────────────────── */
+    .showcase {
+      padding: 0 0 96px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .browser {
+      background: var(--bg);
+      border-radius: 14px;
+      border: 1px solid var(--line-strong);
+      box-shadow: var(--shadow-3);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .browser .titlebar {
+      height: 38px;
+      display: flex;
+      align-items: center;
+      padding-left: 78px;
+      padding-right: 14px;
+      background: var(--bg);
+      position: relative;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .traffic {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex;
+      gap: 8px;
+    }
+
+    .traffic i {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .traffic i:nth-child(1) {
+      background: #FF5F57;
+    }
+
+    .traffic i:nth-child(2) {
+      background: #FEBC2E;
+    }
+
+    .traffic i:nth-child(3) {
+      background: #28C840;
+    }
+
+    .tabrow {
+      flex: 1;
+      display: flex;
+      align-items: flex-end;
+      gap: 2px;
+      height: 100%;
+      overflow: hidden;
+      padding-top: 4px;
+    }
+
+    .tab {
+      height: 30px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 14px 0 12px;
+      font-size: 12px;
+      color: var(--ink-1);
+      border-radius: 8px 8px 0 0;
+      background: transparent;
+      position: relative;
+      max-width: 200px;
+      min-width: 90px;
+      cursor: default;
+    }
+
+    .tab .fav {
+      flex-shrink: 0;
+      width: 14px;
+      height: 14px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      font-weight: 600;
+    }
+
+    .tab .fav.s-d {
+      background: var(--p-mint);
+      color: #0e3920;
+    }
+
+    .tab .fav.s-w {
+      background: var(--p-sky);
+      color: #142f4a;
+    }
+
+    .tab .fav.s-a {
+      background: var(--p-coral);
+      color: #4a1d0c;
+    }
+
+    .tab .fav.s-h {
+      background: var(--p-butter);
+      color: #4a3308;
+    }
+
+    .tab .fav.s-p {
+      background: var(--p-rose);
+      color: #4d1530;
+    }
+
+    .tab .fav.s-g {
+      background: var(--ink-0);
+      color: var(--surface-1);
+    }
+
+    .tab .ttl {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .tab.active {
+      background: var(--page-tint);
+      color: var(--ink-0);
+      font-weight: 500;
+      box-shadow: 0 0 0 1px var(--line-strong);
+      z-index: 2;
+    }
+
+    .tab.active::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: -1px;
+      height: 2px;
+      background: var(--page-tint);
+    }
+
+    .tab.context {
+      background: var(--acc-soft);
+      color: var(--acc-ink);
+    }
+
+    .tab.context::before {
+      content: '@';
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--acc-ink);
+      margin-right: -2px;
+    }
+
+    .page-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: var(--page-tint);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .urlbar-wrap {
+      padding: 10px 12px 6px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--page-tint);
+    }
+
+    .navbtns {
+      display: flex;
+      gap: 2px;
+    }
+
+    .navbtns button {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      border: 0;
+      background: transparent;
+      color: var(--ink-2);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .navbtns svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .urlbar {
+      flex: 1;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 10px 0 14px;
+      border-radius: 11px;
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow-1);
+      font-size: 13px;
+      color: var(--ink-0);
+    }
+
+    .urlbar.focused {
+      border-color: var(--acc);
+      box-shadow: 0 0 0 4px var(--acc-glow), var(--shadow-1);
+    }
+
+    .urlbar .lock {
+      color: var(--ok);
+      width: 13px;
+      height: 13px;
+      flex-shrink: 0;
+    }
+
+    .urlbar .ttl {
+      flex: 1;
+      font-weight: 500;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .urlbar .ttl em {
+      font-style: normal;
+      color: var(--ink-3);
+      font-weight: 400;
+      margin-left: 6px;
+      font-size: 12px;
+    }
+
+    .urlbar kbd {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--ink-2);
+      background: var(--surface-3);
+      padding: 2px 5px;
+      border-radius: 4px;
+      border: 1px solid var(--line);
+    }
+
+    .right-controls {
+      display: flex;
+      gap: 2px;
+    }
+
+    .right-controls button {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      border: 0;
+      background: transparent;
+      color: var(--ink-2);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .right-controls .pill {
+      width: auto;
+      padding: 0 9px;
+      height: 28px;
+      font-size: 11px;
+      font-weight: 500;
+      gap: 6px;
+      background: var(--acc-soft);
+      color: var(--acc-ink);
+      border-radius: 8px;
+    }
+
+    .right-controls svg {
+      width: 15px;
+      height: 15px;
+    }
+
+    .page-body {
+      flex: 1;
+      display: flex;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .page-content {
+      flex: 1;
+      padding: 36px 44px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .crumb {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10.5px;
+      color: var(--ink-2);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .crumb svg {
+      width: 11px;
+      height: 11px;
+      color: var(--ok);
+    }
+
+    .page-h {
+      font-size: 36px;
+      font-weight: 500;
+      letter-spacing: -.025em;
+      line-height: 1.05;
+      color: var(--ink-0);
+      margin: 6px 0 2px;
+    }
+
+    .byline {
+      color: var(--ink-2);
+      font-size: 12.5px;
+    }
+
+    .page-text {
+      color: var(--ink-1);
+      font-size: 13.5px;
+      line-height: 1.7;
+      max-width: 62ch;
+      margin-top: 8px;
+    }
+
+    .page-text p {
+      margin: 0 0 10px;
+    }
+
+    .page-text b {
+      color: var(--ink-0);
+      font-weight: 500;
+    }
+
+    .sidebar {
+      width: 320px;
+      flex-shrink: 0;
+      border-left: 1px solid var(--line);
+      background: var(--surface-1);
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .sb-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .sb-head .gl {
+      width: 22px;
+      height: 22px;
+      border-radius: 7px;
+      background:
+        radial-gradient(circle at 30% 30%, var(--p-coral), transparent 60%),
+        radial-gradient(circle at 70% 70%, var(--p-lavender), transparent 60%),
+        var(--p-sky);
+    }
+
+    .sb-head h4 {
+      flex: 1;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--ink-0);
+      margin: 0;
+    }
+
+    .sb-head .meta {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--ink-2);
+    }
+
+    .msgs {
+      flex: 1;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    .msg {
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .msg.user {
+      align-self: flex-end;
+      max-width: 88%;
+      padding: 8px 12px;
+      background: var(--surface-3);
+      color: var(--ink-0);
+      border-radius: 14px 14px 3px 14px;
+    }
+
+    .msg.ai {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      color: var(--ink-0);
+    }
+
+    .msg.ai .meta-line {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 10px;
+      color: var(--ink-2);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .msg.ai .meta-line::before {
+      content: '';
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--ok);
+      box-shadow: 0 0 0 3px color-mix(in oklch, var(--ok) 18%, transparent);
+    }
+
+    .msg.ai .body b {
+      font-weight: 500;
+      color: var(--ink-0);
+    }
+
+    .msg.ai .stream {
+      display: inline-block;
+      width: 7px;
+      height: 13px;
+      background: var(--ink-0);
+      vertical-align: -2px;
+      margin-left: 2px;
+      animation: blink 1s steps(2) infinite;
+    }
+
+    @keyframes blink {
+      50% {
+        opacity: 0;
+      }
+    }
+
+    .cite-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-top: 6px;
+    }
+
+    .cite {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      height: 22px;
+      padding: 0 9px 0 4px;
+      border-radius: 999px;
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      font-size: 11px;
+      color: var(--ink-1);
+      max-width: 240px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .cite .num {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--acc-soft);
+      color: var(--acc-ink);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .composer {
+      margin: 8px 12px 12px;
+      border-radius: 12px;
+      background: var(--surface-2);
+      border: 1.5px solid var(--acc);
+      box-shadow: 0 0 0 4px var(--acc-glow);
+      padding: 10px 12px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .composer .field {
+      font-size: 13px;
+      color: var(--ink-0);
+      min-height: 38px;
+      line-height: 1.5;
+    }
+
+    .composer .field .caret {
+      display: inline-block;
+      width: 1.5px;
+      height: 14px;
+      background: var(--ink-0);
+      margin-left: 1px;
+      vertical-align: middle;
+      animation: blink 1s steps(2) infinite;
+    }
+
+    .composer-foot {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--ink-2);
+    }
+
+    .composer-foot .send {
+      margin-left: auto;
+      width: 28px;
+      height: 26px;
+      border-radius: 7px;
+      background: var(--ink-0);
+      color: var(--surface-1);
+      border: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .composer-foot .send svg {
+      width: 12px;
+      height: 12px;
+    }
+
+    .tab-stack {
+      display: flex;
+      align-items: center;
+      height: 24px;
+    }
+
+    .tab-stack .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      height: 22px;
+      padding: 0 9px 0 5px;
+      border-radius: 999px;
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      font-size: 11px;
+      color: var(--ink-1);
+      margin-left: -8px;
+      box-shadow: var(--shadow-1);
+      font-weight: 500;
+    }
+
+    .tab-stack .pill:first-child {
+      margin-left: 0;
+    }
+
+    .tab-stack .pill .at {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--acc-ink);
+      font-weight: 600;
+      font-size: 10.5px;
+    }
+
+    .tab-stack .pill .fav {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 7.5px;
+      font-weight: 600;
+    }
+
+    /* ── PRICING ────────────────────────────────────────── */
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 12px;
+    }
+
+    .price-card {
+      position: relative;
+      padding: 28px 24px;
+      border-radius: 16px;
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow-1);
+      display: flex;
+      flex-direction: column;
+      min-height: 280px;
+    }
+
+    .price-card.featured {
+      border-color: var(--acc);
+      box-shadow: 0 0 0 3px var(--acc-glow), var(--shadow-2);
+    }
+
+    .price-card .badge {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      font-size: 9.5px;
+      font-weight: 500;
+      letter-spacing: .08em;
+      padding: 3px 8px;
+      border-radius: 5px;
+      background: var(--ink-0);
+      color: var(--surface-1);
+      text-transform: uppercase;
+    }
+
+    .price-card .icn {
+      width: 44px;
+      height: 44px;
+      border-radius: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 18px;
+      margin-bottom: 16px;
+    }
+
+    .price-card.featured .icn {
+      background: var(--acc-soft);
+      color: var(--acc-ink);
+    }
+
+    .price-card.byok-anth .icn {
+      background: #D97757;
+      color: #fff;
+    }
+
+    .price-card.byok-oai .icn {
+      background: var(--ink-0);
+      color: var(--surface-1);
+    }
+
+    .price-card .name {
+      font-size: 18px;
+      font-weight: 500;
+      color: var(--ink-0);
+    }
+
+    .price-card .price {
+      font-size: 32px;
+      font-weight: 500;
+      letter-spacing: -.02em;
+      color: var(--ink-0);
+      margin-top: 8px;
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+
+    .price-card .price small {
+      font-size: 13px;
+      font-weight: 400;
+      color: var(--ink-2);
+    }
+
+    .price-card .desc {
+      margin-top: 12px;
+      font-size: 13px;
+      color: var(--ink-1);
+      line-height: 1.55;
+      flex: 1;
+    }
+
+    .price-card ul {
+      margin: 16px 0 0;
+      padding: 0;
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 13px;
+      color: var(--ink-1);
+    }
+
+    .price-card li {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .price-card li svg {
+      width: 14px;
+      height: 14px;
+      color: var(--ok);
+      flex-shrink: 0;
+      margin-top: 3px;
+    }
+
+    .pricing-foot {
+      margin-top: 20px;
+      text-align: center;
+      font-size: 13px;
+      color: var(--ink-2);
+    }
+
+    /* ── FEATURE GRID ───────────────────────────────────── */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .feature {
+      padding: 26px 24px;
+      border-radius: 16px;
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow-1);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .feature .icn {
+      width: 36px;
+      height: 36px;
+      border-radius: 9px;
+      background: var(--acc-soft);
+      color: var(--acc-ink);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 18px;
+    }
+
+    .feature .icn svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .feature h3 {
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--ink-0);
+    }
+
+    .feature p {
+      margin: 8px 0 0;
+      color: var(--ink-1);
+      font-size: 13.5px;
+      line-height: 1.55;
+    }
+
+    /* ── USE CASES ──────────────────────────────────────── */
+    .usecase {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 56px;
+      align-items: center;
+      padding: 56px 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .usecase:first-of-type {
+      border-top: 0;
+      padding-top: 8px;
+    }
+
+    .usecase.flip>.uc-text {
+      order: 2;
+    }
+
+    .uc-text .num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--acc-ink);
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      font-weight: 500;
+      margin-bottom: 8px;
+    }
+
+    .uc-text h3 {
+      font-size: 28px;
+      line-height: 1.1;
+      letter-spacing: -.025em;
+    }
+
+    .uc-text .quote {
+      margin-top: 16px;
+      padding: 12px 14px;
+      border-radius: 0 11px 11px 0;
+      border-left: 2px solid var(--acc-ink);
+      background: var(--acc-soft);
+      color: var(--ink-0);
+      font-size: 14.5px;
+      line-height: 1.5;
+    }
+
+    .uc-text ol {
+      margin: 18px 0 0;
+      padding: 0 0 0 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      color: var(--ink-1);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .uc-text ol li::marker {
+      color: var(--ink-3);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+    }
+
+    .uc-visual {
+      border-radius: 14px;
+      background: var(--page-tint);
+      border: 1px solid var(--line-strong);
+      box-shadow: var(--shadow-2);
+      overflow: hidden;
+      min-height: 320px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* mini browser shell used in use-case visuals */
+    .mini-shell {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 320px;
+    }
+
+    .mini-titlebar {
+      height: 30px;
+      display: flex;
+      align-items: center;
+      padding-left: 56px;
+      padding-right: 10px;
+      background: var(--bg);
+      position: relative;
+      gap: 4px;
+    }
+
+    .mini-titlebar .traffic {
+      left: 10px;
+      gap: 5px;
+    }
+
+    .mini-titlebar .traffic i {
+      width: 9px;
+      height: 9px;
+    }
+
+    .mini-tab {
+      height: 22px;
+      padding: 0 9px;
+      border-radius: 6px 6px 0 0;
+      font-size: 10.5px;
+      color: var(--ink-2);
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .mini-tab .fav {
+      width: 11px;
+      height: 11px;
+      border-radius: 3px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 7px;
+      font-weight: 600;
+    }
+
+    .mini-tab.active {
+      background: var(--page-tint);
+      color: var(--ink-0);
+      box-shadow: 0 0 0 1px var(--line-strong);
+      position: relative;
+      z-index: 2;
+    }
+
+    .mini-tab.active::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: -1px;
+      height: 2px;
+      background: var(--page-tint);
+    }
+
+    .mini-tab.context {
+      background: var(--acc-soft);
+      color: var(--acc-ink);
+    }
+
+    .mini-tab.context::before {
+      content: '@';
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      font-weight: 600;
+      margin-right: -1px;
+    }
+
+    .mini-body {
+      flex: 1;
+      padding: 14px 18px;
+      display: flex;
+      gap: 14px;
+      min-height: 0;
+    }
+
+    .mini-pane {
+      flex: 1;
+      border-radius: 8px;
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      padding: 14px;
+      font-size: 11px;
+      color: var(--ink-1);
+      line-height: 1.5;
+      overflow: hidden;
+    }
+
+    .mini-pane h5 {
+      margin: 0 0 6px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--ink-0);
+      letter-spacing: -.005em;
+    }
+
+    .mini-pane .pane-mono {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--ink-2);
+    }
+
+    .mini-pane.code {
+      background: var(--surface-1);
+      border-color: var(--line);
+    }
+
+    .mini-pane.code .ln {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10.5px;
+      line-height: 1.65;
+      color: var(--ink-1);
+    }
+
+    .mini-pane.code .ln .add {
+      color: var(--ok);
+    }
+
+    .mini-pane.code .ln .del {
+      color: var(--bad);
+    }
+
+    .mini-pane.code .ln .meta {
+      color: var(--ink-3);
+    }
+
+    .uc-chat-stack {
+      padding: 14px;
+      background: var(--surface-1);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      height: 100%;
+    }
+
+    .uc-msg-user {
+      align-self: flex-end;
+      max-width: 80%;
+      padding: 8px 11px;
+      background: var(--surface-3);
+      color: var(--ink-0);
+      border-radius: 12px 12px 3px 12px;
+      font-size: 12.5px;
+      line-height: 1.45;
+    }
+
+    .uc-msg-ai {
+      color: var(--ink-0);
+      font-size: 12.5px;
+      line-height: 1.5;
+    }
+
+    .uc-msg-ai .meta {
+      font-size: 9.5px;
+      color: var(--ink-2);
+      font-family: 'JetBrains Mono', monospace;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .uc-msg-ai .meta::before {
+      content: '';
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--ok);
+    }
+
+    .uc-msg-ai blockquote {
+      margin: 0 0 6px;
+      padding: 6px 10px;
+      border-left: 2px solid var(--acc-ink);
+      background: var(--acc-soft);
+      color: var(--ink-1);
+      border-radius: 0 8px 8px 0;
+      font-size: 11.5px;
+      line-height: 1.45;
+      font-style: italic;
+    }
+
+    .uc-msg-ai blockquote .src {
+      display: block;
+      margin-top: 4px;
+      font-size: 9.5px;
+      color: var(--ink-2);
+      font-family: 'JetBrains Mono', monospace;
+      font-style: normal;
+    }
+
+    /* ── THEMES GRID ────────────────────────────────────── */
+    .themes-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 12px;
+    }
+
+    .theme-card {
+      aspect-ratio: 1;
+      border-radius: 14px;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background: var(--surface-2);
+    }
+
+    .theme-card .swatch {
+      position: absolute;
+      inset: 0;
+      opacity: .55;
+    }
+
+    [data-theme="dark"] .theme-card .swatch {
+      opacity: .35;
+    }
+
+    .theme-card .name {
+      position: relative;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--ink-0);
+    }
+
+    .theme-card .glyph {
+      position: relative;
+      width: 28px;
+      height: 28px;
+      border-radius: 9px;
+      background: rgba(255, 255, 255, .55);
+      border: 1px solid rgba(255, 255, 255, .6);
+      box-shadow: var(--shadow-1);
+    }
+
+    [data-theme="dark"] .theme-card .glyph {
+      background: rgba(255, 255, 255, .10);
+      border-color: rgba(255, 255, 255, .18);
+    }
+
+    /* ── ROADMAP ────────────────────────────────────────── */
+    .roadmap-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .tier {
+      padding: 28px 24px;
+      border-radius: 16px;
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow-1);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .tier h3 {
+      font-size: 18px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .tier .tier-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: .12em;
+      background: var(--surface-3);
+      color: var(--ink-2);
+      padding: 3px 7px;
+      border-radius: 5px;
+    }
+
+    .tier.live .tier-num {
+      background: color-mix(in oklch, var(--ok) 18%, transparent);
+      color: var(--ok);
+    }
+
+    .tier.next .tier-num {
+      background: var(--acc-soft);
+      color: var(--acc-ink);
+    }
+
+    .tier.exp .tier-num {
+      background: color-mix(in oklch, var(--p-peach) 30%, transparent);
+      color: #93570c;
+    }
+
+    [data-theme="dark"] .tier.exp .tier-num {
+      color: var(--p-peach);
+    }
+
+    .tier .lead {
+      color: var(--ink-2);
+      font-size: 13px;
+      margin-top: 8px;
+      line-height: 1.5;
+    }
+
+    .tier ul {
+      margin: 16px 0 0;
+      padding: 0;
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .tier li {
+      display: flex;
+      gap: 10px;
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--ink-1);
+    }
+
+    .tier li::before {
+      content: '';
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: var(--ink-3);
+      margin-top: 8px;
+      flex-shrink: 0;
+    }
+
+    .tier li b {
+      color: var(--ink-0);
+      font-weight: 500;
+    }
+
+    /* ── CTA BAND ───────────────────────────────────────── */
+    .cta-band {
+      margin-top: 64px;
+      padding: 64px 48px;
+      border-radius: 22px;
+      background:
+        radial-gradient(circle at 20% 30%, var(--p-coral), transparent 60%),
+        radial-gradient(circle at 80% 70%, var(--p-lavender), transparent 60%),
+        var(--surface-2);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow-2);
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    [data-theme="dark"] .cta-band {
+      background:
+        radial-gradient(circle at 20% 30%, color-mix(in oklch, var(--p-coral) 28%, transparent), transparent 60%),
+        radial-gradient(circle at 80% 70%, color-mix(in oklch, var(--p-lavender) 28%, transparent), transparent 60%),
+        var(--surface-2);
+    }
+
+    .cta-band h2 {
+      font-size: clamp(28px, 4vw, 44px);
+      line-height: 1.05;
+      max-width: 22ch;
+      margin: 0 auto;
+    }
+
+    .cta-band p {
+      color: var(--ink-1);
+      font-size: 16px;
+      line-height: 1.5;
+      max-width: 56ch;
+      margin: 18px auto 0;
+    }
+
+    .cta-band .actions {
+      margin-top: 28px;
+      display: inline-flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    /* ── FOOTER ─────────────────────────────────────────── */
+    footer {
+      margin-top: 96px;
+      padding: 40px 0 56px;
+      border-top: 1px solid var(--line);
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 32px;
+      font-size: 13px;
+      color: var(--ink-2);
+    }
+
+    footer .col h6 {
+      margin: 0 0 12px;
+      font-size: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      text-transform: uppercase;
+      letter-spacing: .14em;
+      color: var(--ink-3);
+      font-weight: 500;
+    }
+
+    footer .col a {
+      display: block;
+      padding: 4px 0;
+      color: var(--ink-1);
+      transition: color .15s;
+    }
+
+    footer .col a:hover {
+      color: var(--ink-0);
+    }
+
+    footer .copy {
+      color: var(--ink-3);
+      font-size: 12px;
+      line-height: 1.55;
+      max-width: 36ch;
+      margin-top: 14px;
+    }
+
+    footer .made-with {
+      color: var(--ink-3);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      margin-top: 18px;
+    }
+
+    /* ── RESPONSIVE ─────────────────────────────────────── */
+    @media (max-width: 980px) {
+      .nav-links {
+        display: none;
+      }
+
+      .features-grid,
+      .pricing-grid,
+      .roadmap-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .themes-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+
+      .usecase {
+        grid-template-columns: 1fr;
+        gap: 28px;
+        padding: 40px 0;
+      }
+
+      .usecase.flip>.uc-text {
+        order: 0;
+      }
+
+      footer {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .browser .sidebar {
+        display: none;
+      }
+
+      .section {
+        padding: 64px 0;
+      }
+
+      .hero {
+        padding: 64px 0 40px;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .shell {
+        padding: 0 18px;
+      }
+
+      .nav-inner {
+        padding: 12px 18px;
+      }
+
+      .themes-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      footer {
+        grid-template-columns: 1fr;
+      }
+
+      .cta-band {
+        padding: 40px 24px;
+      }
+
+      .browser .page-content {
+        padding: 20px 22px;
+      }
+    }
+  </style>
 </head>
+
 <body data-theme="light">
 
-<!-- ───────── NAV ───────── -->
-<nav class="nav" id="nav">
-  <div class="nav-inner">
-    <a href="#top" class="brand">
-      <img src="icon.svg" alt="Sable" />
-      <span>sable<span class="muted">.browser</span></span>
-    </a>
-    <div class="nav-links">
-      <a href="#features">Features</a>
-      <a href="#pricing">Pricing</a>
-      <a href="#how">How it works</a>
-      <a href="#roadmap">Roadmap</a>
-    </div>
-    <span class="nav-spacer"></span>
-    <div class="theme-switch" role="tablist" aria-label="Theme">
-      <button class="on" data-set="light" aria-selected="true">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/></svg>
-        Light
-      </button>
-      <button data-set="dark">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20 14.5A8 8 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/></svg>
-        Dark
-      </button>
-    </div>
-    <a href="https://github.com/your-org/sable" class="nav-cta">
-      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.55v-2.13c-3.2.7-3.87-1.36-3.87-1.36-.52-1.33-1.27-1.69-1.27-1.69-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.76 2.69 1.25 3.34.96.1-.74.4-1.25.72-1.54-2.55-.29-5.24-1.27-5.24-5.66 0-1.25.45-2.27 1.18-3.07-.12-.29-.51-1.45.11-3.02 0 0 .96-.31 3.15 1.17.91-.25 1.89-.38 2.86-.38.97 0 1.95.13 2.86.38 2.19-1.48 3.15-1.17 3.15-1.17.62 1.57.23 2.73.11 3.02.73.8 1.18 1.82 1.18 3.07 0 4.4-2.69 5.37-5.25 5.65.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.55C20.21 21.39 23.5 17.08 23.5 12 23.5 5.65 18.35.5 12 .5z"/></svg>
-      GitHub
-    </a>
-  </div>
-</nav>
-
-<div class="shell" id="top">
-
-<!-- ───────── HERO ───────── -->
-<section class="hero">
-  <div class="hero-bg" aria-hidden="true"></div>
-  <div class="hero-inner">
-    <div class="eyebrow">v1.0 alpha · open source · MIT</div>
-    <h1>A browser where chat and pages are <em>one workspace.</em></h1>
-    <p class="lead">
-      Drop a paragraph from any page into the chat sidebar — Sable cites it back automatically. Drag tabs together to group them; drag them to an edge to split your view. <b>Free out of the box — a fast AI model is built in</b>, with optional BYOK for Anthropic or OpenAI when you want frontier-quality answers.
-    </p>
-    <div class="hero-actions">
-      <a href="https://github.com/your-org/sable" class="btn primary">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.55v-2.13c-3.2.7-3.87-1.36-3.87-1.36-.52-1.33-1.27-1.69-1.27-1.69-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.76 2.69 1.25 3.34.96.1-.74.4-1.25.72-1.54-2.55-.29-5.24-1.27-5.24-5.66 0-1.25.45-2.27 1.18-3.07-.12-.29-.51-1.45.11-3.02 0 0 .96-.31 3.15 1.17.91-.25 1.89-.38 2.86-.38.97 0 1.95.13 2.86.38 2.19-1.48 3.15-1.17 3.15-1.17.62 1.57.23 2.73.11 3.02.73.8 1.18 1.82 1.18 3.07 0 4.4-2.69 5.37-5.25 5.65.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.55C20.21 21.39 23.5 17.08 23.5 12 23.5 5.65 18.35.5 12 .5z"/></svg>
-        Try the alpha
+  <!-- ───────── NAV ───────── -->
+  <nav class="nav" id="nav">
+    <div class="nav-inner">
+      <a href="#top" class="brand">
+        <img src="icon.svg" alt="Sable" />
+        <span>sable<span class="muted">.browser</span></span>
       </a>
-      <a href="#how" class="btn ghost">
-        How it works
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#how">How it works</a>
+        <a href="#roadmap">Roadmap</a>
+      </div>
+      <span class="nav-spacer"></span>
+      <div class="theme-switch" role="tablist" aria-label="Theme">
+        <button class="on" data-set="light" aria-selected="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <circle cx="12" cy="12" r="4" />
+            <path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4" />
+          </svg>
+          Light
+        </button>
+        <button data-set="dark">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="M20 14.5A8 8 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z" />
+          </svg>
+          Dark
+        </button>
+      </div>
+      <a href="https://github.com/your-org/sable" class="nav-cta">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path
+            d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.55v-2.13c-3.2.7-3.87-1.36-3.87-1.36-.52-1.33-1.27-1.69-1.27-1.69-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.76 2.69 1.25 3.34.96.1-.74.4-1.25.72-1.54-2.55-.29-5.24-1.27-5.24-5.66 0-1.25.45-2.27 1.18-3.07-.12-.29-.51-1.45.11-3.02 0 0 .96-.31 3.15 1.17.91-.25 1.89-.38 2.86-.38.97 0 1.95.13 2.86.38 2.19-1.48 3.15-1.17 3.15-1.17.62 1.57.23 2.73.11 3.02.73.8 1.18 1.82 1.18 3.07 0 4.4-2.69 5.37-5.25 5.65.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.55C20.21 21.39 23.5 17.08 23.5 12 23.5 5.65 18.35.5 12 .5z" />
+        </svg>
+        GitHub
       </a>
     </div>
-    <div class="hero-chips">
-      <span class="chip ok">Free out of the box</span>
-      <span class="chip acc">No API key required</span>
-      <span class="chip">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 21h8M12 18v3"/></svg>
-        Windows · macOS · Linux
-      </span>
-      <span class="chip">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>
-        Open source · MIT
-      </span>
-    </div>
-  </div>
-</section>
+  </nav>
 
-<!-- ───────── BROWSER SHOWCASE ───────── -->
-<section class="showcase" aria-label="Sable browser preview">
-  <div class="browser" style="height:580px;">
-    <div class="titlebar">
-      <div class="traffic"><i></i><i></i><i></i></div>
-      <div class="tabrow">
-        <div class="tab"><div class="fav s-d">D</div><div class="ttl">DuckDuckGo</div></div>
-        <div class="tab context"><div class="fav s-w">W</div><div class="ttl">Mixture of experts (ML)</div></div>
-        <div class="tab active"><div class="fav s-a">A</div><div class="ttl">Mixtral of Experts</div></div>
-        <div class="tab context"><div class="fav s-h">H</div><div class="ttl">Qwen3-1.7B</div></div>
-        <div class="tab"><div class="fav s-p">P</div><div class="ttl">Long-context evals</div></div>
-        <div class="tab"><div class="fav s-g">G</div><div class="ttl">qwen3 / README</div></div>
-      </div>
-    </div>
-    <div class="page-area">
-      <div class="urlbar-wrap">
-        <div class="navbtns">
-          <button title="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-          <button title="Forward"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></button>
-          <button title="Reload"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M3 5v4h4M21 19v-4h-4M19 8a8 8 0 0 0-14 0M5 16a8 8 0 0 0 14 0"/></svg></button>
+  <div class="shell" id="top">
+
+    <!-- ───────── HERO ───────── -->
+    <section class="hero">
+      <div class="hero-bg" aria-hidden="true"></div>
+      <div class="hero-inner">
+        <div class="eyebrow">v1.0 alpha · open source · MIT</div>
+        <h1>A browser where chat and pages are <em>one workspace.</em></h1>
+        <p class="lead">
+          Drop a paragraph from any page into the chat sidebar — Sable cites it back automatically. Drag tabs together
+          to group them; drag them to an edge to split your view. <b>Free out of the box — a fast AI model is built
+            in</b>, with optional BYOK for Anthropic or OpenAI when you want frontier-quality answers.
+        </p>
+        <div class="hero-actions">
+          <a href="https://github.com/your-org/sable" class="btn primary">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path
+                d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.55v-2.13c-3.2.7-3.87-1.36-3.87-1.36-.52-1.33-1.27-1.69-1.27-1.69-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.76 2.69 1.25 3.34.96.1-.74.4-1.25.72-1.54-2.55-.29-5.24-1.27-5.24-5.66 0-1.25.45-2.27 1.18-3.07-.12-.29-.51-1.45.11-3.02 0 0 .96-.31 3.15 1.17.91-.25 1.89-.38 2.86-.38.97 0 1.95.13 2.86.38 2.19-1.48 3.15-1.17 3.15-1.17.62 1.57.23 2.73.11 3.02.73.8 1.18 1.82 1.18 3.07 0 4.4-2.69 5.37-5.25 5.65.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.55C20.21 21.39 23.5 17.08 23.5 12 23.5 5.65 18.35.5 12 .5z" />
+            </svg>
+            Try the alpha
+          </a>
+          <a href="#how" class="btn ghost">
+            How it works
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+              <path d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
+          </a>
         </div>
-        <div class="urlbar focused">
-          <svg class="lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V8a4 4 0 1 1 8 0v3"/></svg>
-          <span class="ttl">Mixtral of Experts <em>arxiv.org · 2401.04088</em></span>
-          <kbd>⌘L</kbd>
-        </div>
-        <div class="right-controls">
-          <button class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>2</button>
-          <button title="Profile"><div style="width:18px;height:18px;border-radius:6px;background:radial-gradient(circle at 30% 30%, var(--p-coral), transparent 60%),radial-gradient(circle at 70% 70%, var(--p-lavender), transparent 60%),var(--p-sky)"></div></button>
+        <div class="hero-chips">
+          <span class="chip ok">Free out of the box</span>
+          <span class="chip acc">No API key required</span>
+          <span class="chip">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+              <rect x="3" y="4" width="18" height="14" rx="2" />
+              <path d="M8 21h8M12 18v3" />
+            </svg>
+            Windows · macOS · Linux
+          </span>
+          <span class="chip">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" />
+            </svg>
+            Open source · MIT
+          </span>
         </div>
       </div>
-      <div class="page-body">
-        <div class="page-content">
-          <div class="crumb">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V8a4 4 0 1 1 8 0v3"/></svg>
-            arxiv.org · /abs/2401.04088 · jan 2024
-          </div>
-          <h2 class="page-h">Mixtral of Experts</h2>
-          <div class="byline">Albert Q. Jiang, Alexandre Sablayrolles, Antoine Roux, Arthur Mensch, et al.</div>
-          <div class="page-text">
-            <p>We introduce Mixtral 8×7B, a Sparse Mixture of Experts language model. Mixtral has the same architecture as Mistral 7B, with the difference that <b>each layer is composed of 8 feedforward blocks (i.e. experts)</b>. For every token, at each layer, a router network selects two experts to process the current state and combine their outputs.</p>
-            <p>Even though each token only sees two experts, the selected experts can be different at each timestep. As a result, each token has access to 47B parameters but only uses 13B active parameters during inference.</p>
-          </div>
-        </div>
-        <aside class="sidebar">
-          <div class="sb-head">
-            <div class="gl"></div>
-            <h4>Chat</h4>
-            <span class="meta">local · qwen3</span>
-          </div>
-          <div class="msgs">
-            <div class="msg user">
-              <div class="tab-stack" style="margin:0 0 6px">
-                <span class="pill"><span class="at">@</span><span class="fav s-w">W</span>MoE</span>
-                <span class="pill"><span class="at">@</span><span class="fav s-h">H</span>Qwen3</span>
-              </div>
-              Compare these two on long-context recall.
-            </div>
-            <div class="msg ai">
-              <div class="meta-line">qwen3 · local</div>
-              <div class="body">
-                Both target long-context, with different trade-offs. <b>Mixtral</b> routes top-2 of 8 experts (47B total / 13B active); <b>Qwen3-1.7B</b> is dense and runs locally on your machine.
-              </div>
-              <div class="cite-row">
-                <span class="cite"><span class="num">1</span>Mixtral · arxiv.org</span>
-                <span class="cite"><span class="num">2</span>Qwen3 card · huggingface.co</span>
-              </div>
-            </div>
-            <div class="msg ai">
-              <div class="meta-line">writing</div>
-              <div class="body">On RULER at 32k, Mixtral hits 0.94 needle while Qwen3-1.7B trails at 0.71<span class="stream"></span></div>
-            </div>
-          </div>
-          <div class="composer">
-            <div class="tab-stack" style="margin:0;height:auto">
-              <span class="pill"><span class="at">@</span><span class="fav s-a">A</span>Mixtral</span>
-            </div>
-            <div class="field">Where do the experts disagree most<span class="caret"></span></div>
-            <div class="composer-foot">
-              <span>@ to mention · ⏎ to send</span>
-              <button class="send" title="Send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l14-7-5 16-3-7-6-2z"/></svg></button>
-            </div>
-          </div>
-        </aside>
-      </div>
-    </div>
-  </div>
-</section>
+    </section>
 
-<!-- ───────── PRICING ───────── -->
-<section class="section" id="pricing">
-  <div class="section-head">
-    <span class="eyebrow">Pricing · or lack thereof</span>
-    <h2>Free out of the box. <span style="color:var(--ink-3)">BYOK if you want to.</span></h2>
-    <p class="lead">Sable ships with a fast AI model that runs entirely on your machine — no key, no subscription, no per-message bill. For frontier-quality answers, paste your Anthropic or OpenAI key and Sable streams from those instead. You'll be billed by them on your own account; <b>Sable itself never charges you anything</b>.</p>
-  </div>
-
-  <div class="pricing-grid">
-    <div class="price-card featured">
-      <span class="badge">Default</span>
-      <div class="icn">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><rect x="4" y="6" width="16" height="13" rx="2"/><path d="M8 3v3M16 3v3M4 11h16"/><circle cx="12" cy="15" r="2"/></svg>
-      </div>
-      <div class="name">Built-in offline AI</div>
-      <div class="price">$0<small>/forever</small></div>
-      <p class="desc">A fast on-device model — Qwen 3, Apache-licensed, runs locally. Click Download once (~1.1 GB) and chat works without an internet connection.</p>
-      <ul>
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4L19 6"/></svg>No API key, no subscription</li>
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4L19 6"/></svg>Works offline (yes, on a plane)</li>
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4L19 6"/></svg>Three sizes: 0.6B / 1.7B / 4B</li>
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4L19 6"/></svg>GPU-accelerated where supported</li>
-      </ul>
-    </div>
-
-    <div class="price-card byok-anth">
-      <div class="icn">A</div>
-      <div class="name">Anthropic <small style="font-weight:400;color:var(--ink-2);font-size:13px;letter-spacing:0">(BYOK)</small></div>
-      <div class="price">Pay direct<small>· at cost</small></div>
-      <p class="desc">Paste your <span class="mono" style="font-size:12px">sk-ant-…</span> key in Settings. Sable streams from Claude — Anthropic bills your account. Stored in your OS keychain.</p>
-      <ul>
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4L19 6"/></svg>Frontier quality, near-instant first token</li>
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4L19 6"/></svg>Multimodal — drop images straight in</li>
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4L19 6"/></svg>Sable adds zero markup</li>
-      </ul>
-    </div>
-
-    <div class="price-card byok-oai">
-      <div class="icn">O</div>
-      <div class="name">OpenAI <small style="font-weight:400;color:var(--ink-2);font-size:13px;letter-spacing:0">(BYOK)</small></div>
-      <div class="price">Pay direct<small>· at cost</small></div>
-      <p class="desc">Paste your <span class="mono" style="font-size:12px">sk-…</span> key in Settings. Sable streams from GPT — OpenAI bills your account. Stored in your OS keychain.</p>
-      <ul>
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4L19 6"/></svg>Frontier quality, near-instant first token</li>
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4L19 6"/></svg>Multimodal — drop images straight in</li>
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4L19 6"/></svg>Sable adds zero markup</li>
-      </ul>
-    </div>
-  </div>
-  <div class="pricing-foot">
-    Switch providers per-task. Conversation history, citations, dropped images — all of it travels with you.
-  </div>
-</section>
-
-<!-- ───────── FEATURES ───────── -->
-<section class="section" id="features">
-  <div class="section-head">
-    <span class="eyebrow">Why Sable</span>
-    <h2>Built around the way you actually use AI.</h2>
-    <p class="lead">Not a Chrome extension. Not a wrapper. A real browser where every part — tabs, layout, URL bar, sidebar — was designed to work with the AI, not next to it.</p>
-  </div>
-
-  <div class="features-grid">
-    <div class="feature">
-      <div class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
-      <h3>A chat sidebar that reads what you browse</h3>
-      <p>Drop text — instant citation. Drop an image — the AI sees it. Ctrl-click tabs and they become one shared context for whatever you ask next.</p>
-    </div>
-    <div class="feature">
-      <div class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></div>
-      <h3>Drag-to-split, drag-to-group</h3>
-      <p>Drag a tab to a pane edge to split your view, as deep as you want. Drag one tab onto another to group — they line up side-by-side automatically.</p>
-    </div>
-    <div class="feature">
-      <div class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.5-4.5"/></svg></div>
-      <h3>Smart new-tab page</h3>
-      <p>Type what you want and hit Enter. Sable picks the right destination — even if you didn't type a URL. Backed by your history and a small on-device model.</p>
-    </div>
-    <div class="feature">
-      <div class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h7l-1 8 10-12h-7z"/></svg></div>
-      <h3>Three AI providers, one is free</h3>
-      <p>Built-in offline model is the default — no key, no bill. Add an Anthropic or OpenAI key when you want frontier-quality answers.</p>
-    </div>
-    <div class="feature">
-      <div class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9 9c0-2 1.5-3 3-3s3 1 3 3-3 3-3 5"/><circle cx="12" cy="17" r=".5" fill="currentColor"/></svg></div>
-      <h3>Themed personalities for each space</h3>
-      <p>Lavender, mint, coral, amber, rose, sky, sage. Each space tints the whole window so it feels like a different room.</p>
-    </div>
-    <div class="feature">
-      <div class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 1 1 8 0v4"/></svg></div>
-      <h3>Privacy-first by default</h3>
-      <p>API keys live in your OS's password store. History stays on your machine. The on-device model needs no internet at all.</p>
-    </div>
-  </div>
-</section>
-
-<!-- ───────── HOW IT WORKS / USE CASES ───────── -->
-<section class="section" id="how">
-  <div class="section-head">
-    <span class="eyebrow">In practice</span>
-    <h2>Here's what it feels like.</h2>
-    <p class="lead">Four recipes for the kind of work Sable was built for. Each takes about 30 seconds of setup.</p>
-  </div>
-
-  <!-- Use case 1 -->
-  <article class="usecase">
-    <div class="uc-text">
-      <div class="num">01 · Research</div>
-      <h3>Compare three articles, find the disagreement.</h3>
-      <div class="quote">"What do these three sources actually disagree on?"</div>
-      <ol>
-        <li>Open three articles in three tabs.</li>
-        <li>Drag one tab onto another to <b>group</b> them — Sable auto-arranges them side-by-side. Drag a third onto the right edge for a 3-way split.</li>
-        <li><b>Ctrl-click all three tabs</b> to add them as chat context.</li>
-        <li>Ask: "Compare the framing across these three sources. Quote where they disagree."</li>
-      </ol>
-    </div>
-    <div class="uc-visual">
-      <div class="mini-shell">
-        <div class="mini-titlebar">
+    <!-- ───────── BROWSER SHOWCASE ───────── -->
+    <section class="showcase" aria-label="Sable browser preview">
+      <div class="browser" style="height:580px;">
+        <div class="titlebar">
           <div class="traffic"><i></i><i></i><i></i></div>
-          <div class="mini-tab context"><div class="fav s-a">A</div>Source A</div>
-          <div class="mini-tab context"><div class="fav s-w">W</div>Source B</div>
-          <div class="mini-tab context active"><div class="fav s-p">P</div>Source C</div>
-        </div>
-        <div class="uc-chat-stack">
-          <div class="uc-msg-user">
-            <div class="tab-stack" style="margin:0 0 5px">
-              <span class="pill"><span class="at">@</span><span class="fav s-a">A</span>A</span>
-              <span class="pill"><span class="at">@</span><span class="fav s-w">W</span>B</span>
-              <span class="pill"><span class="at">@</span><span class="fav s-p">P</span>C</span>
+          <div class="tabrow">
+            <div class="tab">
+              <div class="fav s-d">D</div>
+              <div class="ttl">DuckDuckGo</div>
             </div>
-            Compare these three sources. Quote where they disagree.
+            <div class="tab context">
+              <div class="fav s-w">W</div>
+              <div class="ttl">Mixture of experts (ML)</div>
+            </div>
+            <div class="tab active">
+              <div class="fav s-a">A</div>
+              <div class="ttl">Mixtral of Experts</div>
+            </div>
+            <div class="tab context">
+              <div class="fav s-h">H</div>
+              <div class="ttl">Qwen3-1.7B</div>
+            </div>
+            <div class="tab">
+              <div class="fav s-p">P</div>
+              <div class="ttl">Long-context evals</div>
+            </div>
+            <div class="tab">
+              <div class="fav s-g">G</div>
+              <div class="ttl">qwen3 / README</div>
+            </div>
           </div>
-          <div class="uc-msg-ai">
-            <div class="meta">claude · sonnet 4</div>
-            <div><b>Where they disagree:</b></div>
-            <blockquote>
-              "…the labour-market effect was modest and short-lived…"
-              <span class="src">Source A · ft.com · paragraph 4</span>
-            </blockquote>
-            <blockquote>
-              "…unemployment among new grads spiked materially in Q3…"
-              <span class="src">Source C · noahpinion · figure 2</span>
-            </blockquote>
-            <div style="font-size:11.5px;color:var(--ink-2)">A and B agree on policy framing; A and C diverge on the size of the effect…</div>
+        </div>
+        <div class="page-area">
+          <div class="urlbar-wrap">
+            <div class="navbtns">
+              <button title="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+                  stroke-linecap="round">
+                  <path d="M15 18l-6-6 6-6" />
+                </svg></button>
+              <button title="Forward"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+                  stroke-linecap="round">
+                  <path d="M9 6l6 6-6 6" />
+                </svg></button>
+              <button title="Reload"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+                  stroke-linecap="round">
+                  <path d="M3 5v4h4M21 19v-4h-4M19 8a8 8 0 0 0-14 0M5 16a8 8 0 0 0 14 0" />
+                </svg></button>
+            </div>
+            <div class="urlbar focused">
+              <svg class="lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+                stroke-linecap="round">
+                <rect x="5" y="11" width="14" height="9" rx="1.5" />
+                <path d="M8 11V8a4 4 0 1 1 8 0v3" />
+              </svg>
+              <span class="ttl">Mixtral of Experts <em>arxiv.org · 2401.04088</em></span>
+              <kbd>⌘L</kbd>
+            </div>
+            <div class="right-controls">
+              <button class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                  stroke-linecap="round">
+                  <rect x="3" y="3" width="7" height="7" rx="1.5" />
+                  <rect x="14" y="3" width="7" height="7" rx="1.5" />
+                  <rect x="3" y="14" width="7" height="7" rx="1.5" />
+                  <rect x="14" y="14" width="7" height="7" rx="1.5" />
+                </svg>2</button>
+              <button title="Profile">
+                <div
+                  style="width:18px;height:18px;border-radius:6px;background:radial-gradient(circle at 30% 30%, var(--p-coral), transparent 60%),radial-gradient(circle at 70% 70%, var(--p-lavender), transparent 60%),var(--p-sky)">
+                </div>
+              </button>
+            </div>
+          </div>
+          <div class="page-body">
+            <div class="page-content">
+              <div class="crumb">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+                  <rect x="5" y="11" width="14" height="9" rx="1.5" />
+                  <path d="M8 11V8a4 4 0 1 1 8 0v3" />
+                </svg>
+                arxiv.org · /abs/2401.04088 · jan 2024
+              </div>
+              <h2 class="page-h">Mixtral of Experts</h2>
+              <div class="byline">Albert Q. Jiang, Alexandre Sablayrolles, Antoine Roux, Arthur Mensch, et al.</div>
+              <div class="page-text">
+                <p>We introduce Mixtral 8×7B, a Sparse Mixture of Experts language model. Mixtral has the same
+                  architecture as Mistral 7B, with the difference that <b>each layer is composed of 8 feedforward blocks
+                    (i.e. experts)</b>. For every token, at each layer, a router network selects two experts to process
+                  the current state and combine their outputs.</p>
+                <p>Even though each token only sees two experts, the selected experts can be different at each timestep.
+                  As a result, each token has access to 47B parameters but only uses 13B active parameters during
+                  inference.</p>
+              </div>
+            </div>
+            <aside class="sidebar">
+              <div class="sb-head">
+                <div class="gl"></div>
+                <h4>Chat</h4>
+                <span class="meta">local · qwen3</span>
+              </div>
+              <div class="msgs">
+                <div class="msg user">
+                  <div class="tab-stack" style="margin:0 0 6px">
+                    <span class="pill"><span class="at">@</span><span class="fav s-w">W</span>MoE</span>
+                    <span class="pill"><span class="at">@</span><span class="fav s-h">H</span>Qwen3</span>
+                  </div>
+                  Compare these two on long-context recall.
+                </div>
+                <div class="msg ai">
+                  <div class="meta-line">qwen3 · local</div>
+                  <div class="body">
+                    Both target long-context, with different trade-offs. <b>Mixtral</b> routes top-2 of 8 experts (47B
+                    total / 13B active); <b>Qwen3-1.7B</b> is dense and runs locally on your machine.
+                  </div>
+                  <div class="cite-row">
+                    <span class="cite"><span class="num">1</span>Mixtral · arxiv.org</span>
+                    <span class="cite"><span class="num">2</span>Qwen3 card · huggingface.co</span>
+                  </div>
+                </div>
+                <div class="msg ai">
+                  <div class="meta-line">writing</div>
+                  <div class="body">On RULER at 32k, Mixtral hits 0.94 needle while Qwen3-1.7B trails at 0.71<span
+                      class="stream"></span></div>
+                </div>
+              </div>
+              <div class="composer">
+                <div class="tab-stack" style="margin:0;height:auto">
+                  <span class="pill"><span class="at">@</span><span class="fav s-a">A</span>Mixtral</span>
+                </div>
+                <div class="field">Where do the experts disagree most<span class="caret"></span></div>
+                <div class="composer-foot">
+                  <span>@ to mention · ⏎ to send</span>
+                  <button class="send" title="Send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M5 12l14-7-5 16-3-7-6-2z" />
+                    </svg></button>
+                </div>
+              </div>
+            </aside>
           </div>
         </div>
       </div>
-    </div>
-  </article>
+    </section>
 
-  <!-- Use case 2 -->
-  <article class="usecase flip">
-    <div class="uc-text">
-      <div class="num">02 · Code review</div>
-      <h3>Diff and docs, side by side, asked together.</h3>
-      <div class="quote">"Does this PR match what the docs actually promise?"</div>
-      <ol>
-        <li>Open the GitHub PR with the diff in the left pane.</li>
-        <li>Drag the docs tab onto the right edge of the layout to split vertically.</li>
-        <li>Each pane gets its own URL bar — navigate independently.</li>
-        <li>Ctrl-click both tabs and ask: "Does this change match the right-pane spec? Any inconsistencies?"</li>
-      </ol>
-    </div>
-    <div class="uc-visual">
-      <div class="mini-shell">
-        <div class="mini-titlebar">
-          <div class="traffic"><i></i><i></i><i></i></div>
-          <div class="mini-tab context active"><div class="fav s-g">G</div>PR #4218 · diff</div>
-          <div class="mini-tab context"><div class="fav s-w">D</div>docs / cache.md</div>
-        </div>
-        <div class="mini-body">
-          <div class="mini-pane code">
-            <div class="ln"><span class="meta">@@ -41,7 +41,9 @@</span></div>
-            <div class="ln"><span class="del">-  return cache.get(key)</span></div>
-            <div class="ln"><span class="add">+  const value = cache.get(key)</span></div>
-            <div class="ln"><span class="add">+  if (!value) return fetcher(key)</span></div>
-            <div class="ln"><span class="add">+  return value</span></div>
-            <div class="ln" style="margin-top:6px;color:var(--ink-3)">apps/server/cache.ts</div>
+    <!-- ───────── PRICING ───────── -->
+    <section class="section" id="pricing">
+      <div class="section-head">
+        <span class="eyebrow">Pricing · or lack thereof</span>
+        <h2>Free out of the box. <span style="color:var(--ink-3)">BYOK if you want to.</span></h2>
+        <p class="lead">Sable ships with a fast AI model that runs entirely on your machine — no key, no subscription,
+          no per-message bill. For frontier-quality answers, paste your Anthropic or OpenAI key and Sable streams from
+          those instead. You'll be billed by them on your own account; <b>Sable itself never charges you anything</b>.
+        </p>
+      </div>
+
+      <div class="pricing-grid">
+        <div class="price-card featured">
+          <span class="badge">Default</span>
+          <div class="icn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"
+              stroke-linejoin="round" width="22" height="22">
+              <rect x="4" y="6" width="16" height="13" rx="2" />
+              <path d="M8 3v3M16 3v3M4 11h16" />
+              <circle cx="12" cy="15" r="2" />
+            </svg>
           </div>
-          <div class="mini-pane">
-            <h5>Cache layer · Behavior</h5>
-            <p style="margin:0;font-size:11px;line-height:1.55">When a key is missing, the cache <b>must</b> call the fetcher and back-fill silently. Callers always receive a value.</p>
-            <div class="pane-mono" style="margin-top:8px">docs/cache.md · §2.1</div>
+          <div class="name">Built-in offline AI</div>
+          <div class="price">$0<small>/forever</small></div>
+          <p class="desc">A fast on-device model — Qwen 3, Apache-licensed, runs locally. Click Download once (~1.1 GB)
+            and chat works without an internet connection.</p>
+          <ul>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M5 12l4 4L19 6" />
+              </svg>No API key, no subscription</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M5 12l4 4L19 6" />
+              </svg>Works offline (yes, on a plane)</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M5 12l4 4L19 6" />
+              </svg>Three sizes: 0.6B / 1.7B / 4B</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M5 12l4 4L19 6" />
+              </svg>GPU-accelerated where supported</li>
+          </ul>
+        </div>
+
+        <div class="price-card byok-anth">
+          <div class="icn">A</div>
+          <div class="name">Anthropic <small
+              style="font-weight:400;color:var(--ink-2);font-size:13px;letter-spacing:0">(BYOK)</small></div>
+          <div class="price">Pay direct<small>· at cost</small></div>
+          <p class="desc">Paste your <span class="mono" style="font-size:12px">sk-ant-…</span> key in Settings. Sable
+            streams from Claude — Anthropic bills your account. Stored in your OS keychain.</p>
+          <ul>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M5 12l4 4L19 6" />
+              </svg>Frontier quality, near-instant first token</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M5 12l4 4L19 6" />
+              </svg>Multimodal — drop images straight in</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M5 12l4 4L19 6" />
+              </svg>Sable adds zero markup</li>
+          </ul>
+        </div>
+
+        <div class="price-card byok-oai">
+          <div class="icn">O</div>
+          <div class="name">OpenAI <small
+              style="font-weight:400;color:var(--ink-2);font-size:13px;letter-spacing:0">(BYOK)</small></div>
+          <div class="price">Pay direct<small>· at cost</small></div>
+          <p class="desc">Paste your <span class="mono" style="font-size:12px">sk-…</span> key in Settings. Sable
+            streams from GPT — OpenAI bills your account. Stored in your OS keychain.</p>
+          <ul>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M5 12l4 4L19 6" />
+              </svg>Frontier quality, near-instant first token</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M5 12l4 4L19 6" />
+              </svg>Multimodal — drop images straight in</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M5 12l4 4L19 6" />
+              </svg>Sable adds zero markup</li>
+          </ul>
+        </div>
+      </div>
+      <div class="pricing-foot">
+        Switch providers per-task. Conversation history, citations, dropped images — all of it travels with you.
+      </div>
+    </section>
+
+    <!-- ───────── FEATURES ───────── -->
+    <section class="section" id="features">
+      <div class="section-head">
+        <span class="eyebrow">Why Sable</span>
+        <h2>Built around the way you actually use AI.</h2>
+        <p class="lead">Not a Chrome extension. Not a wrapper. A real browser where every part — tabs, layout, URL bar,
+          sidebar — was designed to work with the AI, not next to it.</p>
+      </div>
+
+      <div class="features-grid">
+        <div class="feature">
+          <div class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg></div>
+          <h3>A chat sidebar that reads what you browse</h3>
+          <p>Drop text — instant citation. Drop an image — the AI sees it. Ctrl-click tabs and they become one shared
+            context for whatever you ask next.</p>
+        </div>
+        <div class="feature">
+          <div class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+              stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="7" rx="1.5" />
+              <rect x="14" y="3" width="7" height="7" rx="1.5" />
+              <rect x="3" y="14" width="7" height="7" rx="1.5" />
+              <rect x="14" y="14" width="7" height="7" rx="1.5" />
+            </svg></div>
+          <h3>Drag-to-split, drag-to-group</h3>
+          <p>Drag a tab to a pane edge to split your view, as deep as you want. Drag one tab onto another to group —
+            they line up side-by-side automatically.</p>
+        </div>
+        <div class="feature">
+          <div class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+              stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="7" />
+              <path d="M21 21l-4.5-4.5" />
+            </svg></div>
+          <h3>Smart new-tab page</h3>
+          <p>Type what you want and hit Enter. Sable picks the right destination — even if you didn't type a URL. Backed
+            by your history and a small on-device model.</p>
+        </div>
+        <div class="feature">
+          <div class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M13 2L3 14h7l-1 8 10-12h-7z" />
+            </svg></div>
+          <h3>Three AI providers, one is free</h3>
+          <p>Built-in offline model is the default — no key, no bill. Add an Anthropic or OpenAI key when you want
+            frontier-quality answers.</p>
+        </div>
+        <div class="feature">
+          <div class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+              stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M9 9c0-2 1.5-3 3-3s3 1 3 3-3 3-3 5" />
+              <circle cx="12" cy="17" r=".5" fill="currentColor" />
+            </svg></div>
+          <h3>Themed personalities for each space</h3>
+          <p>Lavender, mint, coral, amber, rose, sky, sage. Each space tints the whole window so it feels like a
+            different room.</p>
+        </div>
+        <div class="feature">
+          <div class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+              stroke-linecap="round" stroke-linejoin="round">
+              <rect x="5" y="11" width="14" height="9" rx="2" />
+              <path d="M8 11V7a4 4 0 1 1 8 0v4" />
+            </svg></div>
+          <h3>Privacy-first by default</h3>
+          <p>API keys live in your OS's password store. History stays on your machine. The on-device model needs no
+            internet at all.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ───────── HOW IT WORKS / USE CASES ───────── -->
+    <section class="section" id="how">
+      <div class="section-head">
+        <span class="eyebrow">In practice</span>
+        <h2>Here's what it feels like.</h2>
+        <p class="lead">Four recipes for the kind of work Sable was built for. Each takes about 30 seconds of setup.</p>
+      </div>
+
+      <!-- Use case 1 -->
+      <article class="usecase">
+        <div class="uc-text">
+          <div class="num">01 · Research</div>
+          <h3>Compare three articles, find the disagreement.</h3>
+          <div class="quote">"What do these three sources actually disagree on?"</div>
+          <ol>
+            <li>Open three articles in three tabs.</li>
+            <li>Drag one tab onto another to <b>group</b> them — Sable auto-arranges them side-by-side. Drag a third
+              onto the right edge for a 3-way split.</li>
+            <li><b>Ctrl-click all three tabs</b> to add them as chat context.</li>
+            <li>Ask: "Compare the framing across these three sources. Quote where they disagree."</li>
+          </ol>
+        </div>
+        <div class="uc-visual">
+          <div class="mini-shell">
+            <div class="mini-titlebar">
+              <div class="traffic"><i></i><i></i><i></i></div>
+              <div class="mini-tab context">
+                <div class="fav s-a">A</div>Source A
+              </div>
+              <div class="mini-tab context">
+                <div class="fav s-w">W</div>Source B
+              </div>
+              <div class="mini-tab context active">
+                <div class="fav s-p">P</div>Source C
+              </div>
+            </div>
+            <div class="uc-chat-stack">
+              <div class="uc-msg-user">
+                <div class="tab-stack" style="margin:0 0 5px">
+                  <span class="pill"><span class="at">@</span><span class="fav s-a">A</span>A</span>
+                  <span class="pill"><span class="at">@</span><span class="fav s-w">W</span>B</span>
+                  <span class="pill"><span class="at">@</span><span class="fav s-p">P</span>C</span>
+                </div>
+                Compare these three sources. Quote where they disagree.
+              </div>
+              <div class="uc-msg-ai">
+                <div class="meta">claude · sonnet 4</div>
+                <div><b>Where they disagree:</b></div>
+                <blockquote>
+                  "…the labour-market effect was modest and short-lived…"
+                  <span class="src">Source A · ft.com · paragraph 4</span>
+                </blockquote>
+                <blockquote>
+                  "…unemployment among new grads spiked materially in Q3…"
+                  <span class="src">Source C · noahpinion · figure 2</span>
+                </blockquote>
+                <div style="font-size:11.5px;color:var(--ink-2)">A and B agree on policy framing; A and C diverge on the
+                  size of the effect…</div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
-  </article>
+      </article>
 
-  <!-- Use case 3 -->
-  <article class="usecase">
-    <div class="uc-text">
-      <div class="num">03 · Trip planning</div>
-      <h3>One space. One theme. Everything you need.</h3>
-      <div class="quote">"Plan a long weekend in Tokyo from May 30."</div>
-      <ol>
-        <li>Make a new space called <b>Tokyo</b>; give it the <b>Sky</b> theme.</li>
-        <li>On the new-tab page, type <span class="mono" style="font-size:12.5px">flights sfo to nrt may 30</span> — Google Flights opens with the right query.</li>
-        <li>Open weather, hotels, neighborhood guides as additional tabs.</li>
-        <li>Drag the four most relevant tabs together to group them.</li>
-        <li>Ctrl-click the group and ask: "Build a 4-day itinerary across these tabs."</li>
-      </ol>
-    </div>
-    <div class="uc-visual">
-      <div class="mini-shell" style="background:linear-gradient(180deg, color-mix(in oklch, var(--p-sky) 28%, var(--surface-1)) 0%, var(--surface-1) 60%);">
-        <div class="mini-titlebar">
-          <div class="traffic"><i></i><i></i><i></i></div>
-          <div class="mini-tab"><div class="fav s-w">F</div>flights</div>
-          <div class="mini-tab context active"><div class="fav s-a">N</div>neighborhoods</div>
-          <div class="mini-tab context"><div class="fav s-h">H</div>hotels</div>
-          <div class="mini-tab context"><div class="fav s-d">W</div>weather</div>
+      <!-- Use case 2 -->
+      <article class="usecase flip">
+        <div class="uc-text">
+          <div class="num">02 · Code review</div>
+          <h3>Diff and docs, side by side, asked together.</h3>
+          <div class="quote">"Does this PR match what the docs actually promise?"</div>
+          <ol>
+            <li>Open the GitHub PR with the diff in the left pane.</li>
+            <li>Drag the docs tab onto the right edge of the layout to split vertically.</li>
+            <li>Each pane gets its own URL bar — navigate independently.</li>
+            <li>Ctrl-click both tabs and ask: "Does this change match the right-pane spec? Any inconsistencies?"</li>
+          </ol>
         </div>
-        <div style="padding:24px 28px;display:flex;flex-direction:column;gap:8px;">
-          <div class="pane-mono" style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--ink-2);">space · tokyo · sky theme</div>
-          <h3 style="font-size:24px;letter-spacing:-.02em;line-height:1.05;">Day 1 — arrive Narita, settle in Shibuya.</h3>
-          <div style="font-size:12.5px;color:var(--ink-1);line-height:1.55;">Crossing on foot to acclimatize. Light dinner at a standing soba bar near the station. Forecast looks clear after 6pm — perfect for a slow walk to Hachiko.</div>
-          <div style="display:flex;gap:5px;margin-top:8px;flex-wrap:wrap;">
-            <span class="cite"><span class="num">1</span>Tokyo Cheapo · neighborhoods</span>
-            <span class="cite"><span class="num">2</span>Tomorrow's Forecast · jma</span>
+        <div class="uc-visual">
+          <div class="mini-shell">
+            <div class="mini-titlebar">
+              <div class="traffic"><i></i><i></i><i></i></div>
+              <div class="mini-tab context active">
+                <div class="fav s-g">G</div>PR #4218 · diff
+              </div>
+              <div class="mini-tab context">
+                <div class="fav s-w">D</div>docs / cache.md
+              </div>
+            </div>
+            <div class="mini-body">
+              <div class="mini-pane code">
+                <div class="ln"><span class="meta">@@ -41,7 +41,9 @@</span></div>
+                <div class="ln"><span class="del">- return cache.get(key)</span></div>
+                <div class="ln"><span class="add">+ const value = cache.get(key)</span></div>
+                <div class="ln"><span class="add">+ if (!value) return fetcher(key)</span></div>
+                <div class="ln"><span class="add">+ return value</span></div>
+                <div class="ln" style="margin-top:6px;color:var(--ink-3)">apps/server/cache.ts</div>
+              </div>
+              <div class="mini-pane">
+                <h5>Cache layer · Behavior</h5>
+                <p style="margin:0;font-size:11px;line-height:1.55">When a key is missing, the cache <b>must</b> call
+                  the fetcher and back-fill silently. Callers always receive a value.</p>
+                <div class="pane-mono" style="margin-top:8px">docs/cache.md · §2.1</div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
-  </article>
+      </article>
 
-  <!-- Use case 4 -->
-  <article class="usecase flip">
-    <div class="uc-text">
-      <div class="num">04 · Offline</div>
-      <h3>Works on a plane. Or anywhere else.</h3>
-      <div class="quote">"I'm on a long flight with no Wi-Fi."</div>
-      <ol>
-        <li>Before takeoff, make sure the built-in offline model is downloaded in Settings (~1.1 GB, one time).</li>
-        <li>In the air, switch the active provider to it.</li>
-        <li>Chat works exactly the same. Citations, dropped passages, multi-tab context — all of it.</li>
-      </ol>
-      <div style="margin-top:18px;display:flex;gap:6px;flex-wrap:wrap;">
-        <span class="chip ok">$0/forever</span>
-        <span class="chip">No outbound network</span>
-        <span class="chip">Apache 2.0</span>
-      </div>
-    </div>
-    <div class="uc-visual" style="display:flex;align-items:center;justify-content:center;background:var(--surface-2);">
-      <div style="display:flex;flex-direction:column;align-items:center;gap:18px;padding:32px;text-align:center;">
-        <div style="width:80px;height:80px;border-radius:22px;background:radial-gradient(circle at 30% 30%, var(--p-coral), transparent 60%),radial-gradient(circle at 70% 70%, var(--p-lavender), transparent 60%),var(--p-sky);box-shadow:var(--shadow-2),inset 0 0 0 1px rgba(255,255,255,.4);"></div>
-        <div>
-          <div class="pane-mono" style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-2);letter-spacing:.12em;text-transform:uppercase;">Active model</div>
-          <div style="font-size:18px;font-weight:500;letter-spacing:-.015em;margin-top:4px;">Qwen 3 · 1.7B</div>
-          <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-2);margin-top:4px;">on-device · ✈ no network</div>
+      <!-- Use case 3 -->
+      <article class="usecase">
+        <div class="uc-text">
+          <div class="num">03 · Trip planning</div>
+          <h3>One space. One theme. Everything you need.</h3>
+          <div class="quote">"Plan a long weekend in Tokyo from May 30."</div>
+          <ol>
+            <li>Make a new space called <b>Tokyo</b>; give it the <b>Sky</b> theme.</li>
+            <li>On the new-tab page, type <span class="mono" style="font-size:12.5px">flights sfo to nrt may 30</span> —
+              Google Flights opens with the right query.</li>
+            <li>Open weather, hotels, neighborhood guides as additional tabs.</li>
+            <li>Drag the four most relevant tabs together to group them.</li>
+            <li>Ctrl-click the group and ask: "Build a 4-day itinerary across these tabs."</li>
+          </ol>
         </div>
-        <div style="display:flex;gap:6px;align-items:center;font-size:11px;color:var(--ok);background:color-mix(in oklch, var(--ok) 12%, transparent);padding:6px 12px;border-radius:999px;">
-          <span style="width:6px;height:6px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 3px color-mix(in oklch, var(--ok) 18%, transparent);"></span>
-          ready
+        <div class="uc-visual">
+          <div class="mini-shell"
+            style="background:linear-gradient(180deg, color-mix(in oklch, var(--p-sky) 28%, var(--surface-1)) 0%, var(--surface-1) 60%);">
+            <div class="mini-titlebar">
+              <div class="traffic"><i></i><i></i><i></i></div>
+              <div class="mini-tab">
+                <div class="fav s-w">F</div>flights
+              </div>
+              <div class="mini-tab context active">
+                <div class="fav s-a">N</div>neighborhoods
+              </div>
+              <div class="mini-tab context">
+                <div class="fav s-h">H</div>hotels
+              </div>
+              <div class="mini-tab context">
+                <div class="fav s-d">W</div>weather
+              </div>
+            </div>
+            <div style="padding:24px 28px;display:flex;flex-direction:column;gap:8px;">
+              <div class="pane-mono"
+                style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--ink-2);">space · tokyo · sky
+                theme</div>
+              <h3 style="font-size:24px;letter-spacing:-.02em;line-height:1.05;">Day 1 — arrive Narita, settle in
+                Shibuya.</h3>
+              <div style="font-size:12.5px;color:var(--ink-1);line-height:1.55;">Crossing on foot to acclimatize. Light
+                dinner at a standing soba bar near the station. Forecast looks clear after 6pm — perfect for a slow walk
+                to Hachiko.</div>
+              <div style="display:flex;gap:5px;margin-top:8px;flex-wrap:wrap;">
+                <span class="cite"><span class="num">1</span>Tokyo Cheapo · neighborhoods</span>
+                <span class="cite"><span class="num">2</span>Tomorrow's Forecast · jma</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Use case 4 -->
+      <article class="usecase flip">
+        <div class="uc-text">
+          <div class="num">04 · Offline</div>
+          <h3>Works on a plane. Or anywhere else.</h3>
+          <div class="quote">"I'm on a long flight with no Wi-Fi."</div>
+          <ol>
+            <li>Before takeoff, make sure the built-in offline model is downloaded in Settings (~1.1 GB, one time).</li>
+            <li>In the air, switch the active provider to it.</li>
+            <li>Chat works exactly the same. Citations, dropped passages, multi-tab context — all of it.</li>
+          </ol>
+          <div style="margin-top:18px;display:flex;gap:6px;flex-wrap:wrap;">
+            <span class="chip ok">$0/forever</span>
+            <span class="chip">No outbound network</span>
+            <span class="chip">Apache 2.0</span>
+          </div>
+        </div>
+        <div class="uc-visual"
+          style="display:flex;align-items:center;justify-content:center;background:var(--surface-2);">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:18px;padding:32px;text-align:center;">
+            <div
+              style="width:80px;height:80px;border-radius:22px;background:radial-gradient(circle at 30% 30%, var(--p-coral), transparent 60%),radial-gradient(circle at 70% 70%, var(--p-lavender), transparent 60%),var(--p-sky);box-shadow:var(--shadow-2),inset 0 0 0 1px rgba(255,255,255,.4);">
+            </div>
+            <div>
+              <div class="pane-mono"
+                style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-2);letter-spacing:.12em;text-transform:uppercase;">
+                Active model</div>
+              <div style="font-size:18px;font-weight:500;letter-spacing:-.015em;margin-top:4px;">Qwen 3 · 1.7B</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-2);margin-top:4px;">
+                on-device · ✈ no network</div>
+            </div>
+            <div
+              style="display:flex;gap:6px;align-items:center;font-size:11px;color:var(--ok);background:color-mix(in oklch, var(--ok) 12%, transparent);padding:6px 12px;border-radius:999px;">
+              <span
+                style="width:6px;height:6px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 3px color-mix(in oklch, var(--ok) 18%, transparent);"></span>
+              ready
+            </div>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <!-- ───────── PERSONALITIES ───────── -->
+    <section class="section" id="personalities">
+      <div class="section-head">
+        <span class="eyebrow">Personalities</span>
+        <h2>Each space is a personality.</h2>
+        <p class="lead">Spaces aren't just folders — each one re-tints the whole chrome with a pastel theme. The window
+          genuinely <em>feels</em> like a different room as you switch.</p>
+      </div>
+      <div class="themes-grid">
+        <div class="theme-card">
+          <div class="swatch"
+            style="background:radial-gradient(circle at 30% 30%, var(--p-lavender), transparent 70%);"></div>
+          <div class="glyph"></div>
+          <div class="name">Lavender</div>
+        </div>
+        <div class="theme-card">
+          <div class="swatch" style="background:radial-gradient(circle at 30% 30%, var(--p-mint), transparent 70%);">
+          </div>
+          <div class="glyph"></div>
+          <div class="name">Mint</div>
+        </div>
+        <div class="theme-card">
+          <div class="swatch" style="background:radial-gradient(circle at 30% 30%, var(--p-coral), transparent 70%);">
+          </div>
+          <div class="glyph"></div>
+          <div class="name">Coral</div>
+        </div>
+        <div class="theme-card">
+          <div class="swatch" style="background:radial-gradient(circle at 30% 30%, var(--p-butter), transparent 70%);">
+          </div>
+          <div class="glyph"></div>
+          <div class="name">Amber</div>
+        </div>
+        <div class="theme-card">
+          <div class="swatch" style="background:radial-gradient(circle at 30% 30%, var(--p-rose), transparent 70%);">
+          </div>
+          <div class="glyph"></div>
+          <div class="name">Rose</div>
+        </div>
+        <div class="theme-card">
+          <div class="swatch" style="background:radial-gradient(circle at 30% 30%, var(--p-sky), transparent 70%);">
+          </div>
+          <div class="glyph"></div>
+          <div class="name">Sky</div>
+        </div>
+        <div class="theme-card">
+          <div class="swatch" style="background:radial-gradient(circle at 30% 30%, var(--p-peach), transparent 70%);">
+          </div>
+          <div class="glyph"></div>
+          <div class="name">Sage</div>
         </div>
       </div>
-    </div>
-  </article>
-</section>
+    </section>
 
-<!-- ───────── PERSONALITIES ───────── -->
-<section class="section" id="personalities">
-  <div class="section-head">
-    <span class="eyebrow">Personalities</span>
-    <h2>Each space is a personality.</h2>
-    <p class="lead">Spaces aren't just folders — each one re-tints the whole chrome with a pastel theme. The window genuinely <em>feels</em> like a different room as you switch.</p>
+    <!-- ───────── ROADMAP ───────── -->
+    <section class="section" id="roadmap">
+      <div class="section-head">
+        <span class="eyebrow">Roadmap</span>
+        <h2>What's next.</h2>
+        <p class="lead">A deliberately ambitious roadmap. Tier 2 and Tier 3 are where we'd most love contributors — open
+          a discussion and pick something up.</p>
+      </div>
+      <div class="roadmap-grid">
+
+        <div class="tier live">
+          <h3><span class="tier-num">Tier 1 · in flight</span></h3>
+          <div class="lead">V1.0 polish — landing the alpha cleanly.</div>
+          <ul>
+            <li><b>Tab grouping persistence</b> across restarts.</li>
+            <li><b>Per-pane URL-bar drop targets</b> — drag a tab onto another pane's mini URL bar.</li>
+            <li><b>Drag-to-rearrange</b> for grouped tabs.</li>
+            <li><b>Light/dark auto-follow OS</b>.</li>
+            <li>Code signing, auto-update, crash reporting.</li>
+          </ul>
+        </div>
+
+        <div class="tier next">
+          <h3><span class="tier-num">Tier 2 · next up</span></h3>
+          <div class="lead">Workflow automation & Skills — pick something here!</div>
+          <ul>
+            <li><b>Recordable Skills</b> — narrate an action ("scrape these tabs into a markdown table"); fire later
+              with one click.</li>
+            <li><b>Skill Marketplace</b> — share / import skills as a single signed JSON file.</li>
+            <li><b>Tab macros</b> — record a sequence of pane operations, replay anytime.</li>
+            <li><b><code class="mono" style="font-size:12.5px">/recall</code></b> — semantic search over chat history
+              with citations.</li>
+            <li><b>Variable injection</b> in skills (selection, current URL, time-of-day…).</li>
+          </ul>
+        </div>
+
+        <div class="tier exp">
+          <h3><span class="tier-num">Tier 3 · exploration</span></h3>
+          <div class="lead">Personal knowledge & agentic browsing — the endgame.</div>
+          <ul>
+            <li><b>Personal Knowledge Graph</b> from history — encrypted-at-rest, default-deny blocklist, <code
+                class="mono" style="font-size:12.5px">/recall</code> over everything you've read.</li>
+            <li><b>Active learning</b> — Sable predicts the tabs you're about to open at 9am.</li>
+            <li><b>Agentic green-thread tabs</b> — spawn a hidden tab with a goal, capability allowlist,
+              human-in-the-loop.</li>
+            <li><b>Generative surfaces</b> — sandboxed iframes rendering AI-synthesized UI from open tabs.</li>
+            <li><b>Multi-window & detach</b> — drag a pane out into its own window.</li>
+          </ul>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ───────── CTA BAND ───────── -->
+    <section class="section section-tight">
+      <div class="cta-band">
+        <span class="eyebrow">Built in the open</span>
+        <h2 style="margin-top:8px;">MIT licensed. Looking for contributors.</h2>
+        <p>Sable is a small, ambitious project. The features above are real and shipping; the roadmap is real and
+          waiting. If any of it sounds like the browser you wish existed, we'd love your help making it.</p>
+        <div class="actions">
+          <a href="https://github.com/your-org/sable" class="btn primary">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path
+                d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.55v-2.13c-3.2.7-3.87-1.36-3.87-1.36-.52-1.33-1.27-1.69-1.27-1.69-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.76 2.69 1.25 3.34.96.1-.74.4-1.25.72-1.54-2.55-.29-5.24-1.27-5.24-5.66 0-1.25.45-2.27 1.18-3.07-.12-.29-.51-1.45.11-3.02 0 0 .96-.31 3.15 1.17.91-.25 1.89-.38 2.86-.38.97 0 1.95.13 2.86.38 2.19-1.48 3.15-1.17 3.15-1.17.62 1.57.23 2.73.11 3.02.73.8 1.18 1.82 1.18 3.07 0 4.4-2.69 5.37-5.25 5.65.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.55C20.21 21.39 23.5 17.08 23.5 12 23.5 5.65 18.35.5 12 .5z" />
+            </svg>
+            Star on GitHub
+          </a>
+          <a href="https://github.com/your-org/sable/blob/main/CONTRIBUTING.md" class="btn ghost">
+            Contributing guide
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+              <path d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ───────── FOOTER ───────── -->
+    <footer>
+      <div class="col">
+        <div class="brand">
+          <img src="icon.svg" alt="Sable" />
+          <span>sable<span class="muted">.browser</span></span>
+        </div>
+        <p class="copy">A browser where chat and pages are one workspace. Free out of the box, BYOK if you want frontier
+          quality, open source, MIT.</p>
+        <div class="made-with">© 2026 Sable contributors</div>
+      </div>
+      <div class="col">
+        <h6>Project</h6>
+        <a href="https://github.com/your-org/sable">GitHub</a>
+        <a href="https://github.com/your-org/sable/issues">Issues</a>
+        <a href="https://github.com/your-org/sable/discussions">Discussions</a>
+        <a href="https://github.com/your-org/sable/releases">Releases</a>
+      </div>
+      <div class="col">
+        <h6>Build</h6>
+        <a href="https://github.com/your-org/sable#quickstart">Quickstart</a>
+        <a href="https://github.com/your-org/sable/blob/main/CONTRIBUTING.md">Contributing</a>
+        <a href="https://github.com/your-org/sable#architecture">Architecture</a>
+        <a href="https://github.com/your-org/sable#roadmap">Roadmap</a>
+      </div>
+      <div class="col">
+        <h6>Policies</h6>
+        <a href="https://github.com/your-org/sable/blob/main/LICENSE">License (MIT)</a>
+        <a href="https://github.com/your-org/sable/blob/main/CODE_OF_CONDUCT.md">Code of conduct</a>
+        <a href="https://github.com/your-org/sable/blob/main/SECURITY.md">Security</a>
+        <a href="https://github.com/your-org/sable#privacy-posture">Privacy posture</a>
+      </div>
+    </footer>
+
   </div>
-  <div class="themes-grid">
-    <div class="theme-card"><div class="swatch" style="background:radial-gradient(circle at 30% 30%, var(--p-lavender), transparent 70%);"></div><div class="glyph"></div><div class="name">Lavender</div></div>
-    <div class="theme-card"><div class="swatch" style="background:radial-gradient(circle at 30% 30%, var(--p-mint), transparent 70%);"></div><div class="glyph"></div><div class="name">Mint</div></div>
-    <div class="theme-card"><div class="swatch" style="background:radial-gradient(circle at 30% 30%, var(--p-coral), transparent 70%);"></div><div class="glyph"></div><div class="name">Coral</div></div>
-    <div class="theme-card"><div class="swatch" style="background:radial-gradient(circle at 30% 30%, var(--p-butter), transparent 70%);"></div><div class="glyph"></div><div class="name">Amber</div></div>
-    <div class="theme-card"><div class="swatch" style="background:radial-gradient(circle at 30% 30%, var(--p-rose), transparent 70%);"></div><div class="glyph"></div><div class="name">Rose</div></div>
-    <div class="theme-card"><div class="swatch" style="background:radial-gradient(circle at 30% 30%, var(--p-sky), transparent 70%);"></div><div class="glyph"></div><div class="name">Sky</div></div>
-    <div class="theme-card"><div class="swatch" style="background:radial-gradient(circle at 30% 30%, var(--p-peach), transparent 70%);"></div><div class="glyph"></div><div class="name">Sage</div></div>
-  </div>
-</section>
 
-<!-- ───────── ROADMAP ───────── -->
-<section class="section" id="roadmap">
-  <div class="section-head">
-    <span class="eyebrow">Roadmap</span>
-    <h2>What's next.</h2>
-    <p class="lead">A deliberately ambitious roadmap. Tier 2 and Tier 3 are where we'd most love contributors — open a discussion and pick something up.</p>
-  </div>
-  <div class="roadmap-grid">
-
-    <div class="tier live">
-      <h3><span class="tier-num">Tier 1 · in flight</span></h3>
-      <div class="lead">V1.0 polish — landing the alpha cleanly.</div>
-      <ul>
-        <li><b>Tab grouping persistence</b> across restarts.</li>
-        <li><b>Per-pane URL-bar drop targets</b> — drag a tab onto another pane's mini URL bar.</li>
-        <li><b>Drag-to-rearrange</b> for grouped tabs.</li>
-        <li><b>Light/dark auto-follow OS</b>.</li>
-        <li>Code signing, auto-update, crash reporting.</li>
-      </ul>
-    </div>
-
-    <div class="tier next">
-      <h3><span class="tier-num">Tier 2 · next up</span></h3>
-      <div class="lead">Workflow automation & Skills — pick something here!</div>
-      <ul>
-        <li><b>Recordable Skills</b> — narrate an action ("scrape these tabs into a markdown table"); fire later with one click.</li>
-        <li><b>Skill Marketplace</b> — share / import skills as a single signed JSON file.</li>
-        <li><b>Tab macros</b> — record a sequence of pane operations, replay anytime.</li>
-        <li><b><code class="mono" style="font-size:12.5px">/recall</code></b> — semantic search over chat history with citations.</li>
-        <li><b>Variable injection</b> in skills (selection, current URL, time-of-day…).</li>
-      </ul>
-    </div>
-
-    <div class="tier exp">
-      <h3><span class="tier-num">Tier 3 · exploration</span></h3>
-      <div class="lead">Personal knowledge & agentic browsing — the endgame.</div>
-      <ul>
-        <li><b>Personal Knowledge Graph</b> from history — encrypted-at-rest, default-deny blocklist, <code class="mono" style="font-size:12.5px">/recall</code> over everything you've read.</li>
-        <li><b>Active learning</b> — Sable predicts the tabs you're about to open at 9am.</li>
-        <li><b>Agentic green-thread tabs</b> — spawn a hidden tab with a goal, capability allowlist, human-in-the-loop.</li>
-        <li><b>Generative surfaces</b> — sandboxed iframes rendering AI-synthesized UI from open tabs.</li>
-        <li><b>Multi-window & detach</b> — drag a pane out into its own window.</li>
-      </ul>
-    </div>
-
-  </div>
-</section>
-
-<!-- ───────── CTA BAND ───────── -->
-<section class="section section-tight">
-  <div class="cta-band">
-    <span class="eyebrow">Built in the open</span>
-    <h2 style="margin-top:8px;">MIT licensed. Looking for contributors.</h2>
-    <p>Sable is a small, ambitious project. The features above are real and shipping; the roadmap is real and waiting. If any of it sounds like the browser you wish existed, we'd love your help making it.</p>
-    <div class="actions">
-      <a href="https://github.com/your-org/sable" class="btn primary">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.55v-2.13c-3.2.7-3.87-1.36-3.87-1.36-.52-1.33-1.27-1.69-1.27-1.69-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.76 2.69 1.25 3.34.96.1-.74.4-1.25.72-1.54-2.55-.29-5.24-1.27-5.24-5.66 0-1.25.45-2.27 1.18-3.07-.12-.29-.51-1.45.11-3.02 0 0 .96-.31 3.15 1.17.91-.25 1.89-.38 2.86-.38.97 0 1.95.13 2.86.38 2.19-1.48 3.15-1.17 3.15-1.17.62 1.57.23 2.73.11 3.02.73.8 1.18 1.82 1.18 3.07 0 4.4-2.69 5.37-5.25 5.65.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.55C20.21 21.39 23.5 17.08 23.5 12 23.5 5.65 18.35.5 12 .5z"/></svg>
-        Star on GitHub
-      </a>
-      <a href="https://github.com/your-org/sable/blob/main/CONTRIBUTING.md" class="btn ghost">
-        Contributing guide
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-      </a>
-    </div>
-  </div>
-</section>
-
-<!-- ───────── FOOTER ───────── -->
-<footer>
-  <div class="col">
-    <div class="brand">
-      <img src="icon.svg" alt="Sable" />
-      <span>sable<span class="muted">.browser</span></span>
-    </div>
-    <p class="copy">A browser where chat and pages are one workspace. Free out of the box, BYOK if you want frontier quality, open source, MIT.</p>
-    <div class="made-with">© 2026 Vignesh and Sable contributors</div>
-  </div>
-  <div class="col">
-    <h6>Project</h6>
-    <a href="https://github.com/your-org/sable">GitHub</a>
-    <a href="https://github.com/your-org/sable/issues">Issues</a>
-    <a href="https://github.com/your-org/sable/discussions">Discussions</a>
-    <a href="https://github.com/your-org/sable/releases">Releases</a>
-  </div>
-  <div class="col">
-    <h6>Build</h6>
-    <a href="https://github.com/your-org/sable#quickstart">Quickstart</a>
-    <a href="https://github.com/your-org/sable/blob/main/CONTRIBUTING.md">Contributing</a>
-    <a href="https://github.com/your-org/sable#architecture">Architecture</a>
-    <a href="https://github.com/your-org/sable#roadmap">Roadmap</a>
-  </div>
-  <div class="col">
-    <h6>Policies</h6>
-    <a href="https://github.com/your-org/sable/blob/main/LICENSE">License (MIT)</a>
-    <a href="https://github.com/your-org/sable/blob/main/CODE_OF_CONDUCT.md">Code of conduct</a>
-    <a href="https://github.com/your-org/sable/blob/main/SECURITY.md">Security</a>
-    <a href="https://github.com/your-org/sable#privacy-posture">Privacy posture</a>
-  </div>
-</footer>
-
-</div>
-
-<script>
-  // theme toggle (persists to localStorage)
-  (function () {
-    const KEY = 'sable.site.theme';
-    const saved = localStorage.getItem(KEY);
-    if (saved === 'dark' || saved === 'light') {
-      document.body.dataset.theme = saved;
-      syncSwitch(saved);
-    }
-    document.querySelectorAll('.theme-switch button').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        const t = btn.dataset.set;
-        document.body.dataset.theme = t;
-        localStorage.setItem(KEY, t);
-        syncSwitch(t);
+  <script>
+    // theme toggle (persists to localStorage)
+    (function () {
+      const KEY = 'sable.site.theme';
+      const saved = localStorage.getItem(KEY);
+      if (saved === 'dark' || saved === 'light') {
+        document.body.dataset.theme = saved;
+        syncSwitch(saved);
+      }
+      document.querySelectorAll('.theme-switch button').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          const t = btn.dataset.set;
+          document.body.dataset.theme = t;
+          localStorage.setItem(KEY, t);
+          syncSwitch(t);
+        });
       });
-    });
-    function syncSwitch(t) {
-      document.querySelectorAll('.theme-switch button').forEach(function (b) {
-        if (b.dataset.set === t) b.classList.add('on'); else b.classList.remove('on');
-      });
-    }
-  })();
+      function syncSwitch(t) {
+        document.querySelectorAll('.theme-switch button').forEach(function (b) {
+          if (b.dataset.set === t) b.classList.add('on'); else b.classList.remove('on');
+        });
+      }
+    })();
 
-  // nav border on scroll
-  (function () {
-    const nav = document.getElementById('nav');
-    let ticking = false;
-    function check() {
-      if (window.scrollY > 8) nav.classList.add('scrolled'); else nav.classList.remove('scrolled');
-      ticking = false;
-    }
-    window.addEventListener('scroll', function () {
-      if (!ticking) { requestAnimationFrame(check); ticking = true; }
-    }, { passive: true });
-  })();
-</script>
+    // nav border on scroll
+    (function () {
+      const nav = document.getElementById('nav');
+      let ticking = false;
+      function check() {
+        if (window.scrollY > 8) nav.classList.add('scrolled'); else nav.classList.remove('scrolled');
+        ticking = false;
+      }
+      window.addEventListener('scroll', function () {
+        if (!ticking) { requestAnimationFrame(check); ticking = true; }
+      }, { passive: true });
+    })();
+  </script>
 
 </body>
+
 </html>
