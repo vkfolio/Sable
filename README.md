@@ -24,7 +24,7 @@ Sable turns your browser into one workspace where chat and pages can finally tal
 
 Drop a paragraph from any page into the chat sidebar — Sable cites it back automatically. Drop an image from a webpage into chat — it goes in as a prompt the AI can actually see. Ctrl-click a few tabs and they become one shared context for whatever you ask next. Drag tabs together to group them; drag them to an edge to split your view side-by-side or stacked, as deep as you want.
 
-Three AI providers are built in — Anthropic, OpenAI, and a fast on-device model that runs offline. Pick whichever fits the task or your privacy preference. Everything streams in real time and renders as proper markdown.
+**Free out of the box — no API key, no subscription, no per-message cost.** A fast AI model is built in and runs entirely on your machine. Want frontier-quality answers for harder work? Paste your **Anthropic** or **OpenAI** key and Sable streams from those instead — pay your provider directly, switch any time. Everything renders as proper markdown.
 
 It's not a Chrome wrapper with a chat button. It's a real browser, designed from scratch around the way you actually work with AI — and built to grow into **recordable workflow "skills", a memory of your browsing, and a personal knowledge graph** that makes everything you've ever read searchable.
 
@@ -68,8 +68,8 @@ Available on **Windows, macOS, Linux**.
 | **Autocomplete from your history** | Type a few letters; Sable suggests the page you actually meant, ranked by how often you go there |
 | **Customizable bookmarks** | Pin and reorder the sites you actually use, right on the new-tab page |
 | **Markdown chat** | Replies render the way you'd want — code blocks, lists, tables, links, all live |
-| **Three AI providers** | Anthropic, OpenAI, or a built-in offline model. Switch any time |
-| **Local model runs offline** | A ~1 GB on-device model for chat without the internet (and a permissive license — see below) |
+| **No API key required** | A fast AI model is built in. Free, on-device, no subscription, works offline |
+| **BYOK if you want frontier quality** | Paste an Anthropic or OpenAI key and Sable streams from those instead. Pay your provider directly. Switch any time |
 | **Themed workspaces** | Each "space" gets its own colour personality — lavender, mint, coral, amber, rose, sky, sage — light & dark inside each |
 | **First-launch setup** | Splash → tell Sable your name → pick a model. Skippable, and re-runnable with one env var |
 | **Keys stay safe** | API keys live in your OS's password store, never on disk in plain text, never visible to the page |
@@ -129,15 +129,17 @@ Available on **Windows, macOS, Linux**.
   <p><sub><em>Drop a passage anywhere in the sidebar — Sable cites it back as a markdown blockquote with the source URL.</em></sub></p>
 </div>
 
-### Three AI providers, one chat
+### AI is built in — bring your own key only if you want
 
-| Provider | What you do | First-token feel |
+Sable ships with **a free on-device AI model**. It works the moment you finish onboarding — no key to paste, no subscription, no API bill. For harder work where you want frontier-quality answers, paste an **Anthropic** or **OpenAI** key and Sable will stream from those instead. Pick the right tool per task; switch any time.
+
+| Provider | What you do | Cost |
 |---|---|---|
-| **Anthropic** | Paste your key in Settings | Near-instant |
-| **OpenAI** | Paste your key in Settings | Near-instant |
-| **Built-in offline model** | Click **Download** in Settings (~1.1 GB) | A second or two on the first message, then near-instant |
+| **Built-in offline model** *(default)* | Click **Download** in Settings (~1.1 GB, one-time) | **Free** — runs on your machine |
+| **Anthropic** | Paste your `sk-ant-…` key in Settings | Pay your Anthropic account directly |
+| **OpenAI** | Paste your `sk-…` key in Settings | Pay your OpenAI account directly |
 
-Switch any time. The conversation, the citations, the dropped images — all of it works the same way no matter which provider is active. Replies stream in token-by-token.
+The conversation, the citations, the dropped images — everything works the same way no matter which provider is active. Replies stream in real time. Sable never charges you anything; if you use Anthropic or OpenAI, you're billed by them on your own account.
 
 ### The built-in offline model
 
