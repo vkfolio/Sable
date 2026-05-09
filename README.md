@@ -211,10 +211,6 @@ The reply keeps your citations inline so the brief is auditable back to the orig
 
 > Want a use case here that isn't listed? **Open a discussion** — workflow recipes are exactly the kind of contribution that helps shape Tier 2 *Recordable Skills*.
 
-<div align="center">
-  <img src="docs/screenshots/usecase-research-drawer.png" alt="Research drawer — many citations dropped into chat sidebar" width="820" />
-  <p><sub><em>Drop. Drop. Drop. Then ask.</em></sub></p>
-</div>
 
 ---
 
@@ -278,52 +274,6 @@ SABLE_RESET=1 pnpm shell   # wipe chrome localStorage (re-trigger onboarding)
 ```
 
 ---
-
-## Architecture
-
-```
-                                ┌────────────────────────────────────────┐
-                                │  Electron main (Node)                  │
-                                │                                        │
-                                │  WindowManager                         │
-                                │   ├─ TabManager · LayoutController     │
-                                │   ├─ SpaceManager                      │
-                                │   ├─ HistoryManager (recent + search)  │
-                                │   ├─ ChatOrchestrator (LangGraphJS)    │
-                                │   │   ├─ StateGraph (stream)           │
-                                │   │   └─ oneShot() (intent resolver)   │
-                                │   │       ├─ ChatAnthropic             │
-                                │   │       ├─ ChatOpenAI                │
-                                │   │       └─ QwenLocalChatModel        │
-                                │   │          (node-llama-cpp)          │
-                                │   ├─ LocalModelManager (downloads)     │
-                                │   ├─ SettingsStore + keytar            │
-                                │   ↓                                    │
-                                │   agui-translator                      │
-                                │   (LangChain events → AG-UI events)    │
-                                │   ↓                                    │
-                                │   webContents.send(...)                │
-                                └─────────────┬──────────────────────────┘
-                                              │ IPC (typed via contextBridge)
-                                              ↓
-                                ┌────────────────────────────────────────┐
-                                │  BrowserWindow (frameless)             │
-                                │  ┌──────────────────────────────────┐  │
-                                │  │ chrome WebContents (React+TW)    │  │
-                                │  │  TitleBar + tab strip · UrlBar   │  │
-                                │  │  PaneArea (mini per-pane URL bar)│  │
-                                │  │  Chat sidebar (resizable)        │  │
-                                │  │  NewTabPage + intent resolver    │  │
-                                │  │  Onboarding · SettingsDialog     │  │
-                                │  │  citation-drop helper (sidebar)  │  │
-                                │  └──────────────────────────────────┘  │
-                                │  ┌──────────────────────────────────┐  │
-                                │  │ N tab WebContentsViews           │  │
-                                │  │  positioned per BSP layout       │  │
-                                │  │  tab-preload.ts captures drags   │  │
-                                │  └──────────────────────────────────┘  │
-                                └────────────────────────────────────────┘
-```
 
 **Key design choices:**
 
@@ -400,94 +350,6 @@ The History layer we shipped in V1.0 is the seed. The endgame is a browser that 
 
 ---
 
-## Repo layout
-
-```
-sable/
-├── apps/
-│   ├── shell/                     Electron main process + preload
-│   │   ├── src/main/
-│   │   │   ├── index.ts
-│   │   │   ├── window-manager.ts
-│   │   │   ├── tab-manager.ts
-│   │   │   ├── layout-controller.ts
-│   │   │   ├── chat-orchestrator.ts       LangGraphJS StateGraph + AG-UI translator + oneShot
-│   │   │   ├── chat-models/
-│   │   │   │   └── qwen-local.ts          custom BaseChatModel for node-llama-cpp
-│   │   │   ├── llm-factory.ts             builds active ChatModel from settings
-│   │   │   ├── settings-store.ts          keytar wrapper + JSON persistence
-│   │   │   ├── local-model-manager.ts     GGUF download + registry
-│   │   │   ├── space-manager.ts           per-space layout/tabs/chat/theme
-│   │   │   ├── history-manager.ts         in-memory + JSON-persisted history (recent + search)
-│   │   │   └── platform/
-│   │   │       └── window-controls.{ts,win32,darwin,linux}.ts
-│   │   └── src/preload/
-│   │       ├── chrome-preload.ts          contextBridge for chrome WebContents
-│   │       └── tab-preload.ts             dragstart hook + custom scrollbars
-│   ├── chrome-ui/                 React + Vite + Tailwind chrome UI
-│   │   └── src/
-│   │       ├── App.tsx
-│   │       ├── ntp-resolver.ts            hybrid static + LLM intent resolver
-│   │       ├── citation-drop.ts           shared sidebar-wide drop helper
-│   │       ├── url.ts                     URL normalization
-│   │       ├── components/
-│   │       │   ├── TitleBar.tsx           frameless titlebar + horizontal tab strip + Space switcher
-│   │       │   ├── TabStrip.tsx           drag pill→pill (group), pill→edge (split)
-│   │       │   ├── UrlBar.tsx             global URL bar w/ history dropdown
-│   │       │   ├── MiniUrlBar.tsx         per-pane URL bar (multi-pane mode)
-│   │       │   ├── PaneArea.tsx           BSP pane rendering + drop overlays
-│   │       │   ├── Divider.tsx            split-resize handle
-│   │       │   ├── NewTabPage.tsx         omnibox + intent resolver + bookmarks
-│   │       │   ├── DropOverlay.tsx        5-zone drop targets per pane
-│   │       │   ├── Chat/
-│   │       │   │   ├── Chat.tsx           sidebar-wide drop layer
-│   │       │   │   ├── Composer.tsx
-│   │       │   │   ├── MessageList.tsx    GFM markdown rendering
-│   │       │   │   └── ChatEmptyState.tsx
-│   │       │   ├── Onboarding/
-│   │       │   │   ├── OnboardingDialog.tsx
-│   │       │   │   ├── SplashStep.tsx     CSS-driven full-screen animation
-│   │       │   │   ├── NameStep.tsx
-│   │       │   │   ├── ModelStep.tsx      Qwen 1.7B default download
-│   │       │   │   └── DoneStep.tsx
-│   │       │   └── Settings/
-│   │       │       └── SettingsDialog.tsx providers + spaces + local model
-│   │       ├── state/
-│   │       │   ├── tabs.ts                TabState (incl. groupId)
-│   │       │   ├── layout.ts
-│   │       │   ├── drag.ts
-│   │       │   ├── chat.ts                AG-UI event reducer
-│   │       │   ├── citations.ts           pending sidebar-drop citations
-│   │       │   ├── chrome.ts              theme + chat width + bookmarks + userName
-│   │       │   ├── settings.ts
-│   │       │   ├── local-model.ts
-│   │       │   └── spaces.ts
-│   │       └── assets/
-│   │           └── sable-icon.svg
-│   └── spike-day0/                Phase 0 cross-WebContentsView drag regression spike
-├── packages/
-│   └── layout-engine/             pure TS BSP — layout, applyDrop, removeTab, resize, dividers, queries
-│       └── src/
-│           ├── index.ts
-│           ├── types.ts
-│           ├── layout.ts
-│           ├── apply-drop.ts
-│           ├── remove-tab.ts
-│           ├── activate-tab.ts
-│           ├── pop-tab.ts
-│           ├── resize.ts
-│           ├── dividers.ts
-│           ├── queries.ts
-│           └── __tests__/        (41 tests)
-├── .github/workflows/
-│   └── ci.yml                     win × mac × linux × { typecheck, tests, builds }
-├── resources/
-│   └── icon.svg
-└── docs/
-    └── (design briefs, architecture notes — reserved)
-```
-
----
 
 ## Privacy posture
 
