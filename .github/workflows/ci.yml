@@ -5,8 +5,9 @@ on:
     branches: [main]
   pull_request:
 
-# Cross-platform matrix, mandated by the plan: a PR cannot merge with any
-# platform red. Daily-driver dev OS is Windows; macOS and Linux smoke here.
+# Cross-platform matrix: a PR cannot merge with any platform red.
+# Daily-driver dev OS is Windows; macOS smokes here. Linux is an explicit
+# non-goal for V1.x — no Linux releases, no Linux CI.
 jobs:
   build:
     name: ${{ matrix.os }}
@@ -14,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, macos-latest, ubuntu-latest]
+        os: [windows-latest, macos-latest]
     steps:
       - uses: actions/checkout@v4
 
