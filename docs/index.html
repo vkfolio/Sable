@@ -488,6 +488,100 @@
       background: var(--surface-3);
     }
 
+    /* Big download buttons in the hero */
+    .btn-download {
+      height: auto;
+      padding: 14px 22px;
+      align-items: center;
+      gap: 12px;
+      font-size: 15px;
+      box-shadow: 0 6px 18px rgba(20, 16, 8, .08);
+      transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
+    }
+    .btn-download:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 24px rgba(20, 16, 8, .12);
+    }
+    .btn-download svg {
+      width: 22px;
+      height: 22px;
+      flex-shrink: 0;
+    }
+    .btn-download .dl-label {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      line-height: 1.2;
+      gap: 2px;
+    }
+    .btn-download .dl-label small {
+      font-size: 11px;
+      font-weight: 400;
+      opacity: .72;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: -.01em;
+    }
+    /* Platform-detected variant: dim the off-platform button */
+    .btn-download.is-secondary {
+      background: var(--surface-2);
+      color: var(--ink-1);
+      border: 1px solid var(--line-strong);
+    }
+    .btn-download.is-secondary:hover { background: var(--surface-3); color: var(--ink-0); }
+
+    .hero-sublinks {
+      margin-top: 14px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 10px;
+      align-items: center;
+      font-size: 13px;
+      color: var(--ink-2);
+    }
+    .hero-sublinks > span:first-child {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--ink-3);
+    }
+    .hero-sublinks a {
+      color: var(--ink-1);
+      text-decoration: underline;
+      text-decoration-color: var(--line-strong);
+      text-underline-offset: 3px;
+      transition: color .12s, text-decoration-color .12s;
+    }
+    .hero-sublinks a:hover {
+      color: var(--ink-0);
+      text-decoration-color: var(--ink-1);
+    }
+    .hero-sublinks > span[aria-hidden="true"] {
+      color: var(--ink-4);
+      user-select: none;
+    }
+
+    .hero-warning {
+      margin-top: 18px;
+      max-width: 60ch;
+      font-size: 12.5px;
+      line-height: 1.55;
+      color: var(--ink-2);
+      padding: 10px 14px;
+      background: color-mix(in oklch, var(--warn) 8%, transparent);
+      border: 1px solid color-mix(in oklch, var(--warn) 22%, transparent);
+      border-radius: 9px;
+    }
+    .hero-warning em {
+      font-style: normal;
+      color: var(--ink-0);
+      background: var(--surface-2);
+      padding: 0 5px;
+      border-radius: 4px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+    }
+
     .hero-chips {
       margin-top: 28px;
       display: flex;
@@ -1959,21 +2053,47 @@
           Drag a paragraph into chat to cite it. Ctrl-click tabs to make them one context. Splits behave like your
           editor. <b>Local model when you want privacy</b>, frontier model when you want quality.
         </p>
-        <div class="hero-actions">
-          <a href="https://github.com/vkfolio/Sable" class="btn primary">
-            <svg viewBox="0 0 24 24" fill="currentColor">
-              <path
-                d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.55v-2.13c-3.2.7-3.87-1.36-3.87-1.36-.52-1.33-1.27-1.69-1.27-1.69-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.76 2.69 1.25 3.34.96.1-.74.4-1.25.72-1.54-2.55-.29-5.24-1.27-5.24-5.66 0-1.25.45-2.27 1.18-3.07-.12-.29-.51-1.45.11-3.02 0 0 .96-.31 3.15 1.17.91-.25 1.89-.38 2.86-.38.97 0 1.95.13 2.86.38 2.19-1.48 3.15-1.17 3.15-1.17.62 1.57.23 2.73.11 3.02.73.8 1.18 1.82 1.18 3.07 0 4.4-2.69 5.37-5.25 5.65.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.55C20.21 21.39 23.5 17.08 23.5 12 23.5 5.65 18.35.5 12 .5z" />
+        <div class="hero-actions" id="hero-downloads">
+          <a id="dl-win"
+             href="https://github.com/vkfolio/Sable/releases/download/v0.1.0-alpha/Sable-0.1.0-alpha-x64-win.exe"
+             class="btn primary btn-download">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <rect x="1" y="1" width="10" height="10" rx="0.5"/>
+              <rect x="13" y="1" width="10" height="10" rx="0.5"/>
+              <rect x="1" y="13" width="10" height="10" rx="0.5"/>
+              <rect x="13" y="13" width="10" height="10" rx="0.5"/>
             </svg>
-            Try the alpha
+            <span class="dl-label">
+              Download for Windows
+              <small>x64 installer · ~115 MB</small>
+            </span>
           </a>
-          <a href="#how" class="btn ghost">
-            How it works
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
-              <path d="M5 12h14M13 6l6 6-6 6" />
+          <a id="dl-mac"
+             href="https://github.com/vkfolio/Sable/releases/download/v0.1.0-alpha/Sable-0.1.0-alpha-arm64-mac.dmg"
+             class="btn primary btn-download">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M16.5 12.4c0-2.5 2-3.7 2.1-3.8-1.2-1.7-3-1.9-3.6-2-1.5-.2-3 .9-3.8.9-.8 0-2-.9-3.3-.8-1.7 0-3.3 1-4.2 2.5-1.8 3.1-.5 7.7 1.3 10.2.9 1.2 1.9 2.5 3.2 2.5 1.3 0 1.8-.8 3.3-.8 1.5 0 2 .8 3.3.8 1.4 0 2.3-1.2 3.1-2.5.7-1.1 1.3-2.3 1.4-2.4-.1 0-2.8-1.1-2.8-4.2zM14 5.6c.7-.8 1.1-2 1-3.1-.9.1-2 .6-2.7 1.4-.6.7-1.2 1.9-1 3 1 0 2-.5 2.7-1.3z"/>
             </svg>
+            <span class="dl-label">
+              Download for Mac
+              <small>Apple Silicon · DMG · ~120 MB</small>
+            </span>
           </a>
         </div>
+        <div class="hero-sublinks">
+          <span>Other:</span>
+          <a href="https://github.com/vkfolio/Sable/releases/download/v0.1.0-alpha/Sable-0.1.0-alpha-portable.exe">Windows portable</a>
+          <span aria-hidden="true">·</span>
+          <a href="https://github.com/vkfolio/Sable/releases/download/v0.1.0-alpha/Sable-0.1.0-alpha-x64-mac.dmg">Mac (Intel)</a>
+          <span aria-hidden="true">·</span>
+          <a href="https://github.com/vkfolio/Sable/releases/latest">All releases →</a>
+          <span aria-hidden="true">·</span>
+          <a href="#how">How it works</a>
+        </div>
+        <p class="hero-warning">
+          ⚠ Unsigned alpha — Windows SmartScreen / macOS Gatekeeper will warn on first launch.
+          Click <em>More info → Run anyway</em> on Windows, or right-click the app → <em>Open</em> on macOS. Code-signing lands with the Tier 1 polish pass.
+        </p>
         <div class="hero-chips">
           <span class="chip ok">Free out of the box</span>
           <span class="chip acc">No API key required</span>
@@ -2713,6 +2833,43 @@
       window.addEventListener('scroll', function () {
         if (!ticking) { requestAnimationFrame(check); ticking = true; }
       }, { passive: true });
+    })();
+
+    // Platform-aware download buttons. We don't HIDE the off-platform button
+    // (a user may be researching from a different machine to send to a
+    // colleague), we just visually demote it so the right one reads as
+    // primary at a glance.
+    (function () {
+      const win = document.getElementById('dl-win');
+      const mac = document.getElementById('dl-mac');
+      if (!win || !mac) return;
+      const ua = navigator.userAgent || '';
+      const platform = navigator.platform || '';
+      const isMac = /Mac|iPhone|iPad|iPod/i.test(platform) || /Mac OS X/i.test(ua);
+      const isWin = /Win/i.test(platform) || /Windows/i.test(ua);
+      if (isMac) {
+        win.classList.add('is-secondary');
+      } else if (isWin) {
+        mac.classList.add('is-secondary');
+      }
+      // else: Linux / unknown — keep both equally prominent.
+
+      // Apple Silicon vs Intel: default link is arm64. Try the high-entropy
+      // UA hints (Chromium-only, async). If we detect x86, swap the Mac
+      // button to point at the Intel DMG.
+      if (isMac && navigator.userAgentData && navigator.userAgentData.getHighEntropyValues) {
+        navigator.userAgentData
+          .getHighEntropyValues(['architecture'])
+          .then(function (hints) {
+            if (hints && hints.architecture === 'x86') {
+              mac.href =
+                'https://github.com/vkfolio/Sable/releases/download/v0.1.0-alpha/Sable-0.1.0-alpha-x64-mac.dmg';
+              const small = mac.querySelector('.dl-label small');
+              if (small) small.textContent = 'Intel · DMG · ~120 MB';
+            }
+          })
+          .catch(function () { /* keep arm64 default */ });
+      }
     })();
   </script>
 
