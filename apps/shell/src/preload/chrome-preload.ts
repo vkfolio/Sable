@@ -20,6 +20,7 @@ import {
   type ProviderId,
   type ResolvedImage,
   type SableApi,
+  type SearchEngineId,
   type SettingsSnapshot,
   type SpaceId,
   type SpaceSummary,
@@ -114,6 +115,8 @@ const api: SableApi = {
       ipcRenderer.invoke(IpcChannels.SettingsHasApiKey, provider) as Promise<boolean>,
     removeApiKey: (provider: ProviderId) =>
       ipcRenderer.invoke(IpcChannels.SettingsRemoveApiKey, provider) as Promise<void>,
+    setSearchEngine: (engine: SearchEngineId, customUrl?: string) =>
+      ipcRenderer.invoke(IpcChannels.SettingsSetSearchEngine, engine, customUrl) as Promise<void>,
   },
   localModel: {
     list: () => ipcRenderer.invoke(IpcChannels.LocalModelList) as Promise<LocalModelStatus[]>,

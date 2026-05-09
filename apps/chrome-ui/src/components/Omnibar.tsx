@@ -11,10 +11,13 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useTabsStore, selectActiveTab } from '../state/tabs';
+import { useSettingsStore } from '../state/settings';
 import { normalizeUrl } from '../url';
 
 export function Omnibar() {
   const active = useTabsStore(selectActiveTab);
+  const searchEngine = useSettingsStore((s) => s.searchEngine);
+  const searchEngineCustomUrl = useSettingsStore((s) => s.searchEngineCustomUrl);
   const inputRef = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState('');
   const [editing, setEditing] = useState(false);
@@ -38,7 +41,7 @@ export function Omnibar() {
   }, []);
 
   const submit = () => {
-    const url = normalizeUrl(draft);
+    const url = normalizeUrl(draft, searchEngine, searchEngineCustomUrl);
     if (!url) return;
     if (active) {
       void window.sable.tabs.navigate(active.id, url);

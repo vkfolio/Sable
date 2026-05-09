@@ -16,6 +16,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { PlusIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { useTabsStore, selectActiveTab } from '../state/tabs';
 import { useChromeStore, type Bookmark } from '../state/chrome';
+import { useSettingsStore } from '../state/settings';
 import { resolveSuggestions, type Suggestion } from '../ntp-resolver';
 import type { HistoryEntry } from '../types';
 
@@ -33,6 +34,8 @@ export function Ntp() {
   const activeTab = useTabsStore(selectActiveTab);
   const userName = useChromeStore((s) => s.userName);
   const bookmarks = useChromeStore(useShallow((s) => s.bookmarks));
+  const searchEngine = useSettingsStore((s) => s.searchEngine);
+  const searchEngineCustomUrl = useSettingsStore((s) => s.searchEngineCustomUrl);
 
   const [query, setQuery] = useState('');
   const [now, setNow] = useState(() => formatTime(new Date()));
@@ -73,7 +76,10 @@ export function Ntp() {
 
   // Static (rule-based) resolver — instant. LLM-resolved chips append later
   // when the static layer didn't already match a clear intent.
-  const staticSuggestions = useMemo(() => resolveSuggestions(query), [query]);
+  const staticSuggestions = useMemo(
+    () => resolveSuggestions(query, searchEngine, searchEngineCustomUrl),
+    [query, searchEngine, searchEngineCustomUrl],
+  );
   const [llmSuggestions, setLlmSuggestions] = useState<Suggestion[]>([]);
   const [resolving, setResolving] = useState(false);
   const llmTokenRef = useRef(0);

@@ -1,11 +1,11 @@
 // Intent resolver for the NTP omnibox.
 //
-// Two layers of "intelligence" on top of plain Google search:
+// Two layers of "intelligence" on top of the user's chosen default search:
 //
 //  1. **Site shortcuts** (top priority). When the first token of the query
-//     matches a known site keyword (`youtube`, `gh`, `amazon`...), the rest
-//     of the query is sent as that site's search URL. Power-user prefix:
-//     "youtube cars" → YouTube search for "cars".
+//     matches a known site keyword (`youtube`, `gh`, `amazon`, `g`, `ddg`),
+//     the rest of the query is sent as that site's search URL. Power-user
+//     prefix: "youtube cars" → YouTube search for "cars".
 //
 //  2. **Intent suggestions**. When the query contains a verb / topic
 //     keyword (`buy`, `watch`, `flight`, `code`...), we surface a row of
@@ -15,6 +15,9 @@
 // All resolution is local and synchronous — no network, no LLM, no async.
 // This is purposefully a static rule set so it's predictable and instant.
 // LLM-driven semantic resolution is a follow-up.
+
+import { buildSearchUrl, searchEngineLabel } from './search-engine';
+import type { SearchEngineId } from './types';
 
 export type Suggestion = {
   /** Short visible label on the chip. */
@@ -45,6 +48,11 @@ const SITE_SHORTCUTS: Record<string, SiteShortcut> = {
   x:         { name: 'X',          search: 'https://x.com/search?q=',                        color: '#B5D4F2' },
   google:    { name: 'Google',     search: 'https://www.google.com/search?q=',               color: '#B5D4F2' },
   g:         { name: 'Google',     search: 'https://www.google.com/search?q=',               color: '#B5D4F2' },
+  ddg:       { name: 'DuckDuckGo', search: 'https://duckduckgo.com/?q=',                     color: '#FFB89E' },
+  d:         { name: 'DuckDuckGo', search: 'https://duckduckgo.com/?q=',                     color: '#FFB89E' },
+  brave:     { name: 'Brave',      search: 'https://search.brave.com/search?q=',             color: '#FFB89E' },
+  b:         { name: 'Brave',      search: 'https://search.brave.com/search?q=',             color: '#FFB89E' },
+  kagi:      { name: 'Kagi',       search: 'https://kagi.com/search?q=',                     color: '#FFE69A' },
   wikipedia: { name: 'Wikipedia',  search: 'https://en.wikipedia.org/wiki/Special:Search?search=', color: '#C9BEEE' },
   wiki:      { name: 'Wikipedia',  search: 'https://en.wikipedia.org/wiki/Special:Search?search=', color: '#C9BEEE' },
   w:         { name: 'Wikipedia',  search: 'https://en.wikipedia.org/wiki/Special:Search?search=', color: '#C9BEEE' },
@@ -198,8 +206,15 @@ const SCHEME_PATTERN = /^https?:\/\//i;
 /**
  * Resolve a free-form query into a list of navigation suggestions, ordered
  * with the most likely intent first. The first item is what Enter commits.
+ *
+ * `engine` + `customUrl` come from settings; the last-resort search chip
+ * uses whatever the user has picked as their default engine.
  */
-export function resolveSuggestions(text: string): Suggestion[] {
+export function resolveSuggestions(
+  text: string,
+  engine: SearchEngineId = 'duckduckgo',
+  customUrl: string = '',
+): Suggestion[] {
   const t = text.trim();
   if (!t) return [];
 
@@ -220,6 +235,14 @@ export function resolveSuggestions(text: string): Suggestion[] {
     ];
   }
 
+  const engineLabel = searchEngineLabel(engine);
+  const fallbackChip: Suggestion = {
+    label: engineLabel,
+    description: `Search ${engineLabel} for "${t}"`,
+    url: buildSearchUrl(t, engine, customUrl),
+    color: '#C9BEEE',
+  };
+
   // Intent rules — match if ANY keyword occurs as a whole-word substring.
   const lower = t.toLowerCase();
   const matches: Suggestion[] = [];
@@ -237,26 +260,14 @@ export function resolveSuggestions(text: string): Suggestion[] {
     }
   }
   if (matches.length > 0) {
-    // Always close with a Google fallback so Enter has a sensible last
-    // resort if none of the chip destinations cover the query.
-    matches.push({
-      label: 'Google',
-      description: `Search Google for "${t}"`,
-      url: 'https://www.google.com/search?q=' + encodeURIComponent(t),
-      color: '#C9BEEE',
-    });
+    // Always close with a default-engine fallback so Enter has a sensible
+    // last resort if none of the chip destinations cover the query.
+    matches.push(fallbackChip);
     return matches.slice(0, 6);
   }
 
-  // No site / no intent: single Google search chip.
-  return [
-    {
-      label: 'Google',
-      description: `Search Google for "${t}"`,
-      url: 'https://www.google.com/search?q=' + encodeURIComponent(t),
-      color: '#C9BEEE',
-    },
-  ];
+  // No site / no intent: single default-engine chip.
+  return [fallbackChip];
 }
 
 function escapeRegExp(s: string): string {

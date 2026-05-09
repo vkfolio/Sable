@@ -16,6 +16,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useTabsStore, selectActiveTab } from '../state/tabs';
 import { useChromeStore } from '../state/chrome';
+import { useSettingsStore } from '../state/settings';
 import { useSpacesStore } from '../state/spaces';
 import { useLayoutStore } from '../state/layout';
 import { normalizeUrl } from '../url';
@@ -43,6 +44,8 @@ function UrlBarBody() {
   });
   const chatVisible = useChromeStore((s) => s.chatVisible);
   const toggleChat = useChromeStore((s) => s.toggleChat);
+  const searchEngine = useSettingsStore((s) => s.searchEngine);
+  const searchEngineCustomUrl = useSettingsStore((s) => s.searchEngineCustomUrl);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState('');
@@ -119,7 +122,7 @@ function UrlBarBody() {
       navigate(matches[highlight]!.url);
       return;
     }
-    const url = normalizeUrl(draft);
+    const url = normalizeUrl(draft, searchEngine, searchEngineCustomUrl);
     if (url) navigate(url);
   };
 

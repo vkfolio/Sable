@@ -10,6 +10,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useLocalModelStore } from '../../state/local-model';
+import { useSettingsStore } from '../../state/settings';
 import type { LocalModelStatus, LocalModelVariantId } from '../../types';
 
 const DEFAULT_VARIANT: LocalModelVariantId = 'qwen3-1.7b-q4';
@@ -22,6 +23,8 @@ export function ModelStep({
   onSkip: () => void;
 }) {
   const statuses = useLocalModelStore(useShallow((s) => s.statuses));
+  const setActiveProvider = useSettingsStore((s) => s.setActiveProvider);
+  const setSelectedModel = useSettingsStore((s) => s.setSelectedModel);
   const [selectedId, setSelectedId] = useState<LocalModelVariantId>(DEFAULT_VARIANT);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,15 +34,18 @@ export function ModelStep({
   );
 
   // When the chosen model finishes downloading, wire it as the active
-  // provider/model and advance to Done.
+  // provider/model and advance to Done. We go through the renderer's
+  // Zustand setters (not the raw IPC) so the chat panel's `activeProvider`
+  // reactively updates — otherwise it sees the stale default and renders
+  // its empty-state asking the user to "configure chat settings".
   useEffect(() => {
     if (!selected) return;
     if (selected.state !== 'ready') return;
     let cancelled = false;
     void (async () => {
       try {
-        await window.sable.settings.setActiveProvider('qwen-local');
-        await window.sable.settings.setSelectedModel(selectedId);
+        await setActiveProvider('qwen-local');
+        await setSelectedModel(selectedId);
       } catch (err) {
         if (!cancelled) setError(String(err));
         return;
@@ -49,7 +55,7 @@ export function ModelStep({
     return () => {
       cancelled = true;
     };
-  }, [selected?.state, selectedId, onDone]);
+  }, [selected?.state, selectedId, onDone, setActiveProvider, setSelectedModel]);
 
   const startDownload = () => {
     setError(null);
@@ -83,7 +89,21 @@ export function ModelStep({
           />
         ))}
       </div>
+      {/* Surface both react-side failures (setError) and main-side download
+          failures (status.state === 'error') so a silent 404 / network drop
+          doesn't read as "click did nothing". */}
       {error && <div className="text-xs text-bad">{error}</div>}
+      {selected?.state === 'error' && (
+        <div className="text-xs text-bad whitespace-pre-wrap leading-snug">
+          Download failed: {selected.error ?? 'unknown error'}
+          <button
+            onClick={startDownload}
+            className="ml-2 underline underline-offset-2 hover:text-ink-0"
+          >
+            Retry
+          </button>
+        </div>
+      )}
       <div className="flex items-center justify-between gap-3">
         <button
           onClick={onSkip}
@@ -138,6 +158,14 @@ function VariantCard({
               recommended
             </span>
           )}
+          {status.experimental && (
+            <span
+              className="text-[10px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded bg-warn/15 text-warn"
+              title={status.experimentalNote ?? 'May not load on this build.'}
+            >
+              experimental
+            </span>
+          )}
           {ready && (
             <span className="text-[10px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded bg-ok/15 text-ok">
               ready
@@ -147,6 +175,11 @@ function VariantCard({
         <div className="mt-0.5 text-xs text-ink-2 leading-snug">
           {status.description} · ~{status.approxSizeMb} MB
         </div>
+        {status.experimental && status.experimentalNote && selected && (
+          <div className="mt-2 text-[11px] text-warn leading-snug">
+            ⚠ {status.experimentalNote}
+          </div>
+        )}
         {downloading && (
           <div className="mt-2">
             <div className="h-1.5 rounded-full bg-surface-4 overflow-hidden">

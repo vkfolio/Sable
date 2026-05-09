@@ -64,9 +64,30 @@ async function getOrLoad(modelPath: string, contextSize: number) {
   let cached = modelCache.get(modelPath);
   if (!cached) {
     cached = (async () => {
-      const model = await llama.loadModel({ modelPath });
-      const context = await model.createContext({ contextSize });
-      return { model, context };
+      try {
+        const model = await llama.loadModel({ modelPath });
+        const context = await model.createContext({ contextSize });
+        return { model, context };
+      } catch (err) {
+        // Translate the most common load failure to something users can act
+        // on. llama.cpp emits "unknown model architecture" when the GGUF's
+        // architecture tag is newer than the bundled prebuilt binary —
+        // typically Gemma 4 right now. The download succeeds but the load
+        // dies with a noisy native error.
+        const raw = err instanceof Error ? err.message : String(err);
+        if (/unknown model architecture/i.test(raw)) {
+          const archMatch = raw.match(/architecture:?\s*['"]?([\w.-]+)/i);
+          const arch = archMatch?.[1] ?? 'unknown';
+          // Drop our cached promise so a subsequent retry (e.g. after the
+          // user picks a different model) doesn't keep returning this error.
+          modelCache.delete(modelPath);
+          throw new Error(
+            `This model's architecture (${arch}) is too new for the bundled llama.cpp build. Switch to Qwen 3 1.7B for now — Gemma 4 lands once node-llama-cpp ships an updated build.`,
+          );
+        }
+        modelCache.delete(modelPath);
+        throw err;
+      }
     })();
     modelCache.set(modelPath, cached);
   }

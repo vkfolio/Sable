@@ -15,7 +15,7 @@ import { TabManager } from './tab-manager';
 import { LayoutController } from './layout-controller';
 import { ChatOrchestrator, resolveImage } from './chat-orchestrator';
 import { HistoryManager } from './history-manager';
-import { SettingsStore, type ProviderId } from './settings-store';
+import { SettingsStore, type ProviderId, type SearchEngineId } from './settings-store';
 import { LocalModelManager, type LocalModelVariantId } from './local-model-manager';
 import { SpaceManager, type SpaceId } from './space-manager';
 import {
@@ -454,6 +454,12 @@ export class WindowManager {
     ipcMain.handle(IpcChannels.SettingsRemoveApiKey, async (_e, provider: ProviderId) => {
       await this.settings.removeApiKey(provider);
     });
+    ipcMain.handle(
+      IpcChannels.SettingsSetSearchEngine,
+      async (_e, engine: SearchEngineId, customUrl?: string) => {
+        await this.settings.setSearchEngine(engine, customUrl);
+      },
+    );
 
     // ---- local models ----
     ipcMain.handle(IpcChannels.LocalModelList, async () => this.localModels.listStatus());
@@ -514,10 +520,13 @@ export class WindowManager {
     const providers: ProviderId[] = ['anthropic', 'openai', 'ollama', 'qwen-local'];
     const status: Partial<Record<ProviderId, boolean>> = {};
     for (const p of providers) status[p] = await this.settings.hasApiKey(p);
+    const searchEngine = await this.settings.getSearchEngine();
     return {
       activeProvider: await this.settings.getActiveProvider(),
       selectedModel: await this.settings.getSelectedModel(),
       providerKeyStatus: status,
+      searchEngine: searchEngine.engine,
+      searchEngineCustomUrl: searchEngine.customUrl,
     };
   }
 

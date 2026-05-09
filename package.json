@@ -25,6 +25,8 @@
     "shell:start": "pnpm --filter @sable/shell start",
     "shell:typecheck": "pnpm --filter @sable/shell typecheck",
     "shell": "pnpm chrome-ui:build && pnpm shell:start",
+    "reset": "node scripts/reset-app-data.mjs",
+    "shell:fresh": "node scripts/reset-app-data.mjs && pnpm shell",
     "package:win": "pnpm chrome-ui:build && pnpm --filter @sable/shell run package:win",
     "package:win:dir": "pnpm chrome-ui:build && pnpm --filter @sable/shell run package:win:dir",
     "package:mac": "pnpm chrome-ui:build && pnpm --filter @sable/shell run package:mac",

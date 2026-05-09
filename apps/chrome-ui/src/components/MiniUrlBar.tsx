@@ -19,6 +19,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useTabsStore } from '../state/tabs';
 import { useDragStore } from '../state/drag';
+import { useSettingsStore } from '../state/settings';
 import { normalizeUrl } from '../url';
 import type { TabState } from '../types';
 
@@ -27,6 +28,8 @@ const DRAG_THRESHOLD_PX = 4;
 export function MiniUrlBar({ tab }: { tab: TabState }) {
   const activeTabId = useTabsStore((s) => s.activeTabId);
   const startDrag = useDragStore((s) => s.start);
+  const searchEngine = useSettingsStore((s) => s.searchEngine);
+  const searchEngineCustomUrl = useSettingsStore((s) => s.searchEngineCustomUrl);
   const isActive = tab.id === activeTabId;
   const inputRef = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState(tab.url);
@@ -37,7 +40,7 @@ export function MiniUrlBar({ tab }: { tab: TabState }) {
   }, [tab.url, editing]);
 
   const submit = () => {
-    const url = normalizeUrl(draft);
+    const url = normalizeUrl(draft, searchEngine, searchEngineCustomUrl);
     if (url) void window.sable.tabs.navigate(tab.id, url);
     inputRef.current?.blur();
   };

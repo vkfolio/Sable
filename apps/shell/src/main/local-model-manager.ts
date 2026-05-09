@@ -27,9 +27,16 @@ function loadLlamaModule(): Promise<LlamaModule> {
 }
 
 export type LocalModelVariantId =
+  // Qwen 3 — Apache 2.0, the licensing-clean default family
   | 'qwen3-0.6b-q4'
   | 'qwen3-1.7b-q4'
-  | 'qwen3-4b-instruct-2507-q4';
+  | 'qwen3-4b-instruct-2507-q4'
+  // Qwen 3.6 — latest dense (Apr 2026), Apache 2.0, beats 397B MoE on coding
+  | 'qwen3.6-27b-q4';
+// Gemma 4 entries are pulled out until node-llama-cpp ships a bundled
+// llama.cpp build with the gemma4 architecture. Add them back when the
+// upstream release lands — type union, registry entries, and the UI all
+// pick them up automatically.
 
 export type LocalModelVariant = {
   readonly id: LocalModelVariantId;
@@ -38,10 +45,17 @@ export type LocalModelVariant = {
   readonly approxSizeMb: number;
   readonly url: string;
   readonly recommended?: boolean;
+  /** Architecture is too new for the bundled llama.cpp prebuilds — the
+   *  download succeeds but loading throws "unknown model architecture".
+   *  UI surfaces a warning so users know before they pull GBs. */
+  readonly experimental?: boolean;
+  /** Free-text reason shown in the UI alongside the experimental badge. */
+  readonly experimentalNote?: string;
 };
 
 // Q4_K_M GGUF quants live in the `unsloth/` community repos — the official
-// `Qwen/` repos only ship Q8_0. URLs verified live as of 2026-05.
+// `Qwen/` and `google/` repos ship higher-quality but heavier baseline quants.
+// URLs verified against unsloth's HF org as of 2026-05.
 export const LOCAL_MODEL_REGISTRY: readonly LocalModelVariant[] = [
   {
     id: 'qwen3-0.6b-q4',
@@ -65,6 +79,13 @@ export const LOCAL_MODEL_REGISTRY: readonly LocalModelVariant[] = [
     approxSizeMb: 2500,
     url: 'https://huggingface.co/unsloth/Qwen3-4B-Instruct-2507-GGUF/resolve/main/Qwen3-4B-Instruct-2507-Q4_K_M.gguf',
   },
+  {
+    id: 'qwen3.6-27b-q4',
+    label: 'Qwen 3.6 27B',
+    description: 'Frontier dense · Apache 2.0 · 24+ GB RAM recommended',
+    approxSizeMb: 16000,
+    url: 'https://huggingface.co/unsloth/Qwen3.6-27B-GGUF/resolve/main/Qwen3.6-27B-Q4_K_M.gguf',
+  },
 ];
 
 export type LocalModelStatus = {
@@ -73,6 +94,8 @@ export type LocalModelStatus = {
   readonly description: string;
   readonly approxSizeMb: number;
   readonly recommended: boolean;
+  readonly experimental: boolean;
+  readonly experimentalNote?: string;
   readonly state: 'absent' | 'downloading' | 'ready' | 'error';
   readonly downloadedBytes?: number;
   readonly totalBytes?: number;
@@ -122,6 +145,8 @@ export class LocalModelManager {
         description: v.description,
         approxSizeMb: v.approxSizeMb,
         recommended: !!v.recommended,
+        experimental: !!v.experimental,
+        experimentalNote: v.experimentalNote,
         state,
         downloadedBytes: inflight?.downloadedBytes,
         totalBytes: inflight?.totalBytes,

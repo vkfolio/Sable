@@ -13,14 +13,21 @@ const SETTINGS_FILENAME = 'settings.json';
 
 export type ProviderId = 'anthropic' | 'openai' | 'ollama' | 'qwen-local';
 
+export type SearchEngineId = 'duckduckgo' | 'google' | 'brave' | 'kagi' | 'custom';
+
 type PersistedSettings = {
   activeProvider: ProviderId;
   selectedModel: string;
+  searchEngine: SearchEngineId;
+  /** Used only when searchEngine === 'custom'. Must contain a {q} placeholder. */
+  searchEngineCustomUrl: string;
 };
 
 const DEFAULTS: PersistedSettings = {
   activeProvider: 'anthropic',
   selectedModel: 'claude-sonnet-4-5',
+  searchEngine: 'duckduckgo',
+  searchEngineCustomUrl: '',
 };
 
 export class SettingsStore {
@@ -55,6 +62,18 @@ export class SettingsStore {
   async setSelectedModel(model: string): Promise<void> {
     const s = await this.load();
     s.selectedModel = model;
+    await this.persist(s);
+  }
+
+  async getSearchEngine(): Promise<{ engine: SearchEngineId; customUrl: string }> {
+    const s = await this.load();
+    return { engine: s.searchEngine, customUrl: s.searchEngineCustomUrl };
+  }
+
+  async setSearchEngine(engine: SearchEngineId, customUrl?: string): Promise<void> {
+    const s = await this.load();
+    s.searchEngine = engine;
+    if (customUrl !== undefined) s.searchEngineCustomUrl = customUrl;
     await this.persist(s);
   }
 

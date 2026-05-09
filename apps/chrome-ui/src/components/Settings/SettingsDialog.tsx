@@ -14,6 +14,7 @@ import type {
   LocalModelStatus,
   LocalModelVariantId,
   ProviderId,
+  SearchEngineId,
   SpaceSummary,
 } from '../../types';
 
@@ -138,17 +139,34 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
     setSaving(true);
     try {
       await setActiveProvider(viewedProvider);
-      const known =
-        viewedProvider === 'qwen-local'
-          ? localStatuses.some((s) => s.id === selectedModel)
-          : meta.models.some((m) => m.id === selectedModel);
-      if (!known) await setSelectedModel(meta.defaultModel);
+      // For qwen-local, prefer a model the user has actually downloaded over
+      // the registry default — otherwise "Make active" silently picks Qwen 3
+      // 1.7B even when the only ready model is Gemma 4 E4B and chat fails.
+      if (viewedProvider === 'qwen-local') {
+        const currentReady = localStatuses.some(
+          (s) => s.id === selectedModel && s.state === 'ready',
+        );
+        if (!currentReady) {
+          const firstReady = localStatuses.find((s) => s.state === 'ready');
+          await setSelectedModel(firstReady?.id ?? meta.defaultModel);
+        }
+      } else {
+        const known = meta.models.some((m) => m.id === selectedModel);
+        if (!known) await setSelectedModel(meta.defaultModel);
+      }
     } finally {
       setSaving(false);
     }
   };
 
   const handleModelChange = async (id: string) => {
+    // For qwen-local, picking a ready model also flips the active provider so
+    // the user doesn't have to click "Make active" + select model in two steps.
+    if (viewedProvider === 'qwen-local' && !isActiveView) {
+      await setActiveProvider('qwen-local');
+      await setSelectedModel(id);
+      return;
+    }
     if (isActiveView) await setSelectedModel(id);
   };
 
@@ -239,6 +257,10 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
 
           <div className="border-t border-border pt-4">
             <SpacesSection />
+          </div>
+
+          <div className="border-t border-border pt-4">
+            <SearchEngineSection />
           </div>
         </section>
       </div>
@@ -473,6 +495,113 @@ function ProviderPill({
   );
 }
 
+// ---- Search engine ----
+
+const SEARCH_ENGINE_OPTIONS: ReadonlyArray<{
+  id: SearchEngineId;
+  label: string;
+  hint: string;
+}> = [
+  { id: 'duckduckgo', label: 'DuckDuckGo', hint: 'Default · privacy-friendly · no CAPTCHAs' },
+  { id: 'google', label: 'Google', hint: 'Familiar results · CAPTCHAs are common' },
+  { id: 'brave', label: 'Brave', hint: 'Independent index · privacy-friendly' },
+  { id: 'kagi', label: 'Kagi', hint: 'Paid · ad-free · personalised ranking' },
+  { id: 'custom', label: 'Custom', hint: 'Use any URL with a {q} placeholder' },
+];
+
+function SearchEngineSection() {
+  const engine = useSettingsStore((s) => s.searchEngine);
+  const customUrl = useSettingsStore((s) => s.searchEngineCustomUrl);
+  const setSearchEngine = useSettingsStore((s) => s.setSearchEngine);
+
+  const [draftCustom, setDraftCustom] = useState(customUrl);
+
+  useEffect(() => {
+    setDraftCustom(customUrl);
+  }, [customUrl]);
+
+  const customValid = draftCustom.includes('{q}');
+
+  const pick = async (next: SearchEngineId) => {
+    if (next === 'custom') {
+      // Selecting Custom keeps the existing customUrl unless the user edits.
+      await setSearchEngine('custom', draftCustom);
+    } else {
+      await setSearchEngine(next);
+    }
+  };
+
+  const commitCustom = async () => {
+    if (engine !== 'custom') return;
+    if (draftCustom !== customUrl) {
+      await setSearchEngine('custom', draftCustom);
+    }
+  };
+
+  return (
+    <div>
+      <label className="block text-2xs font-semibold tracking-wider uppercase text-fg-dim mb-1.5">
+        Search engine
+      </label>
+      <p className="text-2xs text-fg-dim mb-2">
+        Used by the URL bar and the new-tab page when the query isn't a URL.
+        Doesn't affect site shortcuts (`g`, `ddg`, `b`, `kagi`) or service
+        suggestions like Google Maps / Flights / Scholar.
+      </p>
+      <div className="space-y-1">
+        {SEARCH_ENGINE_OPTIONS.map((opt) => (
+          <button
+            key={opt.id}
+            onClick={() => void pick(opt.id)}
+            className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md border text-left transition-colors ${
+              engine === opt.id
+                ? 'bg-bg-3 border-accent text-fg'
+                : 'bg-transparent border-border-strong text-fg-mute hover:text-fg hover:border-fg-dim'
+            }`}
+          >
+            <span
+              className={`shrink-0 w-3 h-3 rounded-full border ${
+                engine === opt.id
+                  ? 'border-accent bg-accent shadow-[0_0_0_2px_rgba(255,255,255,0.05)_inset]'
+                  : 'border-fg-dim'
+              }`}
+            />
+            <span className="flex-1">
+              <span className="block text-sm font-medium">{opt.label}</span>
+              <span className="block text-2xs text-fg-dim">{opt.hint}</span>
+            </span>
+          </button>
+        ))}
+      </div>
+      {engine === 'custom' && (
+        <div className="mt-2">
+          <input
+            value={draftCustom}
+            onChange={(e) => setDraftCustom(e.target.value)}
+            onBlur={() => void commitCustom()}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') (e.currentTarget as HTMLInputElement).blur();
+            }}
+            placeholder="https://search.example.com/?q={q}"
+            spellCheck={false}
+            className={`w-full bg-bg-3 border rounded-md px-2.5 py-2 text-sm text-fg outline-none placeholder:text-fg-dim font-mono ${
+              customValid || draftCustom.length === 0
+                ? 'border-border-strong focus:border-accent'
+                : 'border-rose-500/60 focus:border-rose-400'
+            }`}
+          />
+          {!customValid && draftCustom.length > 0 && (
+            <p className="mt-1 text-2xs text-rose-300">
+              URL must contain a <code className="font-mono">&#123;q&#125;</code> placeholder.
+              Falling back to DuckDuckGo until fixed.
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function RemoteProviderSection({
   meta,
   isActiveView,
@@ -649,15 +778,23 @@ function LocalModelRow({
       <div className="flex items-center gap-2">
         <button
           type="button"
-          onClick={status.state === 'ready' && isActiveProvider ? onSelect : undefined}
-          disabled={!(status.state === 'ready' && isActiveProvider)}
+          onClick={status.state === 'ready' ? onSelect : undefined}
+          disabled={status.state !== 'ready'}
           className="flex-1 text-left disabled:cursor-default"
         >
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm text-fg font-medium">{status.label}</span>
             {status.recommended && (
               <span className="text-2xs px-1 py-0.5 rounded bg-accent/20 text-accent leading-none">
                 recommended
+              </span>
+            )}
+            {status.experimental && (
+              <span
+                className="text-2xs px-1 py-0.5 rounded bg-amber-500/15 text-amber-300 leading-none"
+                title={status.experimentalNote ?? 'May not load on this build.'}
+              >
+                experimental
               </span>
             )}
             {status.state === 'ready' && (
@@ -674,6 +811,11 @@ function LocalModelRow({
           <div className="text-2xs text-fg-mute mt-0.5">
             {status.description} · ~{status.approxSizeMb} MB
           </div>
+          {status.experimental && status.experimentalNote && (
+            <div className="mt-1 text-2xs text-amber-300 leading-snug">
+              ⚠ {status.experimentalNote}
+            </div>
+          )}
         </button>
         <div className="shrink-0">
           {status.state === 'absent' && (

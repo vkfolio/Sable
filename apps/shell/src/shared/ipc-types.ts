@@ -9,11 +9,16 @@ export type { DropEdge, Pane, PaneId, Rect, TabId };
 // Chat / settings types
 export type ProviderId = 'anthropic' | 'openai' | 'ollama' | 'qwen-local';
 
+export type SearchEngineId = 'duckduckgo' | 'google' | 'brave' | 'kagi' | 'custom';
+
 export type SettingsSnapshot = {
   readonly activeProvider: ProviderId;
   readonly selectedModel: string;
   /** map of provider -> hasKey; raw keys never cross the IPC boundary. */
   readonly providerKeyStatus: Readonly<Partial<Record<ProviderId, boolean>>>;
+  readonly searchEngine: SearchEngineId;
+  /** Used only when searchEngine === 'custom'. Must contain a {q} placeholder. */
+  readonly searchEngineCustomUrl: string;
 };
 
 export type ChatHistoryMessage = {
@@ -41,7 +46,8 @@ export type ResolvedImage = {
 export type LocalModelVariantId =
   | 'qwen3-0.6b-q4'
   | 'qwen3-1.7b-q4'
-  | 'qwen3-4b-instruct-2507-q4';
+  | 'qwen3-4b-instruct-2507-q4'
+  | 'qwen3.6-27b-q4';
 
 export type LocalModelStatus = {
   readonly id: LocalModelVariantId;
@@ -49,6 +55,9 @@ export type LocalModelStatus = {
   readonly description: string;
   readonly approxSizeMb: number;
   readonly recommended: boolean;
+  /** Architecture too new for the bundled llama.cpp prebuilds. */
+  readonly experimental: boolean;
+  readonly experimentalNote?: string;
   readonly state: 'absent' | 'downloading' | 'ready' | 'error';
   readonly downloadedBytes?: number;
   readonly totalBytes?: number;
@@ -226,6 +235,7 @@ export type SableApi = {
     setApiKey(provider: ProviderId, key: string): Promise<void>;
     hasApiKey(provider: ProviderId): Promise<boolean>;
     removeApiKey(provider: ProviderId): Promise<void>;
+    setSearchEngine(engine: SearchEngineId, customUrl?: string): Promise<void>;
   };
   readonly localModel: {
     list(): Promise<LocalModelStatus[]>;
@@ -322,6 +332,7 @@ export const IpcChannels = {
   SettingsSetApiKey: 'settings:setApiKey',
   SettingsHasApiKey: 'settings:hasApiKey',
   SettingsRemoveApiKey: 'settings:removeApiKey',
+  SettingsSetSearchEngine: 'settings:setSearchEngine',
   // local model
   LocalModelList: 'localModel:list',
   LocalModelDownload: 'localModel:download',
