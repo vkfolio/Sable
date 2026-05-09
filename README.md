@@ -20,11 +20,15 @@
 
 ---
 
-Sable is an AI-first desktop browser. The chat panel doesn't just *read* the page — it **interoperates** with it. Drop a paragraph anywhere in the chat sidebar for an auto-citation. Drop an image for a multimodal prompt. Ctrl-click multiple tabs to weave them into one unified AI context. Drag a tab pill onto another to **group** them — they auto-split side-by-side. Drag a pill to a pane edge for arbitrary BSP-nested splits.
+Sable turns your browser into one workspace where chat and pages can finally talk to each other.
 
-It's not a Chrome wrapper with a chat button. It's a real browser shell on Electron + `WebContentsView`, a custom binary-space-partitioning layout engine, a LangGraphJS orchestrator emitting open [AG-UI Protocol](https://docs.ag-ui.com) events, embedded Qwen 3 (Apache 2.0, runs offline) plus BYOK Anthropic / OpenAI for higher-quality work, and a roadmap aimed squarely at **recordable workflow skills, learning from your history, and a personal knowledge graph** that turns every page you've ever read into queryable context.
+Drop a paragraph from any page into the chat sidebar — Sable cites it back automatically. Drop an image from a webpage into chat — it goes in as a prompt the AI can actually see. Ctrl-click a few tabs and they become one shared context for whatever you ask next. Drag tabs together to group them; drag them to an edge to split your view side-by-side or stacked, as deep as you want.
 
-Cross-platform from V0.1: **Windows, macOS, Linux**.
+Three AI providers are built in — Anthropic, OpenAI, and a fast on-device model that runs offline. Pick whichever fits the task or your privacy preference. Everything streams in real time and renders as proper markdown.
+
+It's not a Chrome wrapper with a chat button. It's a real browser, designed from scratch around the way you actually work with AI — and built to grow into **recordable workflow "skills", a memory of your browsing, and a personal knowledge graph** that makes everything you've ever read searchable.
+
+Available on **Windows, macOS, Linux**.
 
 <div align="center">
   <br />
@@ -56,22 +60,21 @@ Cross-platform from V0.1: **Windows, macOS, Linux**.
 
 | | |
 |---|---|
-| **Real browser shell** | Frameless chrome, custom titlebar, native window controls per OS |
-| **BSP-nested split panes** | Drag a tab pill onto a pane edge → 5-zone drop overlay → splits nest arbitrarily, dividers drag-resize |
-| **Tab groups** | Drag pill onto pill → groups them, auto-splits side-by-side. Group decoupled from BSP, persisted on `TabState` |
-| **AI chat that *interoperates*** | Drop **anywhere** in the chat sidebar → page text becomes a markdown citation, page images go in as multimodal content |
-| **Multi-tab unified AI context** | Ctrl-click tabs to add as context — extracts main content, token-budgets, tells you what was excluded |
-| **Hybrid intent resolver** | NTP omnibox uses instant static rules (sites + intent keywords) and falls back to the local LLM for novel phrasing — single-flight cancellation, partial-JSON salvage |
-| **History-powered autocomplete** | Recent + frequency-ranked search wired into the global URL bar and the new-tab page |
-| **Customizable bookmarks** | Pin & reorder bookmarks on the new-tab page; persisted in chrome state |
-| **Markdown chat** | Streamed replies render as full GFM — code blocks, lists, links, tables |
-| **3 providers, 1 stream** | Anthropic, OpenAI, embedded Qwen 3 — same LangGraphJS pipeline, same AG-UI events |
-| **Embedded model is Apache 2.0** | Qwen 3 (1.7B default, 4B for higher quality, 0.6B for low-end). Runs offline. ~1.1 GB |
-| **Spaces with full themes** | Multiple workspaces — each gets its own vibrant pastel theme (lavender / mint / coral / amber / rose / sky / sage), light/dark inside each |
-| **First-launch onboarding** | CSS splash → name capture → recommended local-model download (skippable). Re-runnable via `SABLE_RESET=1` |
-| **Keys in OS keychain** | Anthropic / OpenAI keys via Windows Credential Manager / macOS Keychain / libsecret. Never plaintext, never reach the renderer |
-| **41/41 layout-engine tests** | Pure TS BSP package — drag-drop / split / resize / group logic is provably correct |
-| **CI matrix** | GitHub Actions: typecheck + tests + builds on Windows, macOS, Linux on every PR |
+| **A real browser** | Native-feeling window with the snap controls / traffic lights you already know — not a webview-in-a-window |
+| **Split panes, any depth** | Drag a tab to a pane edge to split your view. Splits nest as deep as you want; dividers drag-resize |
+| **Tab groups** | Drag one tab onto another to group them — they line up side-by-side automatically |
+| **A chat sidebar that reads what you browse** | Drop text → cited as markdown. Drop an image → the AI sees it. Ctrl-click tabs → they become one shared context |
+| **Smart new-tab page** | Type what you want and hit Enter — Sable picks the right destination even if you didn't type a URL |
+| **Autocomplete from your history** | Type a few letters; Sable suggests the page you actually meant, ranked by how often you go there |
+| **Customizable bookmarks** | Pin and reorder the sites you actually use, right on the new-tab page |
+| **Markdown chat** | Replies render the way you'd want — code blocks, lists, tables, links, all live |
+| **Three AI providers** | Anthropic, OpenAI, or a built-in offline model. Switch any time |
+| **Local model runs offline** | A ~1 GB on-device model for chat without the internet (and a permissive license — see below) |
+| **Themed workspaces** | Each "space" gets its own colour personality — lavender, mint, coral, amber, rose, sky, sage — light & dark inside each |
+| **First-launch setup** | Splash → tell Sable your name → pick a model. Skippable, and re-runnable with one env var |
+| **Keys stay safe** | API keys live in your OS's password store, never on disk in plain text, never visible to the page |
+| **Provably correct layout** | The pane / split / group logic is its own little library with 41 unit tests |
+| **CI on every PR** | Windows × macOS × Linux × {typecheck, tests, build} runs automatically |
 
 ---
 
@@ -92,12 +95,12 @@ Cross-platform from V0.1: **Windows, macOS, Linux**.
 +----------+-------------------------------------------------------+
 ```
 
-- **Horizontal tab strip in the titlebar** (per active space). Drag a pill to a pane edge → 5-zone overlay → split. Drag a pill **onto another pill** → group; the layout auto-splits the two side-by-side.
-- **Multi-pane mode shows mini per-pane URL bars.** The global URL bar hides; each pane carries its own focused omnibox so you always know which pane you're driving.
-- **Customizable pinned bookmarks** on the new-tab page. Add, rename, reorder.
-- **History-powered autocomplete** on both the NTP omnibox and the global URL bar — recent + frequency-weighted.
-- **Hybrid intent resolver** on the NTP omnibox. Type `yt some band` and Enter → YouTube. Type `flight sfo to nrt` → Google Flights. Type something the static rules don't know → the embedded LLM resolves it (single-flight, abortable, falls back to a Google search if uncertain).
-- Frameless chrome with platform-native controls (Win 11 snap-layouts, Mac traffic lights, Linux custom).
+- **A horizontal tab strip** at the top of the window, per active space. Drag a tab onto a pane edge to split. Drag one tab onto another to group them — Sable auto-arranges them side-by-side.
+- **Each pane gets its own little URL bar** in multi-pane mode, so you always know which pane you're typing into.
+- **Pinned bookmarks** on the new-tab page — add, rename, reorder the sites you actually use.
+- **Autocomplete in the URL bar** suggests the page you mean, based on what you visit and how often.
+- **A new-tab page that resolves what you mean.** Type `yt some band` → YouTube. Type `flight sfo to nrt` → Google Flights. Type something less obvious — the on-device model takes a swing at it and falls back to a search if it's not sure.
+- **Native-feeling window** — Windows snap layouts, Mac traffic lights, custom on Linux.
 - **Shortcuts:** `Ctrl+T` new tab · `Ctrl+N` new window · `Ctrl+W` close tab · `Ctrl+L` focus URL bar · `Ctrl+R` reload · `Ctrl+.` toggle chat sidebar · `F12` DevTools.
 
 <div align="center">
@@ -115,38 +118,38 @@ Cross-platform from V0.1: **Windows, macOS, Linux**.
 
 ### Chat that *uses* what you're browsing
 
-- **Drop anywhere in the chat sidebar** — text drops become markdown blockquote citations with the source URL; image drops are fetched bypassing renderer CORS and sent as inline multimodal content.
-- **Ctrl-click multiple tabs** in the strip → flagged with a `ctx` badge → on send, their main content is extracted, prefixed with `## Tab: <title>` blocks, token-budgeted (greedy-by-recency, hard cap 18 KB), excess shown as "Tab N excluded".
-- **All replies render as markdown** — code blocks, lists, links, tables, syntax highlighting.
-- **Resizable sidebar** with a draggable left edge.
-- Right-click a tab → quick-toggle context, **Move to space →**, close.
+- **Drop anywhere in the chat sidebar.** Text becomes a citation (markdown blockquote with the source link). Images go straight in as something the AI can see.
+- **Ctrl-click tabs** to mark them as context — they get a small badge in the strip. When you send a message, Sable pulls the main content out of each tab and packs as much as fits, telling you what didn't make it.
+- **Replies render as markdown** with code blocks, tables, lists, and live links.
+- **Resizable sidebar** — drag the left edge to give chat more or less room.
+- Right-click any tab to quick-toggle its context state, move it to another space, or close it.
 
 <div align="center">
   <img src="docs/screenshots/chat-citation-drop.png" alt="Dropping a paragraph from a page into the chat sidebar creates a markdown citation" width="780" />
   <p><sub><em>Drop a passage anywhere in the sidebar — Sable cites it back as a markdown blockquote with the source URL.</em></sub></p>
 </div>
 
-### Three providers, one streaming pipeline
+### Three AI providers, one chat
 
-| Provider | Setup | Cold start |
+| Provider | What you do | First-token feel |
 |---|---|---|
-| **Anthropic** | Paste `sk-ant-…` key in Settings → stored in OS keychain | < 100 ms first token |
-| **OpenAI** | Paste `sk-…` key in Settings | < 100 ms first token |
-| **Embedded Qwen 3** | Click **Download** in Settings → Qwen 3 (embedded) → ~1.1 GB | 1-5 sec model load on first message |
+| **Anthropic** | Paste your key in Settings | Near-instant |
+| **OpenAI** | Paste your key in Settings | Near-instant |
+| **Built-in offline model** | Click **Download** in Settings (~1.1 GB) | A second or two on the first message, then near-instant |
 
-All three stream through the same `LangGraphJS` `StateGraph`, emit standardized [AG-UI Protocol](https://docs.ag-ui.com) events (`TEXT_MESSAGE_START` / `_CONTENT` / `_END` for now; tool calls + state snapshots reserved for V1.x agentic features), and reduce into the same chat store. The orchestrator also exposes a non-streaming `oneShot()` used by the intent resolver for fast single-turn lookups.
+Switch any time. The conversation, the citations, the dropped images — all of it works the same way no matter which provider is active. Replies stream in token-by-token.
 
-### Embedded model: Qwen 3 (Apache 2.0)
+### The built-in offline model
 
-Three variants, user picks at onboarding or in Settings:
+We bundle **Qwen 3** in three sizes — pick what fits your machine at onboarding (or change later in Settings):
 
-| Variant | Size | Use case | Tok/s (CPU baseline) |
-|---|---|---|---|
-| Qwen 3 0.6B | ~400 MB | Ultra-low-end / Chromebooks | 50+ |
-| **Qwen 3 1.7B** *(default)* | ~1.1 GB | 8 GB RAM, no GPU | 25-40 |
-| Qwen 3 4B Instruct (2507) | ~2.5 GB | 16 GB RAM, higher quality | 10-18 (60+ on Metal) |
+| Variant | Size | Good for |
+|---|---|---|
+| Qwen 3 0.6B | ~400 MB | Older laptops / very modest hardware |
+| **Qwen 3 1.7B** *(default)* | ~1.1 GB | 8 GB RAM, no GPU |
+| Qwen 3 4B Instruct | ~2.5 GB | 16 GB RAM, higher quality |
 
-Why Qwen 3 over Gemma 3 / Llama 3.2: **Apache 2.0**. No MAU clause, no remote-revocation, no attribution requirement. The only clean license for a default model in a shipped consumer browser. MMLU 65.6 (1.7B) / 84.2 (4B), 256K native context, single chat template across sizes. Streams via `node-llama-cpp` (Vulkan/CUDA on Win, Metal on Mac, CUDA/Vulkan on Linux). Qwen 3's `<think>` reasoning tokens are filtered out client-side so the chat bubble shows only the answer.
+Why Qwen 3? It's released under a permissive open-source license (Apache 2.0) — no monthly-active-users cap, no attribution requirement, no kill switch. That's a rare combination among modern open-weight models, and it's what lets us ship one as the default. It runs fully on your machine, with no network needed after the download. GPU acceleration kicks in automatically if your hardware supports it.
 
 ---
 
@@ -154,70 +157,70 @@ Why Qwen 3 over Gemma 3 / Llama 3.2: **Apache 2.0**. No MAU clause, no remote-re
 
 Concrete recipes for the kind of work Sable was built for. Each one takes ~30 seconds of setup.
 
-### 1. Diff three articles on the same news story
+### 1. Compare three articles on the same news story
 
 > *"What do these three sources actually disagree on?"*
 
 1. Open three articles in three tabs.
-2. Drag tab #2 onto tab #1's pill in the strip → group; the layout auto-splits side-by-side.
-3. Drag tab #3 onto the right edge of pane #2 → 3-way split.
-4. **Ctrl-click all three pills** to add them as chat context — each gets a `ctx` badge.
+2. Drag tab #2 onto tab #1 in the strip — they group and split side-by-side.
+3. Drag tab #3 onto the right edge of pane #2 for a 3-way split.
+4. **Ctrl-click all three tabs** to add them as chat context.
 5. In the composer: *"Compare the framing across these three sources. Where do they agree? Where do they disagree? Quote the disagreements."*
 
-Sable extracts the main content from each tab, token-budgets to fit, and the LLM cites paragraph-level disagreements back as markdown with quoted excerpts.
+The reply comes back with quoted excerpts from each article, organised by point of disagreement.
 
 <div align="center">
   <img src="docs/screenshots/usecase-diff-articles.png" alt="Three articles in a tri-pane split with a chat asking about disagreements" width="820" />
 </div>
 
-### 2. Scrape a leaderboard / table into markdown
+### 2. Turn a leaderboard into a markdown table
 
-> *"Give me this table as a markdown table I can paste into a doc."*
+> *"Give me this table as something I can paste into a doc."*
 
 1. Navigate to the page with the table.
-2. **Drop a screenshot region** into the chat sidebar (or paste an image directly).
+2. **Drop the image** (or a screenshot region) into the chat sidebar.
 3. *"Convert this leaderboard into a markdown table. Columns: rank, team, score, change."*
 
-Multimodal pipeline lights up; reply renders inline as a real markdown table you can copy-paste.
+The reply comes back as a real markdown table you can copy straight into your notes.
 
 ### 3. Trip planning in one space
 
 > *"Plan a long weekend in Tokyo from May 30."*
 
-1. Make a new space named **Tokyo**, give it the **Sky** theme.
-2. On the new-tab page, type `flights sfo to nrt may 30` → hybrid intent resolver opens Google Flights with the right query.
+1. Make a new space called **Tokyo** and give it the **Sky** theme.
+2. On the new-tab page, type `flights sfo to nrt may 30` → Google Flights opens with the right query.
 3. Open weather, hotels, neighborhood guides as additional tabs.
-4. Drag the four most relevant pills together to **group** them.
-5. Ctrl-click the group → ask chat: *"Build a 4-day itinerary across these tabs. Include rough budget and one rest evening."*
+4. Drag the four most relevant tabs together to group them.
+5. Ctrl-click the group and ask chat: *"Build a 4-day itinerary across these tabs. Include rough budget and one rest evening."*
 
-Switch back to **Personal** and Tokyo is still parked, themed sky-blue, layout intact.
+Switch back to your **Personal** space and Tokyo is still parked there, sky-blue and laid out exactly as you left it.
 
 ### 4. Code review in a split pane
 
 > *"Read the diff and the docs side-by-side."*
 
-1. Left pane: GitHub PR with the diff.
-2. Drag the docs tab onto the right edge of the layout → vertical split.
-3. Mini per-pane URL bars now show; you can navigate within each pane independently.
-4. Ctrl-click both pills, ask chat: *"Does this change match the documented behavior in the right-pane spec? Any inconsistencies?"*
+1. Open the GitHub PR with the diff in the left pane.
+2. Drag the docs tab onto the right edge of the layout to split vertically.
+3. Each pane now has its own little URL bar — you can navigate independently.
+4. Ctrl-click both tabs and ask chat: *"Does this change match the documented behaviour on the right? Any inconsistencies?"*
 
 ### 5. Research drawer — drop passages, ask for synthesis
 
-> *"Synthesize what I've highlighted across five sources."*
+> *"Pull together what I've been highlighting across five sources."*
 
-1. Open five long-form sources, one per tab in a **Research** space.
-2. As you read, **drag interesting paragraphs straight into the chat sidebar** — each becomes a markdown blockquote citation with its source URL.
-3. After 8–10 drops: *"Synthesize a 5-bullet brief that traces a through-line across these citations. Keep the source links."*
+1. Open five long-form sources in a **Research** space, one per tab.
+2. As you read, **drag interesting paragraphs straight into the chat sidebar** — each becomes a citation with its source link.
+3. After 8–10 drops: *"Synthesise a 5-bullet brief that traces a through-line across these citations. Keep the source links."*
 
-The reply preserves your blockquotes inline so the brief is auditable back to the original page.
+The reply keeps your citations inline so the brief is auditable back to the original pages.
 
-### 6. Offline plane mode
+### 6. Offline on a flight
 
 > *"I'm on a long flight with no Wi-Fi."*
 
-1. Before takeoff, make sure Qwen 3 (1.7B or 4B) is downloaded in Settings.
-2. In the air, set the active provider to **Embedded Qwen 3**.
-3. Chat works fully — no outbound network needed. The intent resolver's LLM fallback runs on-device.
+1. Before takeoff, make sure the built-in offline model is downloaded in Settings.
+2. In the air, switch the active provider to it.
+3. Chat works exactly the same. No internet required.
 
 > Want a use case here that isn't listed? **Open a discussion** — workflow recipes are exactly the kind of contribution that helps shape Tier 2 *Recordable Skills*.
 
@@ -230,7 +233,7 @@ The reply preserves your blockquotes inline so the brief is auditable back to th
 
 ## Personalities — per-space themes
 
-Each Space is a **personality**: a vibrant pastel theme that re-tints every chrome surface.
+Each space is a **personality**: a pastel theme that re-tints the whole window — not just an accent stripe.
 
 | Theme | Vibe |
 |---|---|
@@ -242,11 +245,11 @@ Each Space is a **personality**: a vibrant pastel theme that re-tints every chro
 | Sky | Light & airy |
 | Sage | Earthy, neutral-warm |
 
-Each theme has a light and dark sub-mode. Pastels mix into the bg/surface ladder so the chrome never feels like a one-tag highlight — the whole window adopts the personality.
+Each theme has a light and a dark sub-mode. The pastel mixes through every surface so the window genuinely *feels* like a different room as you switch spaces.
 
-- Pick a color when creating a space.
-- Recolor any time from Settings → Spaces.
-- Light/dark toggle is a sub-mode within each theme; a future release will auto-follow OS.
+- Pick a colour when you create a space.
+- Recolour any time from Settings → Spaces.
+- Light/dark is a toggle within each theme; auto-follow-OS is on the roadmap.
 
 <div align="center">
   <img src="docs/screenshots/themes-grid.png" alt="Seven per-space themes shown side by side" width="900" />
