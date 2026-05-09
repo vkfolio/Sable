@@ -26,12 +26,19 @@ It's not a Chrome wrapper with a chat button. It's a real browser shell on Elect
 
 Cross-platform from V0.1: **Windows, macOS, Linux**.
 
+<div align="center">
+  <br />
+  <img src="docs/screenshots/hero.png" alt="Sable — multi-pane browser with chat sidebar" width="900" />
+  <p><sub><em>Three panes, one chat sidebar, all driven by your AI of choice.</em></sub></p>
+</div>
+
 ---
 
 ## Table of contents
 
 - [Highlights](#highlights)
 - [What you can do today](#what-you-can-do-today)
+- [In practice — example workflows](#in-practice--example-workflows)
 - [Personalities — per-space themes](#personalities--per-space-themes)
 - [Onboarding](#onboarding)
 - [Quickstart](#quickstart)
@@ -93,6 +100,19 @@ Cross-platform from V0.1: **Windows, macOS, Linux**.
 - Frameless chrome with platform-native controls (Win 11 snap-layouts, Mac traffic lights, Linux custom).
 - **Shortcuts:** `Ctrl+T` new tab · `Ctrl+N` new window · `Ctrl+W` close tab · `Ctrl+L` focus URL bar · `Ctrl+R` reload · `Ctrl+.` toggle chat sidebar · `F12` DevTools.
 
+<div align="center">
+  <table>
+    <tr>
+      <td align="center"><img src="docs/screenshots/tab-group-drag.png" alt="Drag a tab pill onto another pill to group" width="420" /><br /><sub><em>Drag pill → pill = group + auto-split</em></sub></td>
+      <td align="center"><img src="docs/screenshots/bsp-split.png" alt="BSP split panes with mini per-pane URL bars" width="420" /><br /><sub><em>5-zone drop overlay → arbitrary nested splits</em></sub></td>
+    </tr>
+    <tr>
+      <td align="center"><img src="docs/screenshots/ntp-intent-resolver.png" alt="NTP omnibox resolving 'flights sfo to nrt'" width="420" /><br /><sub><em>Hybrid intent resolver on the new-tab page</em></sub></td>
+      <td align="center"><img src="docs/screenshots/url-history-autocomplete.png" alt="URL bar history autocomplete dropdown" width="420" /><br /><sub><em>History-powered autocomplete in the URL bar</em></sub></td>
+    </tr>
+  </table>
+</div>
+
 ### Chat that *uses* what you're browsing
 
 - **Drop anywhere in the chat sidebar** — text drops become markdown blockquote citations with the source URL; image drops are fetched bypassing renderer CORS and sent as inline multimodal content.
@@ -100,6 +120,11 @@ Cross-platform from V0.1: **Windows, macOS, Linux**.
 - **All replies render as markdown** — code blocks, lists, links, tables, syntax highlighting.
 - **Resizable sidebar** with a draggable left edge.
 - Right-click a tab → quick-toggle context, **Move to space →**, close.
+
+<div align="center">
+  <img src="docs/screenshots/chat-citation-drop.png" alt="Dropping a paragraph from a page into the chat sidebar creates a markdown citation" width="780" />
+  <p><sub><em>Drop a passage anywhere in the sidebar — Sable cites it back as a markdown blockquote with the source URL.</em></sub></p>
+</div>
 
 ### Three providers, one streaming pipeline
 
@@ -125,6 +150,84 @@ Why Qwen 3 over Gemma 3 / Llama 3.2: **Apache 2.0**. No MAU clause, no remote-re
 
 ---
 
+## In practice — example workflows
+
+Concrete recipes for the kind of work Sable was built for. Each one takes ~30 seconds of setup.
+
+### 1. Diff three articles on the same news story
+
+> *"What do these three sources actually disagree on?"*
+
+1. Open three articles in three tabs.
+2. Drag tab #2 onto tab #1's pill in the strip → group; the layout auto-splits side-by-side.
+3. Drag tab #3 onto the right edge of pane #2 → 3-way split.
+4. **Ctrl-click all three pills** to add them as chat context — each gets a `ctx` badge.
+5. In the composer: *"Compare the framing across these three sources. Where do they agree? Where do they disagree? Quote the disagreements."*
+
+Sable extracts the main content from each tab, token-budgets to fit, and the LLM cites paragraph-level disagreements back as markdown with quoted excerpts.
+
+<div align="center">
+  <img src="docs/screenshots/usecase-diff-articles.png" alt="Three articles in a tri-pane split with a chat asking about disagreements" width="820" />
+</div>
+
+### 2. Scrape a leaderboard / table into markdown
+
+> *"Give me this table as a markdown table I can paste into a doc."*
+
+1. Navigate to the page with the table.
+2. **Drop a screenshot region** into the chat sidebar (or paste an image directly).
+3. *"Convert this leaderboard into a markdown table. Columns: rank, team, score, change."*
+
+Multimodal pipeline lights up; reply renders inline as a real markdown table you can copy-paste.
+
+### 3. Trip planning in one space
+
+> *"Plan a long weekend in Tokyo from May 30."*
+
+1. Make a new space named **Tokyo**, give it the **Sky** theme.
+2. On the new-tab page, type `flights sfo to nrt may 30` → hybrid intent resolver opens Google Flights with the right query.
+3. Open weather, hotels, neighborhood guides as additional tabs.
+4. Drag the four most relevant pills together to **group** them.
+5. Ctrl-click the group → ask chat: *"Build a 4-day itinerary across these tabs. Include rough budget and one rest evening."*
+
+Switch back to **Personal** and Tokyo is still parked, themed sky-blue, layout intact.
+
+### 4. Code review in a split pane
+
+> *"Read the diff and the docs side-by-side."*
+
+1. Left pane: GitHub PR with the diff.
+2. Drag the docs tab onto the right edge of the layout → vertical split.
+3. Mini per-pane URL bars now show; you can navigate within each pane independently.
+4. Ctrl-click both pills, ask chat: *"Does this change match the documented behavior in the right-pane spec? Any inconsistencies?"*
+
+### 5. Research drawer — drop passages, ask for synthesis
+
+> *"Synthesize what I've highlighted across five sources."*
+
+1. Open five long-form sources, one per tab in a **Research** space.
+2. As you read, **drag interesting paragraphs straight into the chat sidebar** — each becomes a markdown blockquote citation with its source URL.
+3. After 8–10 drops: *"Synthesize a 5-bullet brief that traces a through-line across these citations. Keep the source links."*
+
+The reply preserves your blockquotes inline so the brief is auditable back to the original page.
+
+### 6. Offline plane mode
+
+> *"I'm on a long flight with no Wi-Fi."*
+
+1. Before takeoff, make sure Qwen 3 (1.7B or 4B) is downloaded in Settings.
+2. In the air, set the active provider to **Embedded Qwen 3**.
+3. Chat works fully — no outbound network needed. The intent resolver's LLM fallback runs on-device.
+
+> Want a use case here that isn't listed? **Open a discussion** — workflow recipes are exactly the kind of contribution that helps shape Tier 2 *Recordable Skills*.
+
+<div align="center">
+  <img src="docs/screenshots/usecase-research-drawer.png" alt="Research drawer — many citations dropped into chat sidebar" width="820" />
+  <p><sub><em>Drop. Drop. Drop. Then ask.</em></sub></p>
+</div>
+
+---
+
 ## Personalities — per-space themes
 
 Each Space is a **personality**: a vibrant pastel theme that re-tints every chrome surface.
@@ -145,6 +248,11 @@ Each theme has a light and dark sub-mode. Pastels mix into the bg/surface ladder
 - Recolor any time from Settings → Spaces.
 - Light/dark toggle is a sub-mode within each theme; a future release will auto-follow OS.
 
+<div align="center">
+  <img src="docs/screenshots/themes-grid.png" alt="Seven per-space themes shown side by side" width="900" />
+  <p><sub><em>Seven personalities, light & dark each. The whole chrome takes the tint — not just an accent.</em></sub></p>
+</div>
+
 ---
 
 ## Onboarding
@@ -157,6 +265,16 @@ First launch:
 4. **Done** — straight into your first space.
 
 Re-run any time with `SABLE_RESET=1 pnpm shell` (clears the chrome `localStorage` so the onboarding fires again).
+
+<div align="center">
+  <table>
+    <tr>
+      <td align="center"><img src="docs/screenshots/onboarding-splash.png" alt="Onboarding splash with Sable mark" width="280" /><br /><sub><em>Splash</em></sub></td>
+      <td align="center"><img src="docs/screenshots/onboarding-name.png" alt="Onboarding name capture step" width="280" /><br /><sub><em>Name</em></sub></td>
+      <td align="center"><img src="docs/screenshots/onboarding-model.png" alt="Onboarding model download step" width="280" /><br /><sub><em>Model</em></sub></td>
+    </tr>
+  </table>
+</div>
 
 ---
 
