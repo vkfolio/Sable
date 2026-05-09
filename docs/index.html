@@ -3,12 +3,12 @@
 
 <head>
   <meta charset="utf-8" />
-  <title>Sable — A browser where chat and pages are one workspace</title>
+  <title>Sable — A browser that thinks with you, not at you</title>
   <meta name="description"
     content="An AI-first desktop browser. Free out of the box — a fast AI model is built in. Drop a paragraph into chat for an instant citation. Drag tabs together to group, or to an edge to split. Open source, MIT." />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="color-scheme" content="light dark" />
-  <meta property="og:title" content="Sable — A browser where chat and pages are one workspace" />
+  <meta property="og:title" content="Sable — A browser that thinks with you, not at you" />
   <meta property="og:description"
     content="An AI-first desktop browser. Free out of the box — built-in AI runs on your machine. Optional Anthropic / OpenAI BYOK. Open source, MIT." />
   <meta property="og:type" content="website" />
@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap"
     rel="stylesheet" />
   <style>
     /* =========================================================
@@ -403,17 +403,22 @@
 
     .hero h1 {
       margin-top: 18px;
-      font-size: clamp(40px, 6vw, 76px);
-      line-height: .98;
+      font-size: clamp(48px, 7vw, 92px);
+      line-height: .95;
       letter-spacing: -.04em;
       font-weight: 500;
-      max-width: 16ch;
+      max-width: 18ch;
     }
 
     .hero h1 em {
-      font-style: normal;
-      color: var(--acc-ink);
-      font-weight: 500;
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-style: italic;
+      font-weight: 400;
+      letter-spacing: -.02em;
+      background: linear-gradient(180deg, #FFB37A, #FF7A55);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
     }
 
     .hero p.lead {
@@ -1949,11 +1954,10 @@
       <div class="hero-bg" aria-hidden="true"></div>
       <div class="hero-inner">
         <div class="eyebrow">v1.0 alpha · open source · MIT</div>
-        <h1>A browser where chat and pages are <em>one workspace.</em></h1>
+        <h1>A browser that <em>thinks</em><br />with you, not at you.</h1>
         <p class="lead">
-          Drop a paragraph from any page into the chat sidebar — Sable cites it back automatically. Drag tabs together
-          to group them; drag them to an edge to split your view. <b>Free out of the box — a fast AI model is built
-            in</b>, with optional BYOK for Anthropic or OpenAI when you want frontier-quality answers.
+          Drag a paragraph into chat to cite it. Ctrl-click tabs to make them one context. Splits behave like your
+          editor. <b>Local model when you want privacy</b>, frontier model when you want quality.
         </p>
         <div class="hero-actions">
           <a href="https://github.com/vkfolio/Sable" class="btn primary">
