@@ -1,6 +1,6 @@
 {
   "name": "sable",
-  "version": "0.0.0",
+  "version": "0.1.0-alpha",
   "private": true,
   "description": "Sable — A browser where chat and pages are one workspace.",
   "license": "MIT",

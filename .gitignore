@@ -47,3 +47,4 @@ latest*.yml
 *.ntvs*
 *.njsproj
 *.sln
+launch-assets/release-notes-v0.1.0-alpha.md

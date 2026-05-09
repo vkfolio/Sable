@@ -112,7 +112,9 @@ From the GitHub Actions tab, run the workflow manually:
 
 ## Versioning
 
-Keep the version in `apps/shell/package.json` in sync with the git tag. electron-builder reads it from there. If they mismatch, the artifacts will say one version and the GitHub release will say another.
+Keep the version in `apps/shell/package.json` in sync with the git tag. **electron-builder reads the version from `package.json`, NOT from the git tag** — so if you tag `v0.1.0-alpha` but the package.json still says `0.0.0`, the artifacts ship as `Sable-0.0.0-x64-win.exe` and the GitHub release page is misleading. Always bump the package.json version *before* you tag.
+
+Recommended pre-flight: bump both `apps/shell/package.json` and the root `package.json` to the same version, commit that as a single `chore: bump to vX.Y.Z` commit, then tag that commit.
 
 ## When a release fails partway
 
