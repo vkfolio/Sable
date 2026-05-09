@@ -608,7 +608,11 @@ export class WindowManager {
   }
 
   private chromeIndexPath(): string {
-    // shell app path -> .../apps/shell. Sibling: ../chrome-ui/dist/index.html.
+    if (app.isPackaged) {
+      // electron-builder copies chrome-ui/dist into resources/chrome-ui/ via extraResources.
+      return path.join(process.resourcesPath, 'chrome-ui', 'index.html');
+    }
+    // Dev: shell app path -> .../apps/shell. Sibling: ../chrome-ui/dist/index.html.
     return path.join(app.getAppPath(), '..', 'chrome-ui', 'dist', 'index.html');
   }
 

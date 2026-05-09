@@ -25,6 +25,11 @@
     "shell:start": "pnpm --filter @sable/shell start",
     "shell:typecheck": "pnpm --filter @sable/shell typecheck",
     "shell": "pnpm chrome-ui:build && pnpm shell:start",
+    "package:win": "pnpm chrome-ui:build && pnpm --filter @sable/shell run package:win",
+    "package:win:dir": "pnpm chrome-ui:build && pnpm --filter @sable/shell run package:win:dir",
+    "package:mac": "pnpm chrome-ui:build && pnpm --filter @sable/shell run package:mac",
+    "package:linux": "pnpm chrome-ui:build && pnpm --filter @sable/shell run package:linux",
+    "package:all": "pnpm chrome-ui:build && pnpm --filter @sable/shell run package:all",
     "typecheck": "pnpm --recursive run typecheck",
     "test": "pnpm --recursive run test"
   }

@@ -1,0 +1,109 @@
+name: Release
+
+# Triggered by pushing a tag matching v* (e.g. `git tag v0.1.0-alpha && git push origin v0.1.0-alpha`).
+# Also runnable manually from the Actions tab via workflow_dispatch — use that for dry runs.
+#
+# What it does:
+#   - matrix builds on ubuntu-latest, macos-14 (arm64 + x64), and windows-latest
+#   - rebuilds native deps (keytar, node-llama-cpp) for Electron's ABI on each runner
+#   - bundles chrome-ui dist + native modules into the installer
+#   - uploads the artifacts as a draft GitHub Release named after the tag
+#
+# After it finishes: open the draft release in Releases, edit the notes, click Publish.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Publish a draft release? (no = artifacts only)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build · ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: win
+            artifact_glob: 'apps/shell/out/*.exe'
+          - os: macos-14
+            platform: mac
+            artifact_glob: 'apps/shell/out/*.dmg apps/shell/out/*.zip'
+          - os: ubuntu-latest
+            platform: linux
+            artifact_glob: 'apps/shell/out/*.AppImage apps/shell/out/*.deb'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.14.0
+          cache: pnpm
+
+      # Linux runners need extra packages for AppImage / deb builders.
+      - name: Install Linux build deps
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libarchive-tools rpm fakeroot dpkg
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build chrome-ui (renderer)
+        run: pnpm chrome-ui:build
+
+      - name: Run tests + typecheck
+        run: |
+          pnpm typecheck
+          pnpm test
+
+      - name: Package · ${{ matrix.platform }}
+        env:
+          # GH_TOKEN is what electron-builder reads to publish a release.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # macOS-only: skip notarization for unsigned alpha builds.
+          # Set CSC_LINK + CSC_KEY_PASSWORD secrets later if you add a Developer ID cert.
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+        run: |
+          pnpm --filter @sable/shell run ${{ (github.event_name == 'push' || inputs.publish) && format('publish:{0}', matrix.platform) || format('package:{0}', matrix.platform) }}
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sable-${{ matrix.platform }}
+          path: |
+            apps/shell/out/*.exe
+            apps/shell/out/*.dmg
+            apps/shell/out/*.zip
+            apps/shell/out/*.AppImage
+            apps/shell/out/*.deb
+            apps/shell/out/*.blockmap
+            apps/shell/out/latest*.yml
+          if-no-files-found: warn
+          retention-days: 14
