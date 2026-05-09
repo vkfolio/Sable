@@ -44,7 +44,6 @@ Available on **Windows, macOS, Linux**.
 - [What you can do today](#what-you-can-do-today)
 - [In practice — example workflows](#in-practice--example-workflows)
 - [Personalities — per-space themes](#personalities--per-space-themes)
-- [Onboarding](#onboarding)
 - [Quickstart](#quickstart)
 - [Architecture](#architecture)
 - [Tech stack](#tech-stack)
@@ -58,42 +57,28 @@ Available on **Windows, macOS, Linux**.
 
 ## Highlights
 
-| | |
-|---|---|
-| **A real browser** | Native-feeling window with the snap controls / traffic lights you already know — not a webview-in-a-window |
-| **Split panes, any depth** | Drag a tab to a pane edge to split your view. Splits nest as deep as you want; dividers drag-resize |
-| **Tab groups** | Drag one tab onto another to group them — they line up side-by-side automatically |
-| **A chat sidebar that reads what you browse** | Drop text → cited as markdown. Drop an image → the AI sees it. Ctrl-click tabs → they become one shared context |
-| **Smart new-tab page** | Type what you want and hit Enter — Sable picks the right destination even if you didn't type a URL |
-| **Autocomplete from your history** | Type a few letters; Sable suggests the page you actually meant, ranked by how often you go there |
-| **Customizable bookmarks** | Pin and reorder the sites you actually use, right on the new-tab page |
-| **Markdown chat** | Replies render the way you'd want — code blocks, lists, tables, links, all live |
-| **No API key required** | A fast AI model is built in. Free, on-device, no subscription, works offline |
-| **BYOK if you want frontier quality** | Paste an Anthropic or OpenAI key and Sable streams from those instead. Pay your provider directly. Switch any time |
-| **Themed workspaces** | Each "space" gets its own colour personality — lavender, mint, coral, amber, rose, sky, sage — light & dark inside each |
-| **First-launch setup** | Splash → tell Sable your name → pick a model. Skippable, and re-runnable with one env var |
-| **Keys stay safe** | API keys live in your OS's password store, never on disk in plain text, never visible to the page |
-| **Provably correct layout** | The pane / split / group logic is its own little library with 41 unit tests |
-| **CI on every PR** | Windows × macOS × Linux × {typecheck, tests, build} runs automatically |
+|                                               |                                                                                                                         |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| **A real browser**                            | Native-feeling window with the snap controls / traffic lights you already know — not a webview-in-a-window              |
+| **Split panes, any depth**                    | Drag a tab to a pane edge to split your view. Splits nest as deep as you want; dividers drag-resize                     |
+| **Tab groups**                                | Drag one tab onto another to group them — they line up side-by-side automatically                                       |
+| **A chat sidebar that reads what you browse** | Drop text → cited as markdown. Drop an image → the AI sees it. Ctrl-click tabs → they become one shared context         |
+| **Smart new-tab page**                        | Type what you want and hit Enter — Sable picks the right destination even if you didn't type a URL                      |
+| **Autocomplete from your history**            | Type a few letters; Sable suggests the page you actually meant, ranked by how often you go there                        |
+| **Customizable bookmarks**                    | Pin and reorder the sites you actually use, right on the new-tab page                                                   |
+| **Markdown chat**                             | Replies render the way you'd want — code blocks, lists, tables, links, all live                                         |
+| **No API key required**                       | A fast AI model is built in. Free, on-device, no subscription, works offline                                            |
+| **BYOK if you want frontier quality**         | Paste an Anthropic or OpenAI key and Sable streams from those instead. Pay your provider directly. Switch any time      |
+| **Themed workspaces**                         | Each "space" gets its own colour personality — lavender, mint, coral, amber, rose, sky, sage — light & dark inside each |
+| **First-launch setup**                        | Splash → tell Sable your name → pick a model. Skippable, and re-runnable with one env var                               |
+| **Keys stay safe**                            | API keys live in your OS's password store, never on disk in plain text, never visible to the page                       |
+| **Provably correct layout**                   | The pane / split / group logic is its own little library with 41 unit tests                                             |
+| **CI on every PR**                            | Windows × macOS × Linux × {typecheck, tests, build} runs automatically                                                  |
 
 ---
 
 ## What you can do today
 
-### Browse with a real shell
-
-```
-+------------------------------------------------------------------+
-| ◼ Sable    [ddg ✕] [wiki ✕] [github ✕] [+]          ─  □  ×      |  ← frameless titlebar + horizontal tab strip
-+------------------------------------------------------------------+
-| ‹ › ↻  https://duckduckgo.com                       [3]  💬  ⋯   |  ← global URL bar (single-pane)
-+----------+-------------------------------------------------------+
-|          |   active tab WebContentsView                          |
-|          |   (drag pill to a pane edge to split,                 |
-|   chat   |    drag pill onto another pill to group)              |
-|          |                                                       |
-+----------+-------------------------------------------------------+
-```
 
 - **A horizontal tab strip** at the top of the window, per active space. Drag a tab onto a pane edge to split. Drag one tab onto another to group them — Sable auto-arranges them side-by-side.
 - **Each pane gets its own little URL bar** in multi-pane mode, so you always know which pane you're typing into.
@@ -133,11 +118,11 @@ Available on **Windows, macOS, Linux**.
 
 Sable ships with **a free on-device AI model**. It works the moment you finish onboarding — no key to paste, no subscription, no API bill. For harder work where you want frontier-quality answers, paste an **Anthropic** or **OpenAI** key and Sable will stream from those instead. Pick the right tool per task; switch any time.
 
-| Provider | What you do | Cost |
-|---|---|---|
-| **Built-in offline model** *(default)* | Click **Download** in Settings (~1.1 GB, one-time) | **Free** — runs on your machine |
-| **Anthropic** | Paste your `sk-ant-…` key in Settings | Pay your Anthropic account directly |
-| **OpenAI** | Paste your `sk-…` key in Settings | Pay your OpenAI account directly |
+| Provider                               | What you do                                        | Cost                                |
+| -------------------------------------- | -------------------------------------------------- | ----------------------------------- |
+| **Built-in offline model** *(default)* | Click **Download** in Settings (~1.1 GB, one-time) | **Free** — runs on your machine     |
+| **Anthropic**                          | Paste your `sk-ant-…` key in Settings              | Pay your Anthropic account directly |
+| **OpenAI**                             | Paste your `sk-…` key in Settings                  | Pay your OpenAI account directly    |
 
 The conversation, the citations, the dropped images — everything works the same way no matter which provider is active. Replies stream in real time. Sable never charges you anything; if you use Anthropic or OpenAI, you're billed by them on your own account.
 
@@ -145,11 +130,11 @@ The conversation, the citations, the dropped images — everything works the sam
 
 We bundle **Qwen 3** in three sizes — pick what fits your machine at onboarding (or change later in Settings):
 
-| Variant | Size | Good for |
-|---|---|---|
-| Qwen 3 0.6B | ~400 MB | Older laptops / very modest hardware |
-| **Qwen 3 1.7B** *(default)* | ~1.1 GB | 8 GB RAM, no GPU |
-| Qwen 3 4B Instruct | ~2.5 GB | 16 GB RAM, higher quality |
+| Variant                     | Size    | Good for                             |
+| --------------------------- | ------- | ------------------------------------ |
+| Qwen 3 0.6B                 | ~400 MB | Older laptops / very modest hardware |
+| **Qwen 3 1.7B** *(default)* | ~1.1 GB | 8 GB RAM, no GPU                     |
+| Qwen 3 4B Instruct          | ~2.5 GB | 16 GB RAM, higher quality            |
 
 Why Qwen 3? It's released under a permissive open-source license (Apache 2.0) — no monthly-active-users cap, no attribution requirement, no kill switch. That's a rare combination among modern open-weight models, and it's what lets us ship one as the default. It runs fully on your machine, with no network needed after the download. GPU acceleration kicks in automatically if your hardware supports it.
 
@@ -172,7 +157,7 @@ Concrete recipes for the kind of work Sable was built for. Each one takes ~30 se
 The reply comes back with quoted excerpts from each article, organised by point of disagreement.
 
 <div align="center">
-  <img src="docs/screenshots/usecase-diff-articles.png" alt="Three articles in a tri-pane split with a chat asking about disagreements" width="820" />
+  <img src="docs/screenshots/hero.png" alt="Three articles in a tri-pane split with a chat asking about disagreements" width="820" />
 </div>
 
 ### 2. Turn a leaderboard into a markdown table
@@ -237,15 +222,15 @@ The reply keeps your citations inline so the brief is auditable back to the orig
 
 Each space is a **personality**: a pastel theme that re-tints the whole window — not just an accent stripe.
 
-| Theme | Vibe |
-|---|---|
+| Theme    | Vibe                 |
+| -------- | -------------------- |
 | Lavender | Default — calm focus |
-| Mint | Fresh, low-stim |
-| Coral | Warm, energizing |
-| Amber | Notebook / archival |
-| Rose | Reading / writing |
-| Sky | Light & airy |
-| Sage | Earthy, neutral-warm |
+| Mint     | Fresh, low-stim      |
+| Coral    | Warm, energizing     |
+| Amber    | Notebook / archival  |
+| Rose     | Reading / writing    |
+| Sky      | Light & airy         |
+| Sage     | Earthy, neutral-warm |
 
 Each theme has a light and a dark sub-mode. The pastel mixes through every surface so the window genuinely *feels* like a different room as you switch spaces.
 
@@ -256,29 +241,6 @@ Each theme has a light and a dark sub-mode. The pastel mixes through every surfa
 <div align="center">
   <img src="docs/screenshots/themes-grid.png" alt="Seven per-space themes shown side by side" width="900" />
   <p><sub><em>Seven personalities, light & dark each. The whole chrome takes the tint — not just an accent.</em></sub></p>
-</div>
-
----
-
-## Onboarding
-
-First launch:
-
-1. **Splash** — full-screen CSS animation of the Sable mark.
-2. **Name** — what should Sable call you? Used in greetings, persisted to chrome state.
-3. **Model** — choose a recommended local model (Qwen 3 1.7B by default). Skip if you're a BYOK user; you can still paste an Anthropic / OpenAI key in Settings.
-4. **Done** — straight into your first space.
-
-Re-run any time with `SABLE_RESET=1 pnpm shell` (clears the chrome `localStorage` so the onboarding fires again).
-
-<div align="center">
-  <table>
-    <tr>
-      <td align="center"><img src="docs/screenshots/onboarding-splash.png" alt="Onboarding splash with Sable mark" width="280" /><br /><sub><em>Splash</em></sub></td>
-      <td align="center"><img src="docs/screenshots/onboarding-name.png" alt="Onboarding name capture step" width="280" /><br /><sub><em>Name</em></sub></td>
-      <td align="center"><img src="docs/screenshots/onboarding-model.png" alt="Onboarding model download step" width="280" /><br /><sub><em>Model</em></sub></td>
-    </tr>
-  </table>
 </div>
 
 ---
@@ -376,22 +338,22 @@ SABLE_RESET=1 pnpm shell   # wipe chrome localStorage (re-trigger onboarding)
 
 ## Tech stack
 
-| Layer | Choice | Why |
-|---|---|---|
-| Shell | **Electron 33** + `WebContentsView` per tab | Native Windows, real Chromium, `webContents.startDrag`, free DevTools |
-| Lang | **TypeScript** end-to-end | |
-| Build | **Vite 6** + **electron-vite** + tsc | |
-| UI | **React 18** + **Tailwind 3** + **Zustand 5** + **Framer Motion** + **Heroicons** | |
-| IPC | typed `contextBridge` + `ipcMain.handle` | end-to-end typed renderer ↔ main |
-| Chat orchestration | **LangGraphJS** (StateGraph + streamEvents v2) | extensible for tool calls / RAG / interrupts |
-| Provider adapters | `@langchain/anthropic`, `@langchain/openai` | drop-in chat models |
-| Event protocol | **[`@ag-ui/core`](https://docs.ag-ui.com)** | standardized agent-frontend events |
-| OS keychain | **`keytar`** | Win Credential Manager / macOS Keychain / libsecret |
-| Embedded LLM | **`node-llama-cpp`** + **Qwen 3** GGUF | Apache 2.0, multi-backend (Metal / Vulkan / CUDA / CPU) |
-| Layout engine | **`@sable/layout-engine`** (pure TS, in-repo) | 41 unit tests, zero deps |
-| Markdown | **react-markdown** + **remark-gfm** | streamed chat rendering |
-| Tab content extraction | inline JS via `executeJavaScript` (Mozilla Readability + Defuddle planned) | |
-| Future agent control | **CDP** via `webContents.debugger` | Playwright-quality |
+| Layer                  | Choice                                                                            | Why                                                                   |
+| ---------------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| Shell                  | **Electron 33** + `WebContentsView` per tab                                       | Native Windows, real Chromium, `webContents.startDrag`, free DevTools |
+| Lang                   | **TypeScript** end-to-end                                                         |                                                                       |
+| Build                  | **Vite 6** + **electron-vite** + tsc                                              |                                                                       |
+| UI                     | **React 18** + **Tailwind 3** + **Zustand 5** + **Framer Motion** + **Heroicons** |                                                                       |
+| IPC                    | typed `contextBridge` + `ipcMain.handle`                                          | end-to-end typed renderer ↔ main                                      |
+| Chat orchestration     | **LangGraphJS** (StateGraph + streamEvents v2)                                    | extensible for tool calls / RAG / interrupts                          |
+| Provider adapters      | `@langchain/anthropic`, `@langchain/openai`                                       | drop-in chat models                                                   |
+| Event protocol         | **[`@ag-ui/core`](https://docs.ag-ui.com)**                                       | standardized agent-frontend events                                    |
+| OS keychain            | **`keytar`**                                                                      | Win Credential Manager / macOS Keychain / libsecret                   |
+| Embedded LLM           | **`node-llama-cpp`** + **Qwen 3** GGUF                                            | Apache 2.0, multi-backend (Metal / Vulkan / CUDA / CPU)               |
+| Layout engine          | **`@sable/layout-engine`** (pure TS, in-repo)                                     | 41 unit tests, zero deps                                              |
+| Markdown               | **react-markdown** + **remark-gfm**                                               | streamed chat rendering                                               |
+| Tab content extraction | inline JS via `executeJavaScript` (Mozilla Readability + Defuddle planned)        |                                                                       |
+| Future agent control   | **CDP** via `webContents.debugger`                                                | Playwright-quality                                                    |
 
 ---
 
