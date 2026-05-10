@@ -2092,7 +2092,10 @@
         </div>
         <p class="hero-warning">
           ⚠ Unsigned alpha — Windows SmartScreen / macOS Gatekeeper will warn on first launch.
-          Click <em>More info → Run anyway</em> on Windows, or right-click the app → <em>Open</em> on macOS. Code-signing lands with the Tier 1 polish pass.
+          On Windows, click <em>More info → Run anyway</em>.
+          On macOS, if you see <strong>"Sable is damaged and can't be opened"</strong>, drag Sable into <em>/Applications</em> and then run this once in Terminal:
+          <em>xattr -cr /Applications/Sable.app</em>
+          Double-click Sable after that and it'll launch normally. Code-signing + notarization land with the Tier 1 polish pass.
         </p>
         <div class="hero-chips">
           <span class="chip ok">Free out of the box</span>

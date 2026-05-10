@@ -38,6 +38,25 @@ Available on **Windows and macOS**.
 
 ---
 
+## Download
+
+Grab the latest installer from **[Releases](https://github.com/vkfolio/Sable/releases/latest)**:
+
+- **Windows** — `Sable-<version>-x64-win.exe`
+- **macOS (Apple Silicon)** — `Sable-<version>-arm64-mac.dmg`
+- **macOS (Intel)** — `Sable-<version>-x64-mac.dmg`
+
+> ⚠ **Unsigned alpha.** Windows SmartScreen / macOS Gatekeeper will flag the app on first launch. Code-signing + Apple notarization arrive with the Tier 1 polish pass.
+>
+> - **Windows** — click *More info → Run anyway* on the SmartScreen prompt.
+> - **macOS** — if you see *"Sable is damaged and can't be opened"*, drag Sable into `/Applications` and then run this once in Terminal:
+>   ```bash
+>   xattr -cr /Applications/Sable.app
+>   ```
+>   That clears the `com.apple.quarantine` flag macOS adds to anything downloaded from the internet. Double-click Sable after that and it launches normally — no further re-blessing needed.
+
+---
+
 ## Table of contents
 
 - [Highlights](#highlights)
