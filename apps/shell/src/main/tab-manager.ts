@@ -103,7 +103,10 @@ export class TabManager {
     this.wireEvents(id, view);
     if (!isNewTab) {
       view.webContents.loadURL(initialUrl).catch((err) => {
-        // navigation errors are normal (typo in url, etc); surface as title.
+        // ERR_ABORTED (-3) and friends fire when redirects / our own re-
+        // navigations / view detachments cancel a load — these aren't real
+        // failures. Only surface user-actionable errors as the tab title.
+        if (isExpectedAbort(err)) return;
         this.update(id, { loading: false, title: `Failed: ${err.message}` });
       });
     }
@@ -127,10 +130,19 @@ export class TabManager {
 
   navigate(id: TabId, url: string): void {
     const entry = this.tabs.get(id);
-    if (!entry) return;
+    if (!entry) {
+      // Renderer asked us to navigate a tab that doesn't exist — usually a
+      // race where the tab was closed milliseconds before the navigate IPC
+      // landed. Log so we can spot this in dev; renderer should fall back
+      // to creating a new tab.
+      process.stderr.write(`[tabs] navigate ignored — unknown tab ${id} → ${url}\n`);
+      return;
+    }
     this.update(id, { lastActiveAt: Date.now(), url, loading: url !== 'sable://newtab' });
     if (url === 'sable://newtab') return;
     entry.view.webContents.loadURL(url).catch((err) => {
+      // Same filter as the initial-load handler — ignore expected cancels.
+      if (isExpectedAbort(err)) return;
       this.update(id, { loading: false, title: `Failed: ${err.message}` });
     });
   }
@@ -343,8 +355,12 @@ export class TabManager {
     wc.on('did-start-loading', () => this.update(id, { loading: true }));
     wc.on('did-stop-loading', () => this.update(id, { loading: false, ...this.navState(id) }));
     wc.on('did-navigate', (_e, url) => {
+      // Update tab state but DO NOT record history here — `did-navigate`
+      // fires for every step in a redirect chain (e.g. DDG's `?q=foo` →
+      // `?q=foo&ia=web` shows up as two separate entries). Recording is
+      // delegated to `page-title-updated` + `did-navigate-in-page`, which
+      // only fire once the final URL settles.
       this.update(id, { url, ...this.navState(id) });
-      this.recordHistory(id);
     });
     wc.on('did-navigate-in-page', (_e, url) => {
       this.update(id, { url, ...this.navState(id) });
@@ -389,6 +405,25 @@ export class TabManager {
 
 function wait(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
+}
+
+/**
+ * Filter Chromium net errors that aren't real failures from the user's
+ * perspective:
+ *
+ *   -3   ERR_ABORTED            navigation canceled (redirect chain, our
+ *                                own re-navigation, view detachment when
+ *                                switching spaces, user hitting Stop)
+ *   -100 ERR_CONNECTION_CLOSED  often emitted when a redirect happens
+ *                                before the original response finishes
+ *
+ * loadURL.catch fires on these and the message format is
+ * `(<code>) loading '<url>'`. Surfacing them as `Failed: …` in the tab
+ * title is misleading — the load is fine, it just got superseded.
+ */
+function isExpectedAbort(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err ?? '');
+  return /^\(-3\) /.test(msg) || /^\(-100\) /.test(msg);
 }
 
 /**

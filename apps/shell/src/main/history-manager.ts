@@ -36,9 +36,12 @@ export class HistoryManager {
    * refine it once `page-title-updated` fires.
    */
   record(input: { url: string; title?: string }): void {
-    const url = (input.url || '').trim();
-    if (!url) return;
-    if (SKIP_SCHEMES.some((s) => url.startsWith(s))) return;
+    const raw = (input.url || '').trim();
+    if (!raw) return;
+    if (SKIP_SCHEMES.some((s) => raw.startsWith(s))) return;
+    // Canonicalize so URLs that differ only by tracking params collapse to
+    // the same entry — most common offender is DDG's `ia=web` redirect.
+    const url = canonicalizeUrl(raw);
     const existing = this.entries.get(url);
     const title = (input.title ?? existing?.title ?? hostname(url)).slice(0, 280);
     const next: HistoryEntry = existing
@@ -157,5 +160,57 @@ function hostname(url: string): string {
     return new URL(url).hostname || url;
   } catch {
     return url;
+  }
+}
+
+/**
+ * Strip known tracking + redirect params so URLs that differ only by these
+ * collapse into one history entry. Conservative list — anything that's
+ * meaningful to the page (search query, article id, etc.) is left alone.
+ */
+const TRACKING_PARAMS = new Set([
+  // DDG's "I came from a redirect" marker — what causes the
+  // `?q=foo` vs `?q=foo&ia=web` duplicate when typing in the URL bar
+  'ia',
+  // Google Analytics + ad campaign tracking
+  'utm_source',
+  'utm_medium',
+  'utm_campaign',
+  'utm_content',
+  'utm_term',
+  'gclid',
+  'gbraid',
+  'wbraid',
+  // Facebook click identifier
+  'fbclid',
+  // Mailchimp campaign tracking
+  'mc_cid',
+  'mc_eid',
+  // Misc referral
+  'ref',
+  'ref_src',
+  'ref_url',
+]);
+
+function canonicalizeUrl(raw: string): string {
+  try {
+    const u = new URL(raw);
+    let changed = false;
+    // URLSearchParams.delete during iteration is safe in modern engines
+    // since v17; iterate over a copied list to be defensive.
+    const keys = [...u.searchParams.keys()];
+    for (const k of keys) {
+      if (TRACKING_PARAMS.has(k.toLowerCase())) {
+        u.searchParams.delete(k);
+        changed = true;
+      }
+    }
+    if (!changed) return raw;
+    // Rebuild without trailing `?` if all params were stripped.
+    const search = u.searchParams.toString();
+    u.search = search ? `?${search}` : '';
+    return u.toString();
+  } catch {
+    return raw;
   }
 }

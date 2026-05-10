@@ -134,7 +134,14 @@ export function Ntp() {
 
   const navigateTo = async (url: string) => {
     setQuery('');
-    if (activeTab) await window.sable.tabs.navigate(activeTab.id, url);
+    if (activeTab) {
+      await window.sable.tabs.navigate(activeTab.id, url);
+    } else {
+      // No active tab — happens when the user closed the only tab and
+      // PaneArea fell back to rendering the NTP full-bleed. Without this
+      // branch, hitting Enter on the NTP omnibox is a silent no-op.
+      await window.sable.tabs.create(url);
+    }
   };
 
   const navigateActive = async () => {

@@ -25,7 +25,7 @@ Thumbs.db
 
 # Local models (downloaded at first run, ~2-3 GB)
 models/
-
+videorem/
 # User data when running locally
 userData/
 
@@ -48,3 +48,4 @@ latest*.yml
 *.njsproj
 *.sln
 launch-assets/release-notes-v0.1.0-alpha.md
+launch-video-script.md

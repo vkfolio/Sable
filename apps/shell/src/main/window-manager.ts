@@ -107,8 +107,25 @@ export class WindowManager {
     this.layout = layout;
     this.chat = chat;
 
-    chrome.webContents.on('console-message', (_e, _level, message) => {
-      process.stdout.write(`[chrome] ${message}\n`);
+    // Electron 33 changed the `console-message` event signature from
+    // (event, level, message, line, sourceId) to (event, details). Probe
+    // both shapes so renderer console.log/error reaches the main process
+    // stdout regardless of upstream version drift.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    chrome.webContents.on('console-message' as any, (...args: any[]) => {
+      const last = args[args.length - 1];
+      let message: string | undefined;
+      if (typeof args[2] === 'string') {
+        // Old (event, level, message, ...) signature
+        message = args[2];
+      } else if (last && typeof last === 'object' && typeof last.message === 'string') {
+        // New (event, details) signature — details is the last arg
+        message = last.message;
+      } else if (args[0] && typeof args[0].message === 'string') {
+        // Some 33+ builds emit details as the first arg
+        message = args[0].message;
+      }
+      if (message) process.stdout.write(`[chrome] ${message}\n`);
     });
 
     // Auto-open DevTools only when SABLE_DEV is set. F12 toggles it

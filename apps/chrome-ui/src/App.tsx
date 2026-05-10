@@ -59,6 +59,10 @@ export function App() {
     });
 
     useTabsStore.getState().setBootstrapped();
+    // Pull current tab + active state from main; otherwise events fired
+    // BEFORE this useEffect ran (e.g. the initial sable://newtab open during
+    // boot) are lost and `selectActiveTab` returns undefined indefinitely.
+    void useTabsStore.getState().refresh();
     void useSettingsStore.getState().refresh();
     void useLocalModelStore.getState().refresh();
     void useSpacesStore.getState().refresh();

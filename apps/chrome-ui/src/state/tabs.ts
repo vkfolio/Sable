@@ -17,6 +17,10 @@ type TabsStore = {
   /** Re-key the tabsById map so iteration order matches `orderedIds`. Tabs
    *  not in `orderedIds` (shouldn't happen in practice) are dropped. */
   setTabOrder: (orderedIds: readonly TabId[]) => void;
+  /** Pull current tab list + active id from main. Necessary on bootstrap
+   *  because main eagerly opens the initial tab BEFORE App's useEffect
+   *  subscribes — those events would otherwise be missed. */
+  refresh: () => Promise<void>;
 };
 
 export const useTabsStore = create<TabsStore>((set) => ({
@@ -36,7 +40,13 @@ export const useTabsStore = create<TabsStore>((set) => ({
       if (!s.tabsById.has(id)) return s;
       const next = new Map(s.tabsById);
       next.delete(id);
-      return { tabsById: next };
+      // Clear stale activeTabId so selectors that look up the tab by id don't
+      // hand callers a phantom reference. Main will broadcast the real next
+      // active id moments later via TabsActiveChanged — until then, null is
+      // the truthful answer and forces navigate() callers down the
+      // tabs.create() path instead of tabs.navigate(unknown_id).
+      const nextActive = s.activeTabId === id ? null : s.activeTabId;
+      return { tabsById: next, activeTabId: nextActive };
     }),
 
   setActive: (id) => set({ activeTabId: id }),
@@ -55,6 +65,16 @@ export const useTabsStore = create<TabsStore>((set) => ({
       for (const [id, t] of s.tabsById) if (!next.has(id)) next.set(id, t);
       return { tabsById: next };
     }),
+
+  refresh: async () => {
+    const [list, active] = await Promise.all([
+      window.sable.tabs.list(),
+      window.sable.tabs.getActive(),
+    ]);
+    const tabsById = new Map<TabId, TabState>();
+    for (const t of list) tabsById.set(t.id, t);
+    set({ tabsById, activeTabId: active });
+  },
 }));
 
 // Selectors — keep components from re-rendering on unrelated state changes.
