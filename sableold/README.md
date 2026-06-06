@@ -16,10 +16,6 @@
   <img alt="contributions welcome" src="https://img.shields.io/badge/contributions-welcome-ff8fa3?style=flat-square" />
 </p>
 
-<p>
-  <a href="https://www.producthunt.com/products/sable-2?embed=true&amp;utm_source=badge-featured&amp;utm_medium=badge&amp;utm_campaign=badge-sable-3" target="_blank" rel="noopener noreferrer"><img alt="Sable - A browser that thinks with you, not at you | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1142937&amp;theme=light&amp;t=1778408605773" /></a>
-</p>
-
 </div>
 
 ---
